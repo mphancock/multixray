@@ -1,0 +1,33 @@
+params_file    /home/matthew/xray/benchmark_score_rmsd/2h2z_clean_c121_1/params.txt
+decoy_file     /home/matthew/xray/benchmark_score_rmsd/data/decoys/2h2z_N_1000_N_struct_1.txt
+ref_file       /home/matthew/xray/data/pdbs/2h2z_clean.pdb
+cif_file       /home/matthew/xray/data/reflections/2h2z_clean_c121_synth_exp.cif
+uc_dim         (108.406, 81.75, 53.553, 90.0, 104.7, 90.0)
+sg             C 1 2 1
+score_f        ml
+rmsds_file     /home/matthew/xray/benchmark_score_rmsd/2h2z_clean_c121_1/rmsds_0.p
+scores_file    /home/matthew/xray/benchmark_score_rmsd/2h2z_clean_c121_1/scores_0.p
+
+
+params_file    /home/matthew/xray/benchmark_score_rmsd/2h2z_clean_c121_1/params.txt
+decoy_file     /home/matthew/xray/benchmark_score_rmsd/data/decoys/2h2z_N_1000_N_struct_1.txt
+ref_file       /home/matthew/xray/data/pdbs/2h2z_clean.pdb
+cif_file       /home/matthew/xray/data/reflections/2h2z_clean_c121_synth_exp.cif
+uc_dim         (108.406, 81.75, 53.553, 90.0, 104.7, 90.0)
+sg             C 1 2 1
+score_f        ls
+rmsds_file     /home/matthew/xray/benchmark_score_rmsd/2h2z_clean_c121_1/rmsds_1.p
+scores_file    /home/matthew/xray/benchmark_score_rmsd/2h2z_clean_c121_1/scores_1.p
+
+
+params_file    /home/matthew/xray/benchmark_score_rmsd/2h2z_clean_c121_1/params.txt
+decoy_file     /home/matthew/xray/benchmark_score_rmsd/data/decoys/2h2z_N_1000_N_struct_1.txt
+ref_file       /home/matthew/xray/data/pdbs/2h2z_clean.pdb
+cif_file       /home/matthew/xray/data/reflections/2h2z_clean_c121_synth_exp.cif
+uc_dim         (108.406, 81.75, 53.553, 90.0, 104.7, 90.0)
+sg             C 1 2 1
+score_f        rf
+rmsds_file     /home/matthew/xray/benchmark_score_rmsd/2h2z_clean_c121_1/rmsds_2.p
+scores_file    /home/matthew/xray/benchmark_score_rmsd/2h2z_clean_c121_1/scores_2.p
+
+

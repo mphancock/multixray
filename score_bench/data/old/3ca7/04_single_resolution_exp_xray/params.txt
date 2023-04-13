@@ -1,0 +1,56 @@
+params_file    /wynton/home/sali/mhancock/xray/score_bench/out/3ca7/single_resolution_exp_xray/params.txt
+decoys_dir     /wynton/home/sali/mhancock/xray/decoys/data/3ca7/3ca7_N_1000_x1_xray
+native_pdb_file/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_clean.pdb
+native_cif_file/wynton/home/sali/mhancock/xray/data/reflections/3ca7/3ca7.cif
+min_res        0.0
+uc_dim         (58.305, 36.154, 25.362, 90.0, 103.09, 90.0)
+sg             C 1 2 1
+w_xray         30000.0
+score_fs       ['tot', 'rmsd']
+scores_file    /wynton/home/sali/mhancock/xray/score_bench/out/3ca7/single_resolution_exp_xray/scores_0.csv
+add_native     True
+test           False
+
+
+params_file    /wynton/home/sali/mhancock/xray/score_bench/out/3ca7/single_resolution_exp_xray/params.txt
+decoys_dir     /wynton/home/sali/mhancock/xray/decoys/data/3ca7/3ca7_N_1000_x1_xray
+native_pdb_file/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_clean.pdb
+native_cif_file/wynton/home/sali/mhancock/xray/data/reflections/3ca7/3ca7.cif
+min_res        2.0
+uc_dim         (58.305, 36.154, 25.362, 90.0, 103.09, 90.0)
+sg             C 1 2 1
+w_xray         30000.0
+score_fs       ['tot', 'rmsd']
+scores_file    /wynton/home/sali/mhancock/xray/score_bench/out/3ca7/single_resolution_exp_xray/scores_1.csv
+add_native     True
+test           False
+
+
+params_file    /wynton/home/sali/mhancock/xray/score_bench/out/3ca7/single_resolution_exp_xray/params.txt
+decoys_dir     /wynton/home/sali/mhancock/xray/decoys/data/3ca7/3ca7_N_1000_x1_xray
+native_pdb_file/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_clean.pdb
+native_cif_file/wynton/home/sali/mhancock/xray/data/reflections/3ca7/3ca7.cif
+min_res        3.0
+uc_dim         (58.305, 36.154, 25.362, 90.0, 103.09, 90.0)
+sg             C 1 2 1
+w_xray         30000.0
+score_fs       ['tot', 'rmsd']
+scores_file    /wynton/home/sali/mhancock/xray/score_bench/out/3ca7/single_resolution_exp_xray/scores_2.csv
+add_native     True
+test           False
+
+
+params_file    /wynton/home/sali/mhancock/xray/score_bench/out/3ca7/single_resolution_exp_xray/params.txt
+decoys_dir     /wynton/home/sali/mhancock/xray/decoys/data/3ca7/3ca7_N_1000_x1_xray
+native_pdb_file/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_clean.pdb
+native_cif_file/wynton/home/sali/mhancock/xray/data/reflections/3ca7/3ca7.cif
+min_res        4.0
+uc_dim         (58.305, 36.154, 25.362, 90.0, 103.09, 90.0)
+sg             C 1 2 1
+w_xray         30000.0
+score_fs       ['tot', 'rmsd']
+scores_file    /wynton/home/sali/mhancock/xray/score_bench/out/3ca7/single_resolution_exp_xray/scores_3.csv
+add_native     True
+test           False
+
+

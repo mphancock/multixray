@@ -1,0 +1,56 @@
+params_file    /home/matthew/xray/score_bench/out/3ca7/single_resolution_exp/params.txt
+decoys_dir     /home/matthew/xray/decoys/data/decoy_sets/3ca7/3ca7_N_1000_x1
+native_pdb_file/home/matthew/xray/data/pdbs/3ca7/3ca7_clean.pdb
+native_cif_file/home/matthew/xray/data/reflections/3ca7/3ca7.cif
+min_res        None
+uc_dim         (58.305, 36.154, 25.362, 90.0, 103.09, 90.0)
+sg             C 1 2 1
+w_xray         10000.0
+score_fs       ['tot', 'rmsd']
+scores_file    /home/matthew/xray/score_bench/out/3ca7/single_resolution_exp/scores_0.p
+add_native     True
+test           False
+
+
+params_file    /home/matthew/xray/score_bench/out/3ca7/single_resolution_exp/params.txt
+decoys_dir     /home/matthew/xray/decoys/data/decoy_sets/3ca7/3ca7_N_1000_x1
+native_pdb_file/home/matthew/xray/data/pdbs/3ca7/3ca7_clean.pdb
+native_cif_file/home/matthew/xray/data/reflections/3ca7/3ca7.cif
+min_res        2.0
+uc_dim         (58.305, 36.154, 25.362, 90.0, 103.09, 90.0)
+sg             C 1 2 1
+w_xray         10000.0
+score_fs       ['tot', 'rmsd']
+scores_file    /home/matthew/xray/score_bench/out/3ca7/single_resolution_exp/scores_1.p
+add_native     True
+test           False
+
+
+params_file    /home/matthew/xray/score_bench/out/3ca7/single_resolution_exp/params.txt
+decoys_dir     /home/matthew/xray/decoys/data/decoy_sets/3ca7/3ca7_N_1000_x1
+native_pdb_file/home/matthew/xray/data/pdbs/3ca7/3ca7_clean.pdb
+native_cif_file/home/matthew/xray/data/reflections/3ca7/3ca7.cif
+min_res        3.0
+uc_dim         (58.305, 36.154, 25.362, 90.0, 103.09, 90.0)
+sg             C 1 2 1
+w_xray         10000.0
+score_fs       ['tot', 'rmsd']
+scores_file    /home/matthew/xray/score_bench/out/3ca7/single_resolution_exp/scores_2.p
+add_native     True
+test           False
+
+
+params_file    /home/matthew/xray/score_bench/out/3ca7/single_resolution_exp/params.txt
+decoys_dir     /home/matthew/xray/decoys/data/decoy_sets/3ca7/3ca7_N_1000_x1
+native_pdb_file/home/matthew/xray/data/pdbs/3ca7/3ca7_clean.pdb
+native_cif_file/home/matthew/xray/data/reflections/3ca7/3ca7.cif
+min_res        4.0
+uc_dim         (58.305, 36.154, 25.362, 90.0, 103.09, 90.0)
+sg             C 1 2 1
+w_xray         10000.0
+score_fs       ['tot', 'rmsd']
+scores_file    /home/matthew/xray/score_bench/out/3ca7/single_resolution_exp/scores_3.p
+add_native     True
+test           False
+
+

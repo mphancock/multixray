@@ -1,0 +1,84 @@
+params_file    /home/matthew/xray/score_bench/out/1ejg/single_weight/params.txt
+decoys_dir     /home/matthew/xray/decoys/data/decoy_sets/1ejg/1ejg_N_1000_x1
+native_pdb_file/home/matthew/xray/data/pdbs/1ejg/1ejg_heavy.pdb
+native_cif_file/home/matthew/xray/data/reflections/1ejg/1ejg_heavy.cif
+min_res        1.5
+uc_dim         (40.824, 18.498, 22.371, 90.0, 90.47, 90.0)
+sg             P 1 21 1
+w_xray         1
+score_f        tot
+rmsds_file     /home/matthew/xray/score_bench/out/1ejg/single_weight/rmsds_0.p
+scores_file    /home/matthew/xray/score_bench/out/1ejg/single_weight/scores_0.p
+add_native     True
+
+
+params_file    /home/matthew/xray/score_bench/out/1ejg/single_weight/params.txt
+decoys_dir     /home/matthew/xray/decoys/data/decoy_sets/1ejg/1ejg_N_1000_x1
+native_pdb_file/home/matthew/xray/data/pdbs/1ejg/1ejg_heavy.pdb
+native_cif_file/home/matthew/xray/data/reflections/1ejg/1ejg_heavy.cif
+min_res        1.5
+uc_dim         (40.824, 18.498, 22.371, 90.0, 90.47, 90.0)
+sg             P 1 21 1
+w_xray         10
+score_f        tot
+rmsds_file     /home/matthew/xray/score_bench/out/1ejg/single_weight/rmsds_1.p
+scores_file    /home/matthew/xray/score_bench/out/1ejg/single_weight/scores_1.p
+add_native     True
+
+
+params_file    /home/matthew/xray/score_bench/out/1ejg/single_weight/params.txt
+decoys_dir     /home/matthew/xray/decoys/data/decoy_sets/1ejg/1ejg_N_1000_x1
+native_pdb_file/home/matthew/xray/data/pdbs/1ejg/1ejg_heavy.pdb
+native_cif_file/home/matthew/xray/data/reflections/1ejg/1ejg_heavy.cif
+min_res        1.5
+uc_dim         (40.824, 18.498, 22.371, 90.0, 90.47, 90.0)
+sg             P 1 21 1
+w_xray         100
+score_f        tot
+rmsds_file     /home/matthew/xray/score_bench/out/1ejg/single_weight/rmsds_2.p
+scores_file    /home/matthew/xray/score_bench/out/1ejg/single_weight/scores_2.p
+add_native     True
+
+
+params_file    /home/matthew/xray/score_bench/out/1ejg/single_weight/params.txt
+decoys_dir     /home/matthew/xray/decoys/data/decoy_sets/1ejg/1ejg_N_1000_x1
+native_pdb_file/home/matthew/xray/data/pdbs/1ejg/1ejg_heavy.pdb
+native_cif_file/home/matthew/xray/data/reflections/1ejg/1ejg_heavy.cif
+min_res        1.5
+uc_dim         (40.824, 18.498, 22.371, 90.0, 90.47, 90.0)
+sg             P 1 21 1
+w_xray         1000
+score_f        tot
+rmsds_file     /home/matthew/xray/score_bench/out/1ejg/single_weight/rmsds_3.p
+scores_file    /home/matthew/xray/score_bench/out/1ejg/single_weight/scores_3.p
+add_native     True
+
+
+params_file    /home/matthew/xray/score_bench/out/1ejg/single_weight/params.txt
+decoys_dir     /home/matthew/xray/decoys/data/decoy_sets/1ejg/1ejg_N_1000_x1
+native_pdb_file/home/matthew/xray/data/pdbs/1ejg/1ejg_heavy.pdb
+native_cif_file/home/matthew/xray/data/reflections/1ejg/1ejg_heavy.cif
+min_res        1.5
+uc_dim         (40.824, 18.498, 22.371, 90.0, 90.47, 90.0)
+sg             P 1 21 1
+w_xray         10000
+score_f        tot
+rmsds_file     /home/matthew/xray/score_bench/out/1ejg/single_weight/rmsds_4.p
+scores_file    /home/matthew/xray/score_bench/out/1ejg/single_weight/scores_4.p
+add_native     True
+
+
+params_file    /home/matthew/xray/score_bench/out/1ejg/single_weight/params.txt
+decoys_dir     /home/matthew/xray/decoys/data/decoy_sets/1ejg/1ejg_N_1000_x1
+native_pdb_file/home/matthew/xray/data/pdbs/1ejg/1ejg_heavy.pdb
+native_cif_file/home/matthew/xray/data/reflections/1ejg/1ejg_heavy.cif
+min_res        1.5
+uc_dim         (40.824, 18.498, 22.371, 90.0, 90.47, 90.0)
+sg             P 1 21 1
+w_xray         100000
+score_f        tot
+rmsds_file     /home/matthew/xray/score_bench/out/1ejg/single_weight/rmsds_5.p
+scores_file    /home/matthew/xray/score_bench/out/1ejg/single_weight/scores_5.p
+add_native     True
+
+

@@ -1,0 +1,10 @@
+output_dir     /wynton/home/sali/mhancock/xray/sample_bench/out/test/output_0
+hs             ["/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_clean.pdb: 1" ]
+rs             ["RestraintSet 0", "xray"]
+T              300.0
+t_step         2
+steps          -1
+sa_sched       0
+o_states       ["LogStatistics0", "CopyOptimizerState0", "CenterOfMassOptimizerState0", "LogStatistics1"]
+
+

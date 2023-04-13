@@ -1,0 +1,13 @@
+output_dir     /wynton/home/sali/mhancock/xray/dev/02_test_com_restraint/output_0
+tmp_output_dir None
+h              "/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_clean.pdb: " 
+rs             ["RestraintSet 0", "CenterOfMassRestraint0", "xray"]
+T              3000
+t_step         2
+steps          5000
+sa_sched       None
+all_trackers   [<trackers.StepTracker object at 0x7fc027da6fd0>, <trackers.TimeTracker object at 0x7fc02b7fd490>, <trackers.RMSDTracker object at 0x7fc027da6610>, <trackers.RMSDTracker object at 0x7fc027da64d0>, <trackers.fTracker object at 0x7fc027da7050>, <trackers.fTracker object at 0x7fc027da7110>]
+pdb_write_freq 10
+log_file       None
+
+
