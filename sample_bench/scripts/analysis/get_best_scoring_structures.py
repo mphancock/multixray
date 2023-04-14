@@ -37,17 +37,5 @@ if __name__ == "__main__":
         print(min_tot_score_pdb_id, min_tot_score)
         orig_pdb_file = Path(pdb_dir, "{}.pdb".format(min_tot_score_pdb_id))
 
-        # pdb_stat_df.loc[out_id, "out_id"] = out_id
-        # pdb_stat_df.loc[out_id, "pdb_file"] = orig_pdb_file
-        # pdb_stat_df.loc[out_id, "total"] = min_tot_score
-        # pdb_stat_df.loc[out_id, "xray"] = log_df.loc[int(min_tot_score_pdb_id)*10+10, "xray"]
-        # pdb_stat_df.loc[out_id, "ff"] = log_df.loc[int(min_tot_score_pdb_id)*10+10, "ff"]
-        # pdb_stat_df.loc[out_id, "rmsd"] = log_df.loc[int(min_tot_score_pdb_id)*10+10, "rmsd"]
-
         new_pdb_file = Path(Path.home(), "xray/sample_bench/data/analysis/{}/best_score/pdbs/{}.pdb".format(job_name, out_id))
         shutil.copy(orig_pdb_file, new_pdb_file)
-
-    # pdb_stat_df.to_csv(Path(Path.home(), "xray/sample_bench/data/analysis/{}/best_score/pdb_stat_df.csv".format(job_name)))
-
-
-

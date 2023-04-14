@@ -25,13 +25,10 @@ def write_merge_pdb_file(
         n,
         order
 ):
-    # print(pdb_files)
-    # pdb_dir = pdb_files[0].parents[0]
-    # print(pdb_dir, len(pdb_files))
-
     hs_all = list()
     ms_all = list()
-    # Need to iterate through by index in order to ensure that MD frames are ordered.
+
+    pdb_files_order = list()
 
     if order:
         pdb_ids = [int(pdb_file.stem) for pdb_file in pdb_files]
@@ -43,13 +40,17 @@ def write_merge_pdb_file(
         else:
             max_it = n
 
-    for i in range(len(pdb_files)):
-        pdb_file = pdb_files[i]
+        pdb_dir = pdb_files[0].parents[0]
+        for i in range(pdb_min, max_it):
+            pdb_files_order.append(Path(pdb_dir, "{}.pdb".format(i)))
+
+    else:
+        pdb_files_order = pdb_files
+
+    for i in range(len(pdb_files_order)):
+        pdb_file = pdb_files_order[i]
         print(pdb_file)
-    # for i in range(pdb_min, max_it+1):
-    #     pdb_file = Path(pdb_dir, "{}.pdb".format(i))
         m = IMP.Model()
-        # h = IMP.atom.read_pdb(str(pdb_file), m)
 
         hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m)
 
@@ -66,24 +67,15 @@ def write_merge_pdb_file(
     IMP.atom.write_multimodel_pdb(hs_all, str(merge_pdb_file))
 
 
-def write_merge_pdb_file_from_multistate_output(
-        merge_pdb_file,
-        pdb_files,
-        occs,
-        n,
-        order
-):
-    return 0
-
-
 if __name__ == "__main__":
-    for n_state in [2,4,8,16,32]:
-        pdb_files = [Path(Path.home(), "xray/data/pdbs/3ca7/3ca7_clean.pdb")]*n_state
-        out_file = Path(Path.home(), "xray/data/pdbs/3ca7/3ca7_clean_x{}.pdb".format(n_state))
-        write_merge_pdb_file(
-            merge_pdb_file=out_file,
-            pdb_files=pdb_files,
-            occs=[1]*n_state,
-            n=-1,
-            order=False
-        )
+
+    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/39_32/2504728/output_0/pdbs")
+    pdb_files = list(pdb_dir.glob("*.pdb"))
+    out_file = Path(Path.home(), "xray/tmp/0.pdb")
+    write_merge_pdb_file(
+        merge_pdb_file=out_file,
+        pdb_files=pdb_files,
+        occs=[1]*len(pdb_files),
+        n=-1,
+        order=True
+    )

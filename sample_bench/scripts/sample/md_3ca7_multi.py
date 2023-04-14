@@ -140,13 +140,13 @@ if __name__ == "__main__":
     pdb_ostate.set_period(10)
     o_states.append(pdb_ostate)
 
-    copy_o_state = copy_optimizer_state.CopyOptimizerState(
-        m=m,
-        source_dir=tmp_pdb_dir,
-        dest_dir=pdb_dir
-    )
-    copy_o_state.set_period(100)
-    o_states.append(copy_o_state)
+    # copy_o_state = copy_optimizer_state.CopyOptimizerState(
+    #     m=m,
+    #     source_dir=tmp_pdb_dir,
+    #     dest_dir=pdb_dir
+    # )
+    # copy_o_state.set_period(100)
+    # o_states.append(copy_o_state)
 
     if args.com == "os":
         for h in hs:
@@ -212,7 +212,7 @@ if __name__ == "__main__":
         m=m,
         all_trackers=all_trackers,
         log_file=log_file,
-        log_freq=250
+        log_freq=10
     )
     o_states.append(log_ostate)
 

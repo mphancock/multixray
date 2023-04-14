@@ -129,12 +129,15 @@ def score(
                 d_min=res
             )
 
-            status_array = miller_ops.get_miller_array(
-                f_obs_file=flags_file,
-                label="_refln.status"
-            )
-            flags_array = status_array.customized_copy(data=status_array.data()=="f")
-            f_obs, r_free_flags = f_obs.common_sets(other=flags_array)
+            if flags_file:
+                status_array = miller_ops.get_miller_array(
+                    f_obs_file=flags_file,
+                    label="_refln.status"
+                )
+                flags_array = status_array.customized_copy(data=status_array.data()=="f")
+                f_obs, r_free_flags = f_obs.common_sets(other=flags_array)
+            else:
+                r_free_flags = None
 
             score, grads = cctbx_score.get_score(
                 m=m_decoy,

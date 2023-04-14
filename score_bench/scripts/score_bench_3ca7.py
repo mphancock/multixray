@@ -30,7 +30,8 @@ if __name__ == "__main__":
     ref_dir = Path(xray_dir, "data/pdbs")
 
     # Decoy is the directory containing the decoy files.
-    pdb_files = list(Path(args.pdb_dir).glob("*.pdb"))
+    # pdb_files = list(Path(args.pdb_dir).glob("*.pdb"))
+    pdb_files = list()
 
     native_pdb_file = Path(xray_dir, "data/pdbs/3ca7/3ca7_clean.pdb")
     native_cif_file = Path(args.cif_file)
