@@ -62,8 +62,10 @@ class XtalRestraint(IMP.Restraint):
         self.df_dxs = dict()
         for pid in pids:
             self.df_dxs[pid] = IMP.algebra.Vector3D(0,0,0)
-
         self.score = 0
+        self.r_free = 0
+        self.r_work = 0
+        self.r_all = 0
 
         self.xray_structure = xray_struct.get_xray_structure(
             m=self.get_model(),
@@ -105,20 +107,17 @@ class XtalRestraint(IMP.Restraint):
     def get_f(self):
         return self.score
 
+    def get_r_free(self):
+        return self.r_free
+
+    def get_r_work(self):
+        return self.r_work
+
+    def get_r_all(self):
+        return self.r_all
+
     def do_add_score_and_derivatives(self, sa):
-        # get_df_mag_ratio returns the ratio of the magnitudes of r1 to r2.
-        # print("EVAL")
-
-        # score, df_dx = cctbx_scores.get_score(
-        #     m=self.get_model(),
-        #     uc_dim=self.uc_dim,
-        #     sg_symbol=self.sg_symbol,
-        #     cif_file=self.f_obs_file,
-        #     res=self.d_min,
-        #     target_name=self.target
-        # )
-
-        score, df_dx = cctbx_score.get_score(
+        results_dict = cctbx_score.get_score(
             m=self.get_model(),
             uc_dim=self.uc_dim,
             sg_symbol=self.sg_symbol,
@@ -126,6 +125,12 @@ class XtalRestraint(IMP.Restraint):
             r_free_flags=self.flags,
             target=self.target
         )
+
+        score = results_dict["score"]
+        df_dx = results_dict["grads"]
+        r_work = results_dict["r_work"]
+        r_free = results_dict["r_free"]
+        r_all = results_dict["r_all"]
 
         dff_dx_dict = dict()
         dff_avg_mag = 0
@@ -137,10 +142,7 @@ class XtalRestraint(IMP.Restraint):
             dff_avg_mag = dff_avg_mag + d.get_derivatives().get_magnitude()
 
             if sa.get_derivative_accumulator():
-                # df_dx_vec_3d = IMP.algebra.Vector3D(df_dx[i][0], df_dx[i][1], df_dx[i][2])
                 df_dx_vec_3d = IMP.algebra.Vector3D(df_dx[i*3], df_dx[i*3+1], df_dx[i*3+2])
-
-                # d.add_to_derivatives(df_dx_vec_3d, sa.get_derivative_accumulator())
 
                 # Store the derivative.
                 self.df_dxs[pid] = df_dx_vec_3d
@@ -169,6 +171,9 @@ class XtalRestraint(IMP.Restraint):
         sa.add_score(score)
         # Store the score.
         self.score = score
+        self.r_free = r_free
+        self.r_work = r_work
+        self.r_all = r_all
 
     def do_get_inputs(self):
         return [self.get_model().get_particle(pid) for pid in self.pids]

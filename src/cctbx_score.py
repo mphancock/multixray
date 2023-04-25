@@ -33,11 +33,7 @@ def get_score(
     )
 
     r_factor_target = False
-    if target in ["r_work", "r_all", "r_free"]:
-        target_name = "ml"
-        r_factor_target = True
-    else:
-        target_name = target
+    target_name = target
 
     f_model_manager = mmtbx.f_model.manager(
         xray_structure=xray_structure,
@@ -47,15 +43,9 @@ def get_score(
     )
     f_model_manager.update_all_scales()
 
-    if r_factor_target:
-        if target == "r_work":
-            r_factor = f_model_manager.r_work()
-        elif target == "r_free":
-            r_factor = f_model_manager.r_free()
-        else:
-            r_factor = f_model_manager.r_all()
-
-        return r_factor, None
+    r_work = f_model_manager.r_work()
+    r_free = f_model_manager.r_free()
+    r_all = f_model_manager.r_all()
 
     fmodels = mmtbx.fmodels(fmodel_xray=f_model_manager)
     fmodels.update_xray_structure(
@@ -67,4 +57,11 @@ def get_score(
     score = fmodels_target_and_gradients.target()
     grads = fmodels_target_and_gradients.gradients()
 
-    return score, grads
+    results_dict = dict()
+    results_dict["score"] = score
+    results_dict["grads"] = grads
+    results_dict["r_work"] = r_work
+    results_dict["r_free"] = r_free
+    results_dict["r_all"] = r_all
+
+    return results_dict

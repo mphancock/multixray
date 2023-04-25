@@ -150,6 +150,36 @@ class fTracker(Tracker):
             return self.r.evaluate(False)
 
 
+# Stat must be one of the following: r_free, r_work, r_all.
+class RFactorTracker(Tracker):
+    def __init__(
+            self,
+            name,
+            r_xray,
+            stat
+    ):
+        Tracker.__init__(
+            self,
+            name=name,
+            m=r_xray.get_model(),
+            n=1
+        )
+        self.r_xray = r_xray
+        self.stat = stat
+
+    def evaluate(
+            self
+    ):
+        if self.stat == "r_free":
+            return self.r_xray.get_r_free()
+        elif self.stat == "r_work":
+            return self.r_xray.get_r_work()
+        elif self.stat == "r_all":
+            return self.r_xray.get_r_all()
+        else:
+            raise RuntimeError("Incorrect stat type. Must be one of the following: r_free, r_work, r_all.")
+
+
 class dfdXYZTracker(Tracker):
     def __init__(
             self,
