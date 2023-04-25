@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
-from log_file_analysis import get_stat_df
+from get_stat_df import get_stat_df
 
 
 class TestGetStatDF(unittest.TestCase):
