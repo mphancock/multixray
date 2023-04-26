@@ -48,13 +48,19 @@ def get_stat_from_log_files(
             continue
         log_dfs.append(log_df[equil:])
 
-    merege_log_df = pd.concat(log_dfs)
-
-    field, stat, log_stat, stat_id = get_stat_from_log_df(
-        log_df=merege_log_df,
-        field=field,
-        stat=stat
-    )
+    # Return np.nan if there are no log files or the length of the merged log file is 0.
+    if len(log_dfs) == 0:
+        log_stat, stat_id = np.nan, np.nan
+    else:
+        merge_log_df = pd.concat(log_dfs)
+        if len(merge_log_df) == 0:
+            log_stat, stat_id = np.nan, np.nan
+        else:
+            log_stat, stat_id = get_stat_from_log_df(
+                    log_df=merge_log_df,
+                    field=field,
+                    stat=stat
+                )
 
     return log_files, field, stat, log_stat, stat_id
 
@@ -74,23 +80,28 @@ def get_stat_from_log_df(
     if field == "tot":
         log_df["tot"] = 30000*log_df["xray"] + log_df["ff"]
 
-    stat_id = None
-    if stat == "min":
-        log_stat = log_df[field].min()
-        stat_id = log_df[field].idxmin()
-    elif stat == "max":
-        log_stat = log_df[field].max()
-        stat_id = log_df[field].idxmax()
-    elif stat == "mean":
-        log_stat = log_df[field].mean()
-    elif stat == "std":
-        log_stat = log_df[field].std()
-    elif stat == "var":
-        log_stat = log_df[field].var()
+    stat_id = np.nan
+    if field not in log_df.columns:
+        log_stat = np.nan
     else:
-        raise RuntimeError("Invalid stat selection: {}".format(stat))
+        if stat == "min":
+            log_stat = log_df[field].min()
+            stat_id = log_df[field].idxmin()
+        elif stat == "max":
+            log_stat = log_df[field].max()
+            stat_id = log_df[field].idxmax()
+        elif stat == "mean":
+            log_stat = log_df[field].mean()
+        elif stat == "std":
+            log_stat = log_df[field].std()
+        elif stat == "var":
+            log_stat = log_df[field].var()
+        else:
+            log_stat = np.nan
+    # else:
+    #     raise RuntimeError("Invalid stat selection: {}".format(stat))
 
-    return field, stat, log_stat, stat_id
+    return log_stat, stat_id
 
 
 """
@@ -106,12 +117,10 @@ def get_stat_df(
         log_file_groups,
         fields,
         stats,
-        equil,
-        include_id
+        equil
 ):
-    for stat in stats:
-        if stat not in ["min", "max", "mean", "std", "var"]:
-            raise RuntimeError("Invalid stat selection: {}".format(stat))
+    if len(fields) != len(stats):
+        raise RuntimeError("The number of fields ({}) does not match the number of stats ({})".format(len(fields), len(stats)))
 
     n_fields = len(fields)
 
@@ -120,7 +129,7 @@ def get_stat_df(
     for i in range(n_fields):
         column = "{}_{}".format(fields[i], stats[i])
         columns.append(column)
-        if stats[i] in ["min", "max"] and include_id:
+        if stats[i] in ["min", "max"]:
             columns.append("{}_id".format(column))
 
     indices = [str(group) for group in log_file_groups]
@@ -156,38 +165,9 @@ def get_stat_df(
         entry = str(log_files)
         log_stat_df.loc[entry, column] = log_stat
 
-        if stat_id and include_id:
-            log_stat_df.loc[entry, log_stat_df.columns.get_loc("{}_id".format(column))] = stat_id
+        id_column = "{}_id".format(column)
+        if id_column in log_stat_df.columns:
+            log_stat_df.loc[entry, id_column] = stat_id
 
     pool_obj.close()
     return log_stat_df
-
-
-# if __name__ == "__main__":
-#     job_dir_1 = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/46_w_xray/0")
-#     job_dir_2 = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/46_w_xray/1")
-
-#     for log_file in job_dir.glob("output_*/log.csv"):
-#         log_file_groups = list()
-#         log_file_groups.append([log_file])
-
-#         log_stat_df = get_stat_df(
-#             log_file_groups=log_file_groups,
-#             fields=["xray"],
-#             stats=["mean"],
-#             equil=1000,
-#             include_id=True
-#         )
-
-#         print(log_stat_df.head())
-
-#     log_file_groups = [tuple(job_dir_1.glob("output_*/log.csv")), tuple(job_dir_2.glob("output_*/log.csv"))]
-#     log_stat_df = get_stat_df(
-#         log_file_groups=log_file_groups,
-#         fields=["xray"],
-#         stats=["mean"],
-#         equil=1000,
-#         include_id=True
-#     )
-
-#     print(log_stat_df.head())
