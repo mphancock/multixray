@@ -7,8 +7,7 @@ from pathlib import Path
 import numpy as np
 import sys
 
-sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
-import sample_average
+import average_structure
 
 
 # Align pdb file 1 to pdb file 2 and save to pdb file 3.
@@ -118,7 +117,7 @@ def get_pdb_weight(
 
 
 """
-Given 2 sets of IMP hierarchies, the function returns the minimum weighted RMSD between the 2 sets of structures. All possible sets of partners between the first and second set are tested. The weighted RMSD is computed as the weighted sum of the matched partner structures based on the weight of the first structure. 
+Given 2 sets of IMP hierarchies, the function returns the minimum weighted RMSD between the 2 sets of structures. All possible sets of partners between the first and second set are tested. The weighted RMSD is computed as the weighted sum of the matched partner structures based on the weight of the first structure.
 """
 def compute_min_weighted_rmsd(
         hs_1,
@@ -158,17 +157,17 @@ def compute_min_weighted_rmsd(
     return min_rmsd
 
 """
-Given 2 sets of IMP hierarchies, the function returns the RMSD of the average structure of each set of hierarchies. This allows RMSD to be computed between sets of hierarchies of unequal size (eg, a decoy multi-state structure against a single-state native). 
+Given 2 sets of IMP hierarchies, the function returns the RMSD of the average structure of each set of hierarchies. This allows RMSD to be computed between sets of hierarchies of unequal size (eg, a decoy multi-state structure against a single-state native).
 """
 def compute_rmsd_between_average(
         hs_1,
         hs_2
 ):
-    avg_dict_1 = sample_average.get_coord_avg_dict(
+    avg_dict_1 = average_structure.get_coord_avg_dict(
         hs=hs_1
     )
 
-    avg_dict_2 = sample_average.get_coord_avg_dict(
+    avg_dict_2 = average_structure.get_coord_avg_dict(
         hs=hs_2
     )
 
@@ -185,31 +184,80 @@ def compute_rmsd_between_average(
     return rmsd
 
 # Compute the root mean squared deviation between 2 IMP models.
-def compute_rmsd(
-        h,
-        h_0,
-        align=False
+def pool_compute_rmsd(
+        params
 ):
-    m = h.get_model()
+    pdb_file_0 = params["pdb_file_0"]
+    pdb_file_1 = params["pdb_file_1"]
+
+    m_0, m_1 = IMP.Model(), IMP.Model()
+    h_0 = IMP.atom.read_pdb(str(pdb_file_0), m_0, IMP.atom.AllPDBSelector())
+    h_1 = IMP.atom.read_pdb(str(pdb_file_1), m_1, IMP.atom.AllPDBSelector())
+
+    rmsd = compute_rmsd(
+        h_0=h_0,
+        h_1=h_1
+    )
+
+    return rmsd, pdb_file_0, pdb_file_1
+
+def compute_rmsd(
+        h_0,
+        h_1
+):
     m_0 = h_0.get_model()
+    m_1 = h_1.get_model()
 
-    pids = IMP.atom.Selection(h).get_selected_particle_indexes()
     pids_0 = IMP.atom.Selection(h_0).get_selected_particle_indexes()
+    pids_1 = IMP.atom.Selection(h_1).get_selected_particle_indexes()
 
-    xyzs = [IMP.core.XYZR(m, pid) for pid in pids]
-    xyzs_0 = [IMP.core.XYZR(m_0, pid_0) for pid_0 in pids_0]
+    xyzs_0 = [IMP.core.XYZR(m_0, pid) for pid in pids_0]
+    xyzs_1 = [IMP.core.XYZR(m_1, pid) for pid in pids_1]
 
-    if len(xyzs_0) != len(xyzs):
-        raise RuntimeError("Length of reference XYZs ({}) and model XYZs ({}) are not equal".format(len(xyzs_0), len(xyzs)))
+    rmsd = IMP.atom.get_rmsd(xyzs_0, xyzs_1)
 
-    if align:
-        trans_align = IMP.algebra.get_transformation_aligning_first_to_second(
-            source=[xyz.get_coordinates() for xyz in xyzs],
-            target=[xyz.get_coordinates() for xyz in xyzs_0]
-        )
-        rmsd = IMP.atom.get_rmsd_transforming_first(trans_align, xyzs, xyzs_0)
-    else:
-        rmsd = IMP.atom.get_rmsd(xyzs, xyzs_0)
+    return rmsd
+
+
+def pool_compute_rmsd_aligning_first_to_second(
+        params
+):
+    pdb_file_0 = params["pdb_file_0"]
+    pdb_file_1 = params["pdb_file_1"]
+
+    m_0, m_1 = IMP.Model(), IMP.Model()
+    h_0 = IMP.atom.read_pdb(str(pdb_file_0), m_0, IMP.atom.AllPDBSelector())
+    h_1 = IMP.atom.read_pdb(str(pdb_file_1), m_1, IMP.atom.AllPDBSelector())
+
+    rmsd = compute_rmsd_aligning_first_to_second(
+        h_0=h_0,
+        h_1=h_1
+    )
+
+    return rmsd
+
+
+def compute_rmsd_aligning_first_to_second(
+        h_0,
+        h_1
+):
+    m_0 = h_0.get_model()
+    m_1 = h_1.get_model()
+
+    pids_0 = IMP.atom.Selection(h_0).get_selected_particle_indexes()
+    pids_1 = IMP.atom.Selection(h_1).get_selected_particle_indexes()
+
+    xyzs_0 = [IMP.core.XYZR(m_0, pid) for pid in pids_0]
+    xyzs_1 = [IMP.core.XYZR(m_1, pid) for pid in pids_1]
+
+    if len(xyzs_0) != len(xyzs_1):
+        raise RuntimeError("Length of reference XYZs ({}) and model XYZs ({}) are not equal".format(len(xyzs_0), len(xyzs_1)))
+
+    t_align = IMP.algebra.get_transformation_aligning_first_to_second(
+        source=[xyz.get_coordinates() for xyz in xyzs_0],
+        target=[xyz.get_coordinates() for xyz in xyzs_1]
+    )
+    rmsd = IMP.atom.get_rmsd_transforming_first(t_align, xyzs_0, xyzs_1)
 
     return rmsd
 
