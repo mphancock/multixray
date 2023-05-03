@@ -1,6 +1,6 @@
-.DS_STORE
-*/.DS_STORE
 .idea
 .vscode
 **/.DS_Store
+.DS_Store
+
 **/tmp
