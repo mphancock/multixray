@@ -23,11 +23,7 @@ def get_stat_from_log_df(
         N
 ):
     field_stat_df = pd.DataFrame(columns=["field", "stat", "value", "log", "id"])
-
-    # 3 error cases to eturn nan entries: if the field is not in the log_df, if the log_df is empty, or if the stat is not invalid.
-    if field not in log_df.columns:
-        field_stat_df.loc[0] = [field, stat, np.nan, np.nan, np.nan]
-    elif len(log_df) == 0:
+    if len(log_df) == 0:
         field_stat_df.loc[0] = [field, stat, np.nan, np.nan, np.nan]
     else:
         if stat in ["min", "max"]:
@@ -73,14 +69,17 @@ def pool_get_stat_from_log_files(
     offset = params_dict["offset"]
 
     # print(log_files, equil, field, stat)
-    log_files, field_stat_df = get_stat_from_log_files(
-        log_files=log_files,
-        equil=equil,
-        field=field,
-        stat=stat,
-        N=N,
-        offset=offset
-    )
+    try:
+        log_files, field_stat_df = get_stat_from_log_files(
+            log_files=log_files,
+            equil=equil,
+            field=field,
+            stat=stat,
+            N=N,
+            offset=offset
+        )
+    except Exception as e:
+        return e
 
     return log_files, field_stat_df
 
@@ -101,16 +100,28 @@ def get_stat_from_log_files(
             log_df = pd.read_csv(log_file)
             log_df["log"] = [log_file]*len(log_df)
             log_df["id"] = list(log_df.index)
+            log_dfs.append(log_df[equil::offset])
         except pd.errors.EmptyDataError:
+            # raise RuntimeError("Log file {} is empty".format(log_file))
             continue
-        log_dfs.append(log_df[equil::offset])
 
     # Return np.nan if there are no log files or the length of the merged log file is 0.
     if len(log_dfs) == 0:
-        field_stat_df = pd.DataFrame(columns=["field", "stat", "value", "log", "id"])
-        field_stat_df.loc[0] = [field, stat, np.nan, np.nan, np.nan]
+        raise RuntimeError("No valid log files!")
     else:
         merge_log_df = pd.concat(log_dfs)
+
+        # 3 error cases to eturn nan entries: if the field is not in the log_df, if the log_df is empty, or if the stat is not invalid.
+        if field not in log_df.columns:
+            # field_stat_df.loc[0] = [field, stat, np.nan, np.nan, np.nan]
+            raise RuntimeError("Field {} not in log_df".format(field))
+        # if len(merge_log_df) == 0:
+        #     # field_stat_df.loc[0] = [field, stat, np.nan, np.nan, np.nan]
+        #     raise RuntimeError("log_df is empty")
+        if stat not in ["min", "max", "mean", "std", "var"]:
+            # field_stat_df.loc[0] = [field, stat, np.nan, np.nan, np.nan]
+            raise RuntimeError("Stat {} not valid".format(stat))
+
         field_stat_df = get_stat_from_log_df(
                 log_df=merge_log_df,
                 field=field,
@@ -166,9 +177,23 @@ def get_stat_df(
     indices = [str(group) for group in log_file_groups]
     log_stat_df = pd.DataFrame(index=indices, columns=columns)
 
+    # If there is only a single file group and a single min or max stat, then partition the single file group into batches to distribute computation.
+    fast = False
+    if len(log_file_groups) == 1 and len(stats) == 1 and stats[0] in ["min", "max"]:
+        fast = True
+
+        if multiprocessing.cpu_count() > len(log_file_groups[0]):
+            n_batches = len(log_file_groups[0])
+        else:
+            n_batches = multiprocessing.cpu_count()
+
+        log_file_groups_tmp = np.array_split(log_file_groups[0], n_batches)
+    else:
+        log_file_groups_tmp = log_file_groups
+
     # Iterate through each group of log files to distribute the calculation of a each field, stat pair.
     pool_params = list()
-    for log_file_group in log_file_groups:
+    for log_file_group in log_file_groups_tmp:
         # For each field, stat pair, create a pool_param.
         for i in range(n_fields):
             pool_param = dict()
@@ -180,30 +205,65 @@ def get_stat_df(
             pool_param["offset"] = offset
             pool_params.append(pool_param)
 
-    # print("CPUs: {}".format(multiprocessing.cpu_count()))
-    pool_obj = multiprocessing.Pool(
-        multiprocessing.cpu_count()
-    )
-
+    # Collect all of the field stat dfs and log file groups that are truned by get_stat_from_log_files. The field stat dfs will be used to populate the final stat df. The format of the field stat dfs has the following columns: field, stat, value, log, id. The df will only have more than one row if the stat is either "max" or "min" and N>1.
+    all_pool_results = list()
     if test:
-        pool_results = list()
         for pool_param in pool_params:
-            pool_results.append(pool_get_stat_from_log_files(pool_param))
+            all_pool_results.append(pool_get_stat_from_log_files(pool_param))
     else:
+        pool_obj = multiprocessing.Pool(
+            multiprocessing.cpu_count()
+        )
+
         pool_results = pool_obj.imap(
             pool_get_stat_from_log_files,
             pool_params
         )
 
-    # Iterate through the pool results and fill in the stat_df.
-    # print(log_stat_df.head())
-    for log_files, field_stat_df in pool_results:
-        # print(field_stat_df.head())
+        for result in pool_results:
+            if isinstance(result, Exception):
+                pool_obj.close()
+                raise result
+            else:
+                all_pool_results.append(result)
+
+    # If the fast flag is turned on, then the field_stat_dfs, and log_files need to be merged.
+    field_stat_dfs = list()
+    result_log_file_groups = list()
+
+    if fast:
+        batch_field_stat_dfs = list()
+        for result in all_pool_results:
+            batch_log_files, batch_field_stat_df = result
+            batch_field_stat_dfs.append(batch_field_stat_df)
+
+        # Merge the batch field stat dfs into a single field stat df
+        merge_field_stat_df = pd.concat(batch_field_stat_dfs)
+        stat = stats[0]
+        if stat == "min":
+            field_stat_df = merge_field_stat_df.nsmallest(N, "value")
+        elif stat == "max":
+            field_stat_df = merge_field_stat_df.nlargest(N, "value")
+        else:
+            raise RuntimeError("Something has gone wrong")
+
+        # There is only one log file group
+        result_log_file_groups.append(log_file_groups[0])
+        field_stat_dfs.append(field_stat_df)
+    else:
+        for result in all_pool_results:
+            log_file_group, field_stat_df = result
+            field_stat_dfs.append(field_stat_df)
+            result_log_file_groups.append(log_file_group)
+
+    for i in range(len(field_stat_dfs)):
+        log_file_group = result_log_file_groups[i]
+        field_stat_df = field_stat_dfs[i]
+
         field = field_stat_df.iloc[0]["field"]
         stat = field_stat_df.iloc[0]["stat"]
 
-        entry = str(log_files)
-
+        entry = str(log_file_group)
         for i in range(len(field_stat_df)):
             if stat in ["min", "max"]:
                 col = "{}_{}_{}".format(field, stat, i)
@@ -223,5 +283,7 @@ def get_stat_df(
                 log_stat_df.loc[entry, log_file_col] = log_file
                 log_stat_df.loc[entry, id_col] = entry_id
 
-    pool_obj.close()
+    if not test:
+        pool_obj.close()
+
     return log_stat_df
