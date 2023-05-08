@@ -13,7 +13,8 @@ if __name__ == "__main__":
     parser.add_argument("--min_res", type=float)
     parser.add_argument("--w_xray", type=float)
     parser.add_argument("--score_file")
-    parser.add_argument("--include_native", type=int)
+    parser.add_argument("--add_native", action="store_true")
+    parser.add_argument("--param_file")
     parser.add_argument("--test", action="store_true")
     args = parser.parse_args()
     print(args.pdb_dir)
@@ -21,7 +22,8 @@ if __name__ == "__main__":
     print(args.min_res)
     print(args.w_xray)
     print(args.score_file)
-    print(args.include_native)
+    print(args.add_native)
+    print(args.param_file)
     print(args.test)
 
     xray_dir = Path(Path.home(), "xray")
@@ -30,10 +32,18 @@ if __name__ == "__main__":
     ref_dir = Path(xray_dir, "data/pdbs")
 
     # Decoy is the directory containing the decoy files.
-    # pdb_files = list(Path(args.pdb_dir).glob("*.pdb"))
-    pdb_files = list()
+    pdb_files = list(Path(args.pdb_dir).glob("*.pdb"))
+
+    if args.test:
+        pdb_files = pdb_files[:1]
+
+    # pdb_files = list()
 
     native_pdb_file = Path(xray_dir, "data/pdbs/3ca7/3ca7_clean.pdb")
+
+    if args.add_native:
+        pdb_files.append(native_pdb_file)
+
     native_cif_file = Path(args.cif_file)
     flags_file = native_cif_file
 
@@ -47,12 +57,10 @@ if __name__ == "__main__":
     score_fs.append("total")
     score_fs.append("rmsd")
 
-    # params_file = Path(job_dir, "params.txt")
-    # if job_id == 0:
     #     params_file.unlink(missing_ok=True)
 
     score_rmsd.score_vs_rmsd(
-        params_file=None,
+        params_file=args.param_file,
         pdb_files=pdb_files,
         native_pdb_file=native_pdb_file,
         native_cif_file=native_cif_file,
@@ -62,7 +70,5 @@ if __name__ == "__main__":
         sg=sg,
         w_xray=args.w_xray,
         score_fs=score_fs,
-        scores_file=args.score_file,
-        add_native=args.include_native,
-        test=False
+        scores_file=args.score_file
     )

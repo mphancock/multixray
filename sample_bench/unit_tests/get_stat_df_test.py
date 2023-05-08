@@ -3,7 +3,7 @@ import pandas as pd
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(Path.home(), "Documents/xray/sample_bench/src")))
+sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
 from get_stat_df import get_stat_df
 
 
@@ -11,7 +11,7 @@ class TestGetStatDF(unittest.TestCase):
 
     def setUp(self):
         # Create sample input values for testing
-        self.data_path = Path(Path.home(), "Documents/xray/sample_bench/data/test")
+        self.data_path = Path(Path.home(), "xray/sample_bench/data/test")
         self.log_file_groups = [[Path(self.data_path, "log_0.csv"), Path(self.data_path, "log_1.csv")], [Path(self.data_path, "log_2.csv")]]
         self.fields = ['xray', 'r_free', 'ff']
         self.stats = ['mean', 'std', 'min']

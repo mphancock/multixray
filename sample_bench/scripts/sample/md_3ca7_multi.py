@@ -71,6 +71,7 @@ if __name__ == "__main__":
     cif_file = Path(args.cif_file)
     d_min = args.res
     dyn_w_xray = args.dyn_w_xray
+    w_xray = args.w_xray
 
     # Sampling.
     T = args.T
@@ -107,8 +108,8 @@ if __name__ == "__main__":
         d_max=None,
         scale=True,
         target="ml",
-        w_xray=30000,
-        dynamic_w=0
+        w_xray=w_xray,
+        dynamic_w=dyn_w_xray
     )
 
     rs_xtal = IMP.RestraintSet(m, 1.0)
@@ -140,13 +141,13 @@ if __name__ == "__main__":
     pdb_ostate.set_period(10)
     o_states.append(pdb_ostate)
 
-    # copy_o_state = copy_optimizer_state.CopyOptimizerState(
-    #     m=m,
-    #     source_dir=tmp_pdb_dir,
-    #     dest_dir=pdb_dir
-    # )
-    # copy_o_state.set_period(100)
-    # o_states.append(copy_o_state)
+    copy_o_state = copy_optimizer_state.CopyOptimizerState(
+        m=m,
+        source_dir=tmp_pdb_dir,
+        dest_dir=pdb_dir
+    )
+    copy_o_state.set_period(100)
+    o_states.append(copy_o_state)
 
     if args.com == "os":
         for h in hs:
@@ -200,6 +201,20 @@ if __name__ == "__main__":
     )
     all_trackers.append(xray_tracker)
 
+    r_work_tracker = trackers.RFactorTracker(
+        name="r_work",
+        r_xray=r_xtal,
+        stat="r_work"
+    )
+    all_trackers.append(r_work_tracker)
+
+    r_free_tracker = trackers.RFactorTracker(
+        name="r_free",
+        r_xray=r_xtal,
+        stat="r_free"
+    )
+    all_trackers.append(r_free_tracker)
+
     rmsd_tracker = trackers.RMSDTracker(
         name="rmsd",
         hs=hs,
@@ -212,7 +227,7 @@ if __name__ == "__main__":
         m=m,
         all_trackers=all_trackers,
         log_file=log_file,
-        log_freq=10
+        log_freq=100
     )
     o_states.append(log_ostate)
 

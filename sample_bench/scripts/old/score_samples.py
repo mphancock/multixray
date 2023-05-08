@@ -10,7 +10,7 @@ import IMP.atom
 import IMP.core
 
 sys.path.append(str(Path(Path.home(), "xray/sample_bench/scripts")))
-import rmsf
+import get_rmsf_df
 sys.path.append(str(Path(Path.home(), "xray/score_bench/src")))
 import score_rmsd
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
             pool_params_rand_files.append(params_dict)
 
     pool_results_rand_files = pool_obj.imap(
-        rmsf.pool_get_n_random_files_from_job_dir,
+        get_rmsf_df.pool_get_n_random_files_from_job_dir,
         pool_params_rand_files
     )
 

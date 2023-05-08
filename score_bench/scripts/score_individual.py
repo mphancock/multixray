@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     param_dict = dict()
     # param_dict["decoy_file"] = Path(Path.home(), "xray/sample_bench/analysis/24_300_exp_equil_com/best_score/merge.pdb")
-    param_dict["decoy_file"] = Path("/wynton/home/sali/mhancock/xray/sample_bench/out/test/output_0/pdbs/5.pdb")
+    param_dict["decoy_file"] = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/40_1/2546187/output_16/pdbs/115.pdb")
     param_dict["occs"] = [1]*1
     param_dict["ref_file"] = Path(Path.home(), "xray/data/pdbs/3ca7/3ca7_clean.pdb")
     param_dict["cif_file"] = Path(xray_dir, "data/reflections/3ca7/3ca7.cif")

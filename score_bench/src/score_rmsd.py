@@ -3,6 +3,7 @@ from pathlib import Path
 import multiprocessing
 import itertools
 import pandas as pd
+import numpy as np
 
 import IMP, IMP.atom
 
@@ -81,21 +82,22 @@ def score(
     )
     n_states = len(h_decoys)
 
-    if occs:
-        if len(occs) != len(h_decoys):
-            raise RuntimeError("Length of weights set ({}) is not equal to length of decoy structure set ({})".format(len(occs), len(h_decoys)))
-
-        for i in range(n_states):
-            pids = IMP.atom.Selection(h_decoys[i]).get_selected_particle_indexes()
-            for pid in pids:
-                IMP.atom.Atom(m_decoy, pid).set_occupancy(occs[i])
-
     scores_dict = dict()
     scores_dict["pdb_file"] = str(decoy_file)
     if decoy_file == ref_file:
         scores_dict["native"] = 1
     else:
         scores_dict["native"] = 0
+
+    # Set occupancies.
+    if occs:
+        if len(occs) != len(h_decoys):
+            raise RuntimeError("Length of weights set ({}) is not equal to length of decoy structure set ({}) for decoy ({})".format(len(occs), len(h_decoys), str(decoy_file)))
+
+        for i in range(n_states):
+            pids = IMP.atom.Selection(h_decoys[i]).get_selected_particle_indexes()
+            for pid in pids:
+                IMP.atom.Atom(m_decoy, pid).set_occupancy(occs[i])
 
     if "total" in score_fs:
         score_terms = score_fs.copy()
@@ -115,7 +117,8 @@ def score(
                 hs=h_decoys,
                 term=score_term
             )
-        elif score_term in ["ml", "ls", "r_free", "r_work", "r_all"]:
+            scores_dict[score_term] = score
+        elif score_term in ["ml", "ls"]:
             # Load the f_obs object.
             f_obs = miller_ops.get_miller_array(
                 f_obs_file=cif_file,
@@ -139,7 +142,7 @@ def score(
             else:
                 r_free_flags = None
 
-            score, grads = cctbx_score.get_score(
+            results_dict = cctbx_score.get_score(
                 m=m_decoy,
                 uc_dim=uc_dim,
                 sg_symbol=sg,
@@ -147,25 +150,18 @@ def score(
                 r_free_flags=r_free_flags,
                 target=score_term
             )
+            scores_dict[score_term] = results_dict["score"]
+            scores_dict["r_free"] = results_dict["r_free"]
+            scores_dict["r_work"] = results_dict["r_work"]
+            scores_dict["r_all"] = results_dict["r_all"]
         elif score_term == "rmsd":
             score = align_imp.compute_rmsd_between_average(
                 hs_1=h_decoys,
                 hs_2=h_refs
             )
-        # rmsd_align doesn't work in multi-state case.
-        elif score_term == "rmsd_align":
-            score = align_imp.compute_rmsd(
-                h=h_decoys[0],
-                h_0=h_refs[0],
-                align=True
-            )
+            scores_dict["rmsd"] = score
         else:
-            raise RuntimeError("Unknown score term: {}".format(score_term))
-
-        scores_dict[score_term] = score
-
-    if "total" in score_fs:
-        scores_dict["total"] = scores_dict["ff"] + w_xray*scores_dict["ml"]
+            scores_dict[score_term] = np.nan
 
     return scores_dict
 
@@ -181,9 +177,7 @@ def score_vs_rmsd(
         sg,
         w_xray,
         score_fs,
-        scores_file,
-        add_native,
-        test
+        scores_file
 ):
     if params_file:
         param_dict = locals()
@@ -195,10 +189,6 @@ def score_vs_rmsd(
         param_f.close()
 
     pool_params = list()
-    # decoy_files = list(decoys_dir.glob("*.pdb"))
-
-    if add_native:
-        pdb_files.append(native_pdb_file)
 
     # Get the number of states.
     m_decoy = IMP.Model()
@@ -211,7 +201,12 @@ def score_vs_rmsd(
     for pdb_file in pdb_files:
         param_dict = dict()
         param_dict["decoy_file"] = pdb_file
-        param_dict["occs"] = [1/n_states]*n_states
+
+        if pdb_file == native_pdb_file:
+            param_dict["occs"] = [1]
+        else:
+            param_dict["occs"] = [1/n_states]*n_states
+
         param_dict["ref_file"] = native_pdb_file
         param_dict["cif_file"] = native_cif_file
         param_dict["flags_file"] = flags_file
@@ -223,16 +218,6 @@ def score_vs_rmsd(
 
         pool_params.append(param_dict)
 
-        # break
-
-    all_scores_dict = dict()
-
-    if test:
-        for pool_param in pool_params:
-            scores_dict = pool_score(pool_param)
-            print(scores_dict)
-
-            return
 
     print("CPUs: {}".format(multiprocessing.cpu_count()))
     pool_obj = multiprocessing.Pool(

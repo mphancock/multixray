@@ -49,7 +49,7 @@ def write_merge_pdb_file(
 
     for i in range(len(pdb_files_order)):
         pdb_file = pdb_files_order[i]
-        print(pdb_file)
+        # print(pdb_file)
         m = IMP.Model()
 
         hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m)
@@ -68,14 +68,13 @@ def write_merge_pdb_file(
 
 
 if __name__ == "__main__":
-
-    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/39_32/2504728/output_0/pdbs")
+    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/46_w_xray/55/output_0/pdbs")
     pdb_files = list(pdb_dir.glob("*.pdb"))
-    out_file = Path(Path.home(), "xray/tmp/0.pdb")
+    out_file = Path(Path.home(), "xray/tmp/55_merge.pdb")
     write_merge_pdb_file(
         merge_pdb_file=out_file,
         pdb_files=pdb_files,
         occs=[1]*len(pdb_files),
-        n=-1,
+        n=250,
         order=True
     )

@@ -12,7 +12,7 @@ import IMP.atom
 import IMP.core
 
 sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
-import sample_average
+import average_structure
 
 #
 # def pool_get_n_random_files_from_pdbs_dir(
@@ -197,7 +197,7 @@ if __name__ == "__main__":
 
     # We run 3 analysis. First, rmsf of all structures to the native structure. Second, rmsf of all structures to the average structure. Third, average rmsf of all structures from each run to the average structure of the run.
     native_pdb_file = Path(Path.home(), "xray/data/pdbs/3ca7/3ca7_clean.pdb")
-    avg_pdb_file = sample_average.get_average_pdb_file_from_pdb_files(
+    avg_pdb_file = average_structure.get_average_pdb_file_from_pdb_files(
         pdb_files=pdb_files
     )
 
