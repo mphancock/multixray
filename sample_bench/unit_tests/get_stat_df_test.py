@@ -66,9 +66,9 @@ class TestGetStatDF(unittest.TestCase):
 
 
     def test_get_stat_df_when_empty(self):
-        # Ensure that an error is raised if the log file is empty
-        with self.assertRaises(RuntimeError):
-            stat_df = get_stat_df([[Path(self.data_path, "empty.csv")]], self.fields, self.stats, self.N, self.offset, self.equil)
+        # Ensure that stat_df contains np.nan if the log file is empty
+        stat_df = get_stat_df([[Path(self.data_path, "empty.csv")]], self.fields, self.stats, self.N, self.offset, self.equil)
+        self.assertTrue(pd.isna(stat_df["xray_mean"].iloc[0]))
 
     def test_get_stat_df(self):
         stat_df = get_stat_df(self.log_file_groups, self.fields, self.stats, self.N, self.offset, self.equil)

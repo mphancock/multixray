@@ -107,7 +107,8 @@ def get_stat_from_log_files(
 
     # Return np.nan if there are no log files or the length of the merged log file is 0.
     if len(log_dfs) == 0:
-        raise RuntimeError("No valid log files!")
+        field_stat_df = pd.DataFrame(columns=["field", "stat", "value", "log", "id"])
+        field_stat_df.loc[0] = [field, stat, np.nan, np.nan, np.nan]
     else:
         merge_log_df = pd.concat(log_dfs)
 
@@ -145,7 +146,7 @@ equil: the number of frames to discard before computing a statistic.
 test: additional param to get the stat_df without multiprocessing.
 
 returns
-stat_df: pandas dataframe, dataframe with each log file group as entires and the requested stats as columns. The type and number of returned columns depends on the stat type as well as other parameters.
+stat_df: pandas dataframe, dataframe with each log file group as entries and the requested stats as columns. The type and number of returned columns depends on the stat type as well as other parameters.
 """
 def get_stat_df(
         log_file_groups,
