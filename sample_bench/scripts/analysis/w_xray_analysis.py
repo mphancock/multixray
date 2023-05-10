@@ -14,8 +14,8 @@ import get_stat_df
 
 
 if __name__ == "__main__":
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/46_w_xray")
-    log_file = Path(Path.home(), "xray/sample_bench/data/3ca7/46_w_xray/r_free.csv")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk/00_wxray")
+    log_file = Path(Path.home(), "xray/sample_bench/data/7mhk/00_wxray/r_free.csv")
     n_jobs = 80
 
     log_df = pd.DataFrame(index=list(range(n_jobs)), columns=["avg_min_r_free", "min_r_free"])
@@ -25,20 +25,33 @@ if __name__ == "__main__":
         print(job_dir)
 
         out_dirs = list(job_dir.glob("output_*"))
-
-        # Get the average min r free and min r free from all output logs for a given w_xray.
-        log_file_groups = [[Path(out_dir, "log.csv")] for out_dir in out_dirs]
+        log_files = [Path(out_dir, "log.csv") for out_dir in out_dirs]
+        # Get the average min R free and min R free from all output logs for a given w_xray.
         stat_df = get_stat_df.get_stat_df(
-            log_file_groups=log_file_groups,
+            log_file_groups=[[log_file] for log_file in log_files],
             fields=["r_free"],
             stats=["min"],
+            N=1,
+            offset=1,
             equil=1000
         )
         stat_df.dropna(inplace=True)
+        min_r_free = stat_df["r_free_min_0"].min()
+        avg_min_r_free = stat_df["r_free_min_0"].mean()
 
-        min_r_free = stat_df["r_free_min"].min()
-        avg_min_r_free = stat_df["r_free_min"].mean()
+        # Get the mean R free across all logs for a given w_xray.
+        mean_stat_df = get_stat_df.get_stat_df(
+            log_file_groups=[log_files],
+            fields=["r_free"],
+            stats=["mean"],
+            N=1,
+            offset=1,
+            equil=1000
+        )
+        mean_stat_df.dropna(inplace=True)
+        avg_r_free = mean_stat_df.iloc[0]["r_free_mean"]
 
+        log_df.loc[job_id, "avg_r_free"] = avg_r_free
         log_df.loc[job_id, "avg_min_r_free"] = avg_min_r_free
         log_df.loc[job_id, "min_r_free"] = min_r_free
 

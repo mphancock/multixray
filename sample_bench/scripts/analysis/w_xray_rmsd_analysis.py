@@ -4,6 +4,7 @@ import multiprocessing
 import pandas as pd
 import os
 import numpy as np
+import time
 
 import IMP
 import IMP.atom
@@ -14,13 +15,14 @@ import get_rmsd_df
 
 
 if __name__ == "__main__":
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/46_w_xray")
-    log_file = Path(Path.home(), "xray/sample_bench/data/3ca7/46_w_xray/rmsd.csv")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk/00_wxray")
+    log_file = Path(Path.home(), "xray/sample_bench/data/7mhk/00_wxray/rmsd.csv")
     n_jobs = 80
 
     log_df = pd.DataFrame(index=list(range(n_jobs)), columns=["avg_rmsd_mean", "all_traj_rmsd_mean"])
 
     for job_id in range(n_jobs+1):
+        t0 = time.time()
         job_dir = Path(exp_dir, str(job_id))
         print(job_dir)
 
@@ -53,7 +55,8 @@ if __name__ == "__main__":
 
         # break
 
-    log_df.to_csv(log_file)
+        log_df.to_csv(log_file)
+        print(time.time() - t0)
 
 
 

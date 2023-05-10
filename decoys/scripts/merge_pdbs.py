@@ -68,9 +68,9 @@ def write_merge_pdb_file(
 
 
 if __name__ == "__main__":
-    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/46_w_xray/55/output_0/pdbs")
+    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk/0_wxray/55/output_0/pdbs")
     pdb_files = list(pdb_dir.glob("*.pdb"))
-    out_file = Path(Path.home(), "xray/tmp/55_merge.pdb")
+    out_file = Path(Path.home(), "xray/tmp/merge.pdb")
     write_merge_pdb_file(
         merge_pdb_file=out_file,
         pdb_files=pdb_files,

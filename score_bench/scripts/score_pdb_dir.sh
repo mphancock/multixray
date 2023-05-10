@@ -13,7 +13,7 @@
 # conda activate imp_218_cctbx
 
 JOB_NAME=51_16
-DECOY_NAME=best_1000
+DECOY_NAME=rand_1000
 MIN_RES=0
 W_XRAY=30000
 CIF_FILE="$HOME/xray/data/reflections/3ca7/3ca7.cif"
