@@ -127,7 +127,8 @@ class XtalRestraint(IMP.Restraint):
         )
 
         score = results_dict["score"]
-        df_dx = results_dict["grads"]
+        grads_site = results_dict["grads_site"]
+        grads_occ = results_dict["grads_occ"]
         r_work = results_dict["r_work"]
         r_free = results_dict["r_free"]
         r_all = results_dict["r_all"]
@@ -142,7 +143,7 @@ class XtalRestraint(IMP.Restraint):
             dff_avg_mag = dff_avg_mag + d.get_derivatives().get_magnitude()
 
             if sa.get_derivative_accumulator():
-                df_dx_vec_3d = IMP.algebra.Vector3D(df_dx[i*3], df_dx[i*3+1], df_dx[i*3+2])
+                df_dx_vec_3d = IMP.algebra.Vector3D(grads_site[i][0], grads_site[i][1], grads_site[i][2])
 
                 # Store the derivative.
                 self.df_dxs[pid] = df_dx_vec_3d

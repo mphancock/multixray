@@ -8,7 +8,7 @@ import iotbx.pdb
 
 
 """
-Given an IMP model, the unit cell dimensions, and the space group; the function converts the IMP structure representation into the cctbx structure representation and returns the corresponding cctbx xray structure.  
+Given an IMP model, the unit cell dimensions, and the space group; the function converts the IMP structure representation into the cctbx structure representation and returns the corresponding cctbx xray structure.
 """
 def get_xray_structure(
         m,
@@ -16,13 +16,6 @@ def get_xray_structure(
         sg_symbol
 ):
     scatterers = cctbx.array_family.flex.xray_scatterer()
-
-    # crystal_symmetry = cctbx.xray.crystal.symmetry(
-    #     # unit_cell=(108.406, 81.750, 53.553, 90.00, 104.70, 90.00),
-    #     # space_group_symbol="C 1 2 1"
-    #     unit_cell=uc_dim,
-    #     space_group_symbol=sg_symbol
-    # )
     crystal_symmetry = cctbx.crystal.symmetry(
         unit_cell=uc_dim,
         space_group_symbol=sg_symbol
@@ -67,13 +60,11 @@ def get_xray_structure(
         crystal_symmetry=crystal_symmetry
     )
 
-    # xray_structure.set_b_iso(values=b_factors)
-
     return xray_structure
 
 
 """
-Given a set of single structure pdb files, the corresponding weights, and the cctbx crystal symmetry; the function returns a cctbx xray structure containing multiple structures.  
+Given a set of single structure pdb files, the corresponding weights, and the cctbx crystal symmetry; the function returns a cctbx xray structure containing multiple structures.
 """
 def get_cctbx_multi_structure_from_pdbs(
         pdb_files,

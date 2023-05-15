@@ -31,6 +31,9 @@ def get_score(
     xray_structure.scatterers().flags_set_grad_site(
         iselection=xray_structure.all_selection().iselection()
     )
+    xray_structure.scatterers().flags_set_grad_occupancy(
+        iselection=xray_structure.all_selection().iselection()
+    )
 
     r_factor_target = False
     target_name = target
@@ -57,9 +60,17 @@ def get_score(
     score = fmodels_target_and_gradients.target()
     grads = fmodels_target_and_gradients.gradients()
 
+    site_grads = list()
+    occ_grads = list()
+
+    for i in range(len(xray_structure.scatterers())):
+        site_grads.append(grads[i*4:i*4+3])
+        occ_grads.append(grads[3+i*4])
+
     results_dict = dict()
     results_dict["score"] = score
-    results_dict["grads"] = grads
+    results_dict["grads_site"] = site_grads
+    results_dict["grads_occ"] = occ_grads
     results_dict["r_work"] = r_work
     results_dict["r_free"] = r_free
     results_dict["r_all"] = r_all
