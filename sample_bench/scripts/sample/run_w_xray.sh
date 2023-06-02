@@ -2,7 +2,7 @@
 #$ -cwd
 #$ -o /wynton/group/sali/mhancock/xray/sample_bench/tmp/$JOB_ID.$TASK_ID.o
 #$ -j y
-#$ -l h_rt=06:00:00
+#$ -l h_rt=12:00:00
 #$ -l mem_free=5G
 #$ -l scratch=5G
 #$ -N w_xray_7mhk
@@ -31,7 +31,7 @@ W_XRAY=$3
 DYN_W_XRAY=$4
 COM=os
 START_PDB_FILE="/wynton/home/sali/mhancock/xray/data/pdbs/7mhk/7mhk_clean.pdb"
-N_STATE=1
+N_STATE=$8
 REF_PDB_FILE="$HOME/xray/data/pdbs/7mhk/7mhk_clean.pdb"
 UC_DIM="114.300 54.290 44.970 90.00 102.12 90.00"
 SG_SYMBOL="C 1 2 1"

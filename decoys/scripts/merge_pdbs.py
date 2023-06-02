@@ -52,7 +52,7 @@ def write_merge_pdb_file(
         # print(pdb_file)
         m = IMP.Model()
 
-        hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m)
+        hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
 
         for h in hs:
             pids = IMP.atom.Selection(h).get_selected_particle_indexes()
@@ -68,13 +68,17 @@ def write_merge_pdb_file(
 
 
 if __name__ == "__main__":
-    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk/0_wxray/55/output_0/pdbs")
+    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk/09_1_h20/3605956/output_0/pdbs/")
     pdb_files = list(pdb_dir.glob("*.pdb"))
+
+    if len(pdb_files) == 0:
+        raise RuntimeError("No pdb files found in {}".format(pdb_dir))
+
     out_file = Path(Path.home(), "xray/tmp/merge.pdb")
     write_merge_pdb_file(
         merge_pdb_file=out_file,
         pdb_files=pdb_files,
         occs=[1]*len(pdb_files),
-        n=250,
+        n=500,
         order=True
     )

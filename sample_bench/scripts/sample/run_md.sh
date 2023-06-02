@@ -2,11 +2,11 @@
 #$ -cwd
 #$ -o /wynton/group/sali/mhancock/xray/sample_bench/tmp/$JOB_ID.$TASK_ID.o
 #$ -j y
-#$ -l h_rt=12:00:00
+#$ -l h_rt=6:00:00
 #$ -l mem_free=5G
 #$ -l scratch=5G
-#$ -N md_44_16_3ca7
-#$ -t 1-1000
+#$ -N md_8_7mhk
+#$ -t 1-100
 #$ -l hostname='qb3-id*'
 
 # Setup the conda environment.
@@ -14,8 +14,9 @@ eval "$(conda shell.bash hook)"
 module load CBI conda-stage
 conda activate imp_218_cctbx
 
-JOB_NAME="44_16"
-JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/$JOB_NAME/$JOB_ID"
+
+JOB_NAME="12_8_h20"
+JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk/$JOB_NAME/$JOB_ID"
 mkdir -p "$JOB_DIR"
 
 RUN_ID=$((SGE_TASK_ID-1))
@@ -24,15 +25,15 @@ OUT_DIR="$JOB_DIR/output_$RUN_ID"
 mkdir "$TMP_OUT_DIR"
 mkdir "$OUT_DIR"
 
-CIF_FILE="$HOME/xray/data/reflections/3ca7/3ca7.cif"
+CIF_FILE="/wynton/home/sali/mhancock/xray/data/reflections/7mhk/7mhk.cif"
 RES=0
-W_XRAY=1
+W_XRAY=.5
 DYN_W_XRAY=1
 COM=os
-START_PDB_FILE="/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_clean.pdb"
-N_STATE=16
-REF_PDB_FILE="$HOME/xray/data/pdbs/3ca7/3ca7_clean.pdb"
-UC_DIM="58.305 36.154 25.362 90.00 103.09 90.00"
+START_PDB_FILE="/wynton/home/sali/mhancock/xray/data/pdbs/7mhk/7mhk_clean_h20.pdb"
+N_STATE=8
+REF_PDB_FILE="/wynton/home/sali/mhancock/xray/data/pdbs/7mhk/7mhk_clean_h20.pdb"
+UC_DIM="114.300 54.290 44.970 90.00 102.12 90.00"
 SG_SYMBOL="C 1 2 1"
 T=300
 SA=0

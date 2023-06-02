@@ -50,7 +50,6 @@ def pool_score(
         res=params["res"],
         uc_dim=params["uc_dim"],
         sg=params["sg"],
-        w_xray=params["w_xray"],
         score_fs=params["score_fs"]
     )
 
@@ -66,7 +65,6 @@ def score(
         res,
         uc_dim,
         sg,
-        w_xray,
         score_fs
 ):
     m_ref = IMP.Model()
@@ -175,7 +173,6 @@ def score_vs_rmsd(
         min_res,
         uc_dim,
         sg,
-        w_xray,
         score_fs,
         scores_file
 ):
@@ -213,7 +210,6 @@ def score_vs_rmsd(
         param_dict["res"] = min_res
         param_dict["uc_dim"] = uc_dim
         param_dict["sg"] = sg
-        param_dict["w_xray"] = w_xray
         param_dict["score_fs"] = score_fs
 
         pool_params.append(param_dict)

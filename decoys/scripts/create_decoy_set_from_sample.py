@@ -211,12 +211,19 @@ def create_decoy_dataset_from_pdb_files(
 
 if __name__ == "__main__":
     job_lookup = list()
-    job_lookup.append(("47_1", "3538026"))
-    job_lookup.append(("48_2", "3538027"))
-    job_lookup.append(("49_4", "3538028"))
-    job_lookup.append(("50_8", "3538029"))
-    job_lookup.append(("51_16", "3538030"))
-    # job_lookup.append(("52_32", "3538031"))
+    job_lookup.append(("03_01", "3582890"))
+    job_lookup.append(("04_02", "3582892"))
+    job_lookup.append(("05_04", "3582893"))
+    job_lookup.append(("06_08", "3582894"))
+    job_lookup.append(("07_16", "3582895"))
+    job_lookup.append(("08_32", "3582896"))
+    job_lookup.append(("09_1_h20", "3608081"))
+    job_lookup.append(("10_2_h20", "3608083"))
+    job_lookup.append(("11_4_h20", "3608085"))
+    job_lookup.append(("12_8_h20", "3608086"))
+    job_lookup.append(("13_16_h20", "3608087"))
+    job_lookup.append(("14_32_h20", "3608088"))
+    target = "7mhk"
 
     for job_pair in job_lookup:
         print(job_pair)
@@ -224,16 +231,16 @@ if __name__ == "__main__":
 
         n_struct = 1
         n_decoys = 1000
-        decoy_name = "rand_1000"
+        decoy_name = "best_1000"
 
-        decoy_pdb_dir = Path("/wynton/group/sali/mhancock/xray/decoys/data/3ca7/{}/{}".format(job_name, decoy_name))
+        decoy_pdb_dir = Path("/wynton/group/sali/mhancock/xray/decoys/data", target, job_name, decoy_name)
         decoy_pdb_dir.mkdir(exist_ok=True, parents=True)
 
-        decoy_meta_dir = Path(Path.home(), "xray/decoys/data/3ca7/{}".format(job_name))
+        decoy_meta_dir = Path(Path.home(), "xray/decoys/data", target, job_name)
         decoy_meta_dir.mkdir(exist_ok=True, parents=True)
         decoy_meta_file = Path(decoy_meta_dir, "{}.csv".format(decoy_name))
 
-        job_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/{}/{}".format(job_name, job_num))
+        job_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out", target, job_name, job_num)
 
         # Get and save the dataframe containing all the decoy entries (each decoy entry containing 1 or more random pdb files and an equal number of weights).
         out_dirs = list()
@@ -247,7 +254,7 @@ if __name__ == "__main__":
         pdb_files = get_pdb_files(
             log_files=list(job_dir.glob("output_*/log.csv")),
             N=int((n_decoys*n_struct)*1.1),
-            best=False
+            best=True
         )
         # Check that the pdb files exist for all the entries in the sample df.
         valid_pdb_files = list()

@@ -6,10 +6,7 @@ import IMP.core
 import IMP.atom
 
 sys.path.append(str(Path(Path.home(), "xray/src")))
-import log_statistics
-import copy_optimizer_state
 import params
-import pdb_writers
 
 
 def molecular_dynamics(

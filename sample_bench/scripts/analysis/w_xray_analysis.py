@@ -14,8 +14,9 @@ import get_stat_df
 
 
 if __name__ == "__main__":
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk/00_wxray")
-    log_file = Path(Path.home(), "xray/sample_bench/data/7mhk/00_wxray/r_free.csv")
+    job_name = "01_wxray_sa"
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk", job_name)
+    log_file = Path(Path.home(), "xray/sample_bench/data/7mhk", job_name, "r_free.csv".format(job_name))
     n_jobs = 80
 
     log_df = pd.DataFrame(index=list(range(n_jobs)), columns=["avg_min_r_free", "min_r_free"])

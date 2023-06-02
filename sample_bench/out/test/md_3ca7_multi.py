@@ -14,7 +14,7 @@ import trackers
 import com_restraint
 import log_statistics
 import align_imp
-import pdb_writers
+import pdb_optimizer_state
 import com_optimizer_state
 import copy_optimizer_state
 import molecular_dynamics
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     pdb_dir.mkdir()
 
     o_states = list()
-    pdb_ostate = pdb_writers.WriteMultiStatePDBOptimizerState(
+    pdb_ostate = pdb_optimizer_state.WriteMultiStatePDBOptimizerState(
         m=m,
         hs=hs,
         pdb_dir=tmp_pdb_dir

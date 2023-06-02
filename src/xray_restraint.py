@@ -12,6 +12,7 @@ class XtalRestraint(IMP.Restraint):
     def __init__(
             self,
             m,
+            n_state,
             pids,
             uc_dim,
             sg_symbol,
@@ -24,6 +25,7 @@ class XtalRestraint(IMP.Restraint):
             dynamic_w
     ):
         IMP.Restraint.__init__(self, m, "xray")
+        self.n_state = n_state
         self.pids = pids
         self.uc_dim = uc_dim
         self.sg_symbol = sg_symbol
@@ -59,7 +61,9 @@ class XtalRestraint(IMP.Restraint):
             w_xray=w_xray
         )
 
+        # Gradients and scores
         self.df_dxs = dict()
+        self.w_grads = [0]*n_state
         for pid in pids:
             self.df_dxs[pid] = IMP.algebra.Vector3D(0,0,0)
         self.score = 0
@@ -103,6 +107,9 @@ class XtalRestraint(IMP.Restraint):
 
     def get_df_dict(self):
         return self.df_dxs
+
+    def get_w_grads(self):
+        return self.w_grads
 
     def get_f(self):
         return self.score
@@ -149,6 +156,23 @@ class XtalRestraint(IMP.Restraint):
                 self.df_dxs[pid] = df_dx_vec_3d
 
                 dxray_avg_mag = dxray_avg_mag + df_dx_vec_3d.get_magnitude()
+
+        # Calculate and save the weights gradients.
+        n_atoms = len(grads_occ) // self.n_state
+        print("N_ATOMS: ", n_atoms)
+        for i in range(self.n_state):
+            state_grad_occs = grads_occ[i*n_atoms:(i+1)*n_atoms]
+            # state_grad_w = 0
+            # for j in range(n_atoms):
+            #     grad_occ = state_grad_occs[j]
+            #     state_grad_w = state_grad_w + grad_occ
+
+            # state_grad_w = state_grad_w / n_atoms
+
+            # state_grad_w = np.mean(state_grad_occs)
+            state_grad_w = state_grad_occs[0]
+
+            self.w_grads[i] = state_grad_w
 
         if sa.get_derivative_accumulator():
             dff_avg_mag = dff_avg_mag / len(self.pids)

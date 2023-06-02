@@ -15,8 +15,9 @@ import get_rmsd_df
 
 
 if __name__ == "__main__":
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk/00_wxray")
-    log_file = Path(Path.home(), "xray/sample_bench/data/7mhk/00_wxray/rmsd.csv")
+    job_name = "01_wxray_sa"
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk", job_name)
+    log_file = Path(Path.home(), "xray/sample_bench/data/7mhk", job_name, "rmsd.csv")
     n_jobs = 80
 
     log_df = pd.DataFrame(index=list(range(n_jobs)), columns=["avg_rmsd_mean", "all_traj_rmsd_mean"])
@@ -53,10 +54,11 @@ if __name__ == "__main__":
         log_df.loc[job_id, "avg_rmsd_mean"] = avg_rmsd_mean
         log_df.loc[job_id, "all_traj_rmsd_mean"] = all_traj_rmsd_mean
 
-        # break
-
         log_df.to_csv(log_file)
         print(time.time() - t0)
+
+        # break
+
 
 
 

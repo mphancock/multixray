@@ -1,0 +1,58 @@
+from pathlib import Path
+import numpy as np
+
+import IMP
+import IMP.atom
+
+
+class WriteMultiStatePDBOptimizerState(IMP.OptimizerState):
+    def __init__(
+            self,
+            m,
+            hs,
+            pdb_dir
+    ):
+        IMP.OptimizerState.__init__(self, m, "PDBWriter%1%")
+        self.hs = hs
+        self.pdb_dir = pdb_dir
+        self.cur_pdb_id = 0
+        self.cur_pdb_file = Path(self.pdb_dir, "{}.pdb".format(self.cur_pdb_id))
+
+    def do_update(self, call):
+        IMP.atom.write_multimodel_pdb(self.hs, str(self.cur_pdb_file))
+
+        self.cur_pdb_id = self.cur_pdb_id+1
+        self.cur_pdb_file = Path(self.pdb_dir, "{}.pdb".format(self.cur_pdb_id))
+
+
+class WriteBestMultiStatePDBOptimizerState(IMP.OptimizerState):
+    def __init__(
+            self,
+            m,
+            hs,
+            pdb_dir,
+            tracker,
+            N,
+            n_skip
+    ):
+        IMP.OptimizerState.__init__(self, m, "PDBWriter%1%")
+        self.hs = hs
+        self.pdb_dir = pdb_dir
+        self.tracker = tracker
+        self.cache = [np.infty]*N
+        self.n_skip = n_skip
+
+        self.step = 0
+
+    def do_update(self, call):
+        score = self.tracker.evaluate()
+        if score < np.max(self.cache) and self.step > self.n_skip:
+            print("Updating cache")
+            max_id = np.argmax(self.cache)
+            self.cache[max_id] = score
+            print(self.cache)
+
+            pdb_file = Path(self.pdb_dir, "{}.pdb".format(max_id))
+            IMP.atom.write_multimodel_pdb(self.hs, str(pdb_file))
+
+        self.step = self.step+1

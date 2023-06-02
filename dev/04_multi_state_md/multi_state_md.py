@@ -14,7 +14,7 @@ import trackers
 import com_restraint
 import log_statistics
 import align_imp
-import pdb_writers
+import pdb_optimizer_state
 sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
 import molecular_dynamics
 
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     #     h = hs[i]
     #     IMP.atom.write_pdb(h, str(Path(local_pdb_dir, "-1.pdb")))
 
-    pdb_ostate = pdb_writers.WriteMultiStatePDBOptimizerState(
+    pdb_ostate = pdb_optimizer_state.WriteMultiStatePDBOptimizerState(
         m=m,
         hs=hs,
         pdb_dir=local_pdb_dir

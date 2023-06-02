@@ -1,7 +1,0 @@
-pdbs: (PosixPath('/home/matthew/xray/data/pdbs/2h2z_clean_c121.pdb'),)
-weights: (1.0,)
-ref_file: /home/matthew/xray/data/pdbs/2h2z_clean_c121.pdb
-cif_file: /home/matthew/xray/data/reflections/2h2z_m_2_w_rand.cif
-score, rmsd: -9058.690654753653, 0.0
-
-

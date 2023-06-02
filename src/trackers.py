@@ -270,6 +270,28 @@ class TempTracker(Tracker):
 
         return temp
 
+class OccTracker(Tracker):
+    def __init__(
+            self,
+            name,
+            m,
+            at
+    ):
+        Tracker.__init__(
+            self,
+            name=name,
+            m=m,
+            n=1
+        )
+        self.at = at
+
+    def evaluate(
+            self
+    ):
+        occ = self.at.get_occupancy()
+
+        return occ
+
 
 class TimeTracker(Tracker):
     def __init__(

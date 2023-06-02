@@ -2,9 +2,10 @@
 
 
 T=300
-SA=1
+SA=0
 RES=0
-JOB_NAME="00_wxray"
+N_STATE=32
+JOB_NAME="19_w_xray_32"
 for JOB_ID in {0..80}
 do
   if [[ $JOB_ID -lt 50 ]]
@@ -18,6 +19,6 @@ do
   fi
   echo "$JOB_ID, $W_XRAY, $DYN_W_XRAY"
 
-  qsub "$HOME/xray/sample_bench/scripts/sample/run_w_xray.sh" "$JOB_NAME" "$JOB_ID" "$W_XRAY" "$DYN_W_XRAY" "$RES" "$T" "$SA"
+  qsub "$HOME/xray/sample_bench/scripts/sample/run_w_xray.sh" "$JOB_NAME" "$JOB_ID" "$W_XRAY" "$DYN_W_XRAY" "$RES" "$T" "$SA" "$N_STATE"
 
 done
