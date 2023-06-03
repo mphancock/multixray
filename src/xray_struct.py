@@ -12,15 +12,9 @@ Given an IMP model, the unit cell dimensions, and the space group; the function 
 """
 def get_xray_structure(
         m,
-        uc_dim,
-        sg_symbol
+        crystal_symmetry
 ):
     scatterers = cctbx.array_family.flex.xray_scatterer()
-    crystal_symmetry = cctbx.crystal.symmetry(
-        unit_cell=uc_dim,
-        space_group_symbol=sg_symbol
-    )
-
     unit_cell = crystal_symmetry.unit_cell()
 
     b_factors = cctbx.array_family.flex.double()

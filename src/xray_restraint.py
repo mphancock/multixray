@@ -27,8 +27,6 @@ class XtalRestraint(IMP.Restraint):
         IMP.Restraint.__init__(self, m, "xray")
         self.n_state = n_state
         self.pids = pids
-        self.uc_dim = uc_dim
-        self.sg_symbol = sg_symbol
         self.f_obs_file = f_obs_file
 
         # Set f_obs.
@@ -70,12 +68,6 @@ class XtalRestraint(IMP.Restraint):
         self.r_free = 0
         self.r_work = 0
         self.r_all = 0
-
-        self.xray_structure = xray_struct.get_xray_structure(
-            m=self.get_model(),
-            uc_dim=self.uc_dim,
-            sg_symbol=self.sg_symbol
-        )
 
     def set_d_min(
             self,
@@ -126,8 +118,8 @@ class XtalRestraint(IMP.Restraint):
     def do_add_score_and_derivatives(self, sa):
         results_dict = cctbx_score.get_score(
             m=self.get_model(),
-            uc_dim=self.uc_dim,
-            sg_symbol=self.sg_symbol,
+            # uc_dim=self.uc_dim,
+            # sg_symbol=self.sg_symbol,
             f_obs=self.f_obs,
             r_free_flags=self.flags,
             target=self.target
@@ -159,29 +151,17 @@ class XtalRestraint(IMP.Restraint):
 
         # Calculate and save the weights gradients.
         n_atoms = len(grads_occ) // self.n_state
-        print("N_ATOMS: ", n_atoms)
         for i in range(self.n_state):
             state_grad_occs = grads_occ[i*n_atoms:(i+1)*n_atoms]
-            # state_grad_w = 0
-            # for j in range(n_atoms):
-            #     grad_occ = state_grad_occs[j]
-            #     state_grad_w = state_grad_w + grad_occ
-
-            # state_grad_w = state_grad_w / n_atoms
-
-            # state_grad_w = np.mean(state_grad_occs)
             state_grad_w = state_grad_occs[0]
-
             self.w_grads[i] = state_grad_w
 
         if sa.get_derivative_accumulator():
             dff_avg_mag = dff_avg_mag / len(self.pids)
             dxray_avg_mag = dxray_avg_mag / len(self.pids)
 
-            # print(dff_avg_mag, dxray_avg_mag)
             if self.dynamic_w:
                 df_mag_ratio = dff_avg_mag / dxray_avg_mag
-                # print(df_mag_ratio)
 
             for pid in self.pids:
                 w_xray = self.w_xray

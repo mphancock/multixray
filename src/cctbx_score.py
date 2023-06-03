@@ -13,16 +13,14 @@ import miller_ops
 
 def get_score(
         m,
-        uc_dim,
-        sg_symbol,
         f_obs,
         r_free_flags,
         target
 ):
+    crystal_symmetry = f_obs.crystal_symmetry()
     xray_structure = xray_struct.get_xray_structure(
         m=m,
-        uc_dim=uc_dim,
-        sg_symbol=sg_symbol
+        crystal_symmetry=crystal_symmetry
     )
 
     xray_structure.scatterers().flags_set_grads(
