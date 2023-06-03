@@ -27,7 +27,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--out_dir")
     parser.add_argument("--tmp_out_dir")
-    parser.add_argument("--cif_file")
+    parser.add_argument("--cif_files")
     parser.add_argument("--res", type=float)
     parser.add_argument("--w_xray", type=float)
     parser.add_argument("--dyn_w_xray", type=int)
@@ -36,8 +36,6 @@ if __name__ == "__main__":
     parser.add_argument("--n_state")
     parser.add_argument("--weights", type=int)
     parser.add_argument("--ref_pdb_file")
-    parser.add_argument("--uc_dim")
-    parser.add_argument("--sg_symbol")
     parser.add_argument("--T", type=float)
     parser.add_argument("--sa", type=int)
     parser.add_argument("--steps", type=int)
@@ -47,7 +45,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print("out_dir: ", args.out_dir)
     print("tmp_out_dir: ", args.tmp_out_dir)
-    print("cif_file: ", args.cif_file)
+    print("cif_files: ", args.cif_files)
     print("res: ", args.res)
     print("w_xray: ", args.w_xray)
     print("dyn_w_xray: ", args.dyn_w_xray)
@@ -56,8 +54,6 @@ if __name__ == "__main__":
     print("n_state: ", args.n_state)
     print("weights: ", args.weights)
     print("ref_pdb_file: ", args.ref_pdb_file)
-    print("uc_dim: ", args.uc_dim)
-    print("sg_symbol: ", args.sg_symbol)
     print("T: ", args.T)
     print("sa: ", args.sa)
     print("steps: ", args.steps)
@@ -65,16 +61,10 @@ if __name__ == "__main__":
     print("save_best: ", args.save_best)
     print("test: ", args.test)
 
-    # output_dir = args.out_dir
-    # if args.tmp_out_dir == "none":
-    #     tmp_out_dir = None
-    # else:
-    #     tmp_out_dir = Path(args.tmp_out_dir)
-
+    # Representation.
     pdb_file = Path(args.start_pdb_file)
     ref_pdb_file = Path(args.ref_pdb_file)
 
-    # Representation.
     m = IMP.Model()
     s = IMP.atom.AllPDBSelector()
     n_states = int(args.n_state)
@@ -97,10 +87,9 @@ if __name__ == "__main__":
             IMP.atom.CHARMMAtom.setup_particle(m, pid, "O")
             print(IMP.atom.CHARMMAtom(m, pid).get_charmm_type())
 
-    # Sampling.
+    ## SAMPLE
     T = args.T
-    sa = args.sa
-    if sa:
+    if args.sa:
         sa_sched = [(T, 0, 500), (3000, 4, 100)]
     else:
         sa_sched = None
@@ -131,33 +120,33 @@ if __name__ == "__main__":
     rset_charmm.set_weight(1/n_states)
     rs.append(rset_charmm)
 
-    if args.cif_file:
-        uc_dim = tuple([float(args.uc_dim.split(" ")[i]) for i in range(6)])
-        sg_symbol = args.sg_symbol
-        cif_file = Path(args.cif_file)
+    r_xrays = list()
+    if args.cif_files:
+        cif_files = args.cif_files.split(",")
         d_min = args.res
         dyn_w_xray = args.dyn_w_xray
         w_xray = args.w_xray
 
-        r_xtal = xray_restraint.XtalRestraint(
-            m=m,
-            n_state=n_states,
-            pids=pids,
-            uc_dim=uc_dim,
-            sg_symbol=sg_symbol,
-            f_obs_file=str(cif_file),
-            d_min=d_min,
-            d_max=None,
-            scale=True,
-            target="ml",
-            w_xray=w_xray,
-            dynamic_w=dyn_w_xray
-        )
+        # cif file here is a string.
+        for cif_file in cif_files:
+            r_xray = xray_restraint.XtalRestraint(
+                m=m,
+                n_state=n_states,
+                pids=pids,
+                f_obs_file=cif_file,
+                d_min=d_min,
+                d_max=None,
+                scale=True,
+                target="ml",
+                w_xray=w_xray,
+                dynamic_w=dyn_w_xray
+            )
 
-        rs_xtal = IMP.RestraintSet(m, 1.0)
-        rs_xtal.add_restraint(r_xtal)
+            rs_xray = IMP.RestraintSet(m, 1.0)
+            rs_xray.add_restraint(r_xray)
 
-        rs.append(rs_xtal)
+            r_xrays.append(r_xray)
+            rs.append(rs_xray)
 
     m_0 = IMP.Model()
     s_0 = IMP.atom.AllPDBSelector()
@@ -191,23 +180,24 @@ if __name__ == "__main__":
     )
     all_trackers.append(ff_tracker)
 
-    if args.cif_file:
+    # Add the trackers for each xtal restraint.
+    for i in range(len(r_xrays)):
         xray_tracker = trackers.fTracker(
-            name="xray",
-            r=r_xtal
+            name="xray_{}".format(i),
+            r=r_xrays[i]
         )
         all_trackers.append(xray_tracker)
 
         r_work_tracker = trackers.RFactorTracker(
-            name="r_work",
-            r_xray=r_xtal,
+            name="r_work_{}".format(i),
+            r_xray=r_xrays[i],
             stat="r_work"
         )
         all_trackers.append(r_work_tracker)
 
         r_free_tracker = trackers.RFactorTracker(
-            name="r_free",
-            r_xray=r_xtal,
+            name="r_free_{}".format(i),
+            r_xray=r_xrays[i],
             stat="r_free"
         )
         all_trackers.append(r_free_tracker)
