@@ -14,8 +14,6 @@ class XtalRestraint(IMP.Restraint):
             m,
             n_state,
             pids,
-            uc_dim,
-            sg_symbol,
             f_obs_file,
             d_min,
             d_max,
