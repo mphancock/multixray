@@ -11,8 +11,6 @@ if __name__ == "__main__":
     parser.add_argument("--pdb_dir")
     parser.add_argument("--cif_file")
     parser.add_argument("--min_res", type=float)
-    parser.add_argument("--uc_dim")
-    parser.add_argument("--sg_symbol")
     parser.add_argument("--ref_pdb_file")
     parser.add_argument("--param_file")
     parser.add_argument("--score_file")
@@ -46,9 +44,6 @@ if __name__ == "__main__":
     native_cif_file = Path(args.cif_file)
     flags_file = native_cif_file
 
-    uc_dim = tuple([float(args.uc_dim.split(" ")[i]) for i in range(6)])
-    sg_symbol = args.sg_symbol
-
     score_fs = list()
     score_fs.append("ml")
     score_fs.append("rmsd")
@@ -60,8 +55,6 @@ if __name__ == "__main__":
         native_cif_file=native_cif_file,
         flags_file=flags_file,
         min_res=args.min_res,
-        uc_dim=uc_dim,
-        sg=sg_symbol,
         score_fs=score_fs,
         scores_file=args.score_file
     )
