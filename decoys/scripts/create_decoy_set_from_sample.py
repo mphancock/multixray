@@ -13,10 +13,11 @@ import merge_pdbs
 
 
 """
-Create a pdb file sample corresponding to the best scoring pdb files across all log files. This pdb file sample will be used to create a decoy dataset.
+Create a pdb file sample corresponding to the best scoring pdb files as defined by the field parameter across all log files. This pdb file sample will be used to create a decoy dataset.
 ------
 Params
 log_files: list of Path objects to log files.
+field: field to use to determine the best scoring pdb files.
 N: number of pdb files in the sample.
 ------
 Returns
@@ -24,15 +25,16 @@ sample_df: pandas DataFrame with indexes 0-N and columns ["pdb_file"].
 """
 def get_best_scoring_sample_df(
         log_files,
+        field,
         N
 ):
     log_file_groups = list()
     log_file_groups.append(log_files)
 
-    # Use the stat_df to get the best scoring pdb files.
+    # Use the stat_df to get the best scoring pdb files. Currently it is parameterized to get the best scoring r_free_0 values after the first 100 structures.
     stat_df = get_stat_df.get_stat_df(
         log_file_groups=log_file_groups,
-        fields=["r_free"],
+        fields=[field],
         stats=["min"],
         N=N,
         offset=10,
@@ -42,8 +44,8 @@ def get_best_scoring_sample_df(
 
     sample_df = pd.DataFrame(index=range(N), columns=["pdb_file"])
     for i in range(N):
-        log_file = stat_df.iloc[0]["r_free_min_{}_log".format(i)]
-        id = stat_df.iloc[0]["r_free_min_{}_id".format(i)]
+        log_file = stat_df.iloc[0]["{}_min_{}_log".format(field, i)]
+        id = stat_df.iloc[0]["{}_min_{}_id".format(field, i)]
 
         output_dir = log_file.parents[0]
         # The index corresponds to the log file step which is 10 times the pdb file id.
@@ -134,11 +136,13 @@ sample_df: pandas DataFrame with indexes 0-N and columns ["pdb_file"].
 def get_pdb_files(
         log_files,
         N,
-        best
+        best,
+        field="r_free_0"
 ):
     if best:
         sample_df = get_best_scoring_sample_df(
             log_files=log_files,
+            field=field,
             N=N
         )
         pdb_files = list(sample_df["pdb_file"])
@@ -172,7 +176,7 @@ def create_decoy_dataset_from_pdb_files(
 ):
     # There need to be enough pdb files in the sample df to populate the decoy df.
     if len(pdb_files) < n_struct*n_decoys:
-        raise RuntimeError("The sample df ({}) must have enough entries to populate the decoy df ({})".format(len(sample_df), n_struct*n_decoys))
+        raise RuntimeError("The sample df ({}) must have enough entries to populate the decoy df ({})".format(len(pdb_files), n_struct*n_decoys))
 
     decoy_df = pd.DataFrame(index=list(range(n_decoys)), columns=range(n_struct))
 
@@ -211,19 +215,13 @@ def create_decoy_dataset_from_pdb_files(
 
 if __name__ == "__main__":
     job_lookup = list()
-    job_lookup.append(("03_01", "3582890"))
-    job_lookup.append(("04_02", "3582892"))
-    job_lookup.append(("05_04", "3582893"))
-    job_lookup.append(("06_08", "3582894"))
-    job_lookup.append(("07_16", "3582895"))
-    job_lookup.append(("08_32", "3582896"))
-    job_lookup.append(("09_1_h20", "3608081"))
-    job_lookup.append(("10_2_h20", "3608083"))
-    job_lookup.append(("11_4_h20", "3608085"))
-    job_lookup.append(("12_8_h20", "3608086"))
-    job_lookup.append(("13_16_h20", "3608087"))
-    job_lookup.append(("14_32_h20", "3608088"))
-    target = "7mhk"
+    job_lookup.append(("27_7mhf_1", "9269276"))
+    job_lookup.append(("28_7mhf_2", "9269277"))
+    job_lookup.append(("29_7mhf_4", "9269278"))
+    job_lookup.append(("30_7mhf_8", "9269279"))
+    job_lookup.append(("31_7mhf_16", "9269282"))
+
+    target = "7mhf"
 
     for job_pair in job_lookup:
         print(job_pair)
@@ -232,15 +230,16 @@ if __name__ == "__main__":
         n_struct = 1
         n_decoys = 1000
         decoy_name = "best_1000"
+        best = True
 
-        decoy_pdb_dir = Path("/wynton/group/sali/mhancock/xray/decoys/data", target, job_name, decoy_name)
+        decoy_pdb_dir = Path("/wynton/group/sali/mhancock/xray/decoys/data/7mhf", job_name, decoy_name)
         decoy_pdb_dir.mkdir(exist_ok=True, parents=True)
 
-        decoy_meta_dir = Path(Path.home(), "xray/decoys/data", target, job_name)
+        decoy_meta_dir = Path(Path.home(), "xray/decoys/data/7mhf", job_name)
         decoy_meta_dir.mkdir(exist_ok=True, parents=True)
         decoy_meta_file = Path(decoy_meta_dir, "{}.csv".format(decoy_name))
 
-        job_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out", target, job_name, job_num)
+        job_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk", job_name, job_num)
 
         # Get and save the dataframe containing all the decoy entries (each decoy entry containing 1 or more random pdb files and an equal number of weights).
         out_dirs = list()
@@ -254,7 +253,8 @@ if __name__ == "__main__":
         pdb_files = get_pdb_files(
             log_files=list(job_dir.glob("output_*/log.csv")),
             N=int((n_decoys*n_struct)*1.1),
-            best=True
+            best=best,
+            field="r_free_0"
         )
         # Check that the pdb files exist for all the entries in the sample df.
         valid_pdb_files = list()
