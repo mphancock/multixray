@@ -26,7 +26,8 @@ sample_df: pandas DataFrame with indexes 0-N and columns ["pdb_file"].
 def get_best_scoring_sample_df(
         log_files,
         field,
-        N
+        N,
+        equil
 ):
     log_file_groups = list()
     log_file_groups.append(log_files)
@@ -38,7 +39,7 @@ def get_best_scoring_sample_df(
         stats=["min"],
         N=N,
         offset=10,
-        equil=100,
+        equil=equil,
         test=False
     )
 
@@ -80,7 +81,8 @@ def read_log_file(
 
 def get_random_sample_df(
         log_files,
-        N
+        N,
+        equil
 ):
     # Load all log files into a single DataFrame and get a random subset.
     log_dfs = list()
@@ -98,11 +100,11 @@ def get_random_sample_df(
             log_file, log_df = result
 
         print(log_file)
-        n_pdbs = (len(log_df)-100)//10
+        n_pdbs = (len(log_df)-equil)//10
         if n_pdbs > N:
-            pdb_log_df = log_df[100::10].sample(N).copy()
+            pdb_log_df = log_df[equil::10].sample(N).copy()
         else:
-            pdb_log_df = log_df[100::10].sample(n_pdbs).copy()
+            pdb_log_df = log_df[equil::10].sample(n_pdbs).copy()
 
         output_dir = log_file.parents[0]
         pdb_files = [Path(output_dir, "pdbs", "{}.pdb".format(step//10)) for step in pdb_log_df["step"]]
@@ -136,20 +138,23 @@ sample_df: pandas DataFrame with indexes 0-N and columns ["pdb_file"].
 def get_pdb_files(
         log_files,
         N,
+        equil,
         best,
-        field="r_free_0"
+        field="r_free_0",
 ):
     if best:
         sample_df = get_best_scoring_sample_df(
             log_files=log_files,
             field=field,
-            N=N
+            N=N,
+            equil=equil
         )
         pdb_files = list(sample_df["pdb_file"])
     else:
         sample_df = get_random_sample_df(
             log_files=log_files,
-            N=N
+            N=N,
+            equil=equil
         )
         pdb_files = list(sample_df["pdb_file"])
 
@@ -215,11 +220,8 @@ def create_decoy_dataset_from_pdb_files(
 
 if __name__ == "__main__":
     job_lookup = list()
-    job_lookup.append(("27_7mhf_1", "9269276"))
-    job_lookup.append(("28_7mhf_2", "9269277"))
-    job_lookup.append(("29_7mhf_4", "9269278"))
-    job_lookup.append(("30_7mhf_8", "9269279"))
-    job_lookup.append(("31_7mhf_16", "9269282"))
+    job_lookup.append(("38_7mhf_decoys", "9313298"))
+    job_lookup.append(("39_7mhf_decoys_1000", "9313299"))
 
     target = "7mhf"
 
@@ -229,8 +231,9 @@ if __name__ == "__main__":
 
         n_struct = 1
         n_decoys = 1000
-        decoy_name = "best_1000"
-        best = True
+        decoy_name = "rand_1000"
+        best = False
+        equil = 0
 
         decoy_pdb_dir = Path("/wynton/group/sali/mhancock/xray/decoys/data/7mhf", job_name, decoy_name)
         decoy_pdb_dir.mkdir(exist_ok=True, parents=True)
@@ -239,7 +242,7 @@ if __name__ == "__main__":
         decoy_meta_dir.mkdir(exist_ok=True, parents=True)
         decoy_meta_file = Path(decoy_meta_dir, "{}.csv".format(decoy_name))
 
-        job_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk", job_name, job_num)
+        job_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", job_name, job_num)
 
         # Get and save the dataframe containing all the decoy entries (each decoy entry containing 1 or more random pdb files and an equal number of weights).
         out_dirs = list()
@@ -253,6 +256,7 @@ if __name__ == "__main__":
         pdb_files = get_pdb_files(
             log_files=list(job_dir.glob("output_*/log.csv")),
             N=int((n_decoys*n_struct)*1.1),
+            equil=equil,
             best=best,
             field="r_free_0"
         )
