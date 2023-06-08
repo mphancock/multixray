@@ -81,7 +81,7 @@ class TestGetStatDF(unittest.TestCase):
 
     def test_get_stat_df_with_log_params(self):
         # Set equil to 10 and offset to 5 and max frame to 50.
-        stat_df = get_stat_df(self.log_file_groups, self.fields, self.stats, self.N, offset=5, equil=10, max_frame=50)
+        stat_df = get_stat_df(self.log_file_groups, self.fields, self.stats, self.N, offset=5, equil=10, max_frames=[25,50])
         self.assertAlmostEqual(stat_df["xray_mean"].iloc[1], 5.668518010535346)
 
     def test_get_stat_df_from_log_files_fast(self):

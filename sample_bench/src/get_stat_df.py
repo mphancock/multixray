@@ -160,7 +160,7 @@ def get_stat_df(
         N,
         offset,
         equil,
-        max_frame=None,
+        max_frames=None,
         test=False
 ):
     if len(fields) != len(stats):
@@ -200,14 +200,22 @@ def get_stat_df(
 
     # Iterate through each group of log files to distribute the calculation of a each field, stat pair.
     pool_params = list()
-    for log_file_group in log_file_groups_tmp:
+    # for log_file_group in log_file_groups_tmp:
+    for i in range(len(log_file_groups_tmp)):
+        log_file_group = log_file_groups_tmp[i]
+
+        if max_frames:
+            max_frame = max_frames[i]
+        else:
+            max_frame = None
+
         # For each field, stat pair, create a pool_param.
-        for i in range(n_fields):
+        for j in range(n_fields):
             pool_param = dict()
             pool_param["log_files"] = log_file_group
             pool_param["equil"] = equil
-            pool_param["field"] = fields[i]
-            pool_param["stat"] = stats[i]
+            pool_param["field"] = fields[j]
+            pool_param["stat"] = stats[j]
             pool_param["N"] = N
             pool_param["offset"] = offset
             pool_param["max_frame"] = max_frame
