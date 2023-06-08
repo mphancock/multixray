@@ -15,10 +15,10 @@ import get_rmsd_df
 
 
 if __name__ == "__main__":
-    job_name = "01_wxray_sa"
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhk", job_name)
-    log_file = Path(Path.home(), "xray/sample_bench/data/7mhk", job_name, "rmsd.csv")
-    n_jobs = 80
+    job_name = "40_wxray_synth"
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", job_name)
+    log_file = Path(Path.home(), "xray/sample_bench/data/7mhf", job_name, "rmsd.csv")
+    n_jobs = 70
 
     log_df = pd.DataFrame(index=list(range(n_jobs)), columns=["avg_rmsd_mean", "all_traj_rmsd_mean"])
 

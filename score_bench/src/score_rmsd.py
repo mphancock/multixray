@@ -48,8 +48,6 @@ def pool_score(
         cif_file=params["cif_file"],
         flags_file=params["flags_file"],
         res=params["res"],
-        uc_dim=params["uc_dim"],
-        sg=params["sg"],
         score_fs=params["score_fs"]
     )
 
@@ -63,8 +61,6 @@ def score(
         cif_file,
         flags_file,
         res,
-        uc_dim,
-        sg,
         score_fs
 ):
     m_ref = IMP.Model()
@@ -142,8 +138,6 @@ def score(
 
             results_dict = cctbx_score.get_score(
                 m=m_decoy,
-                uc_dim=uc_dim,
-                sg_symbol=sg,
                 f_obs=f_obs,
                 r_free_flags=r_free_flags,
                 target=score_term
@@ -171,8 +165,6 @@ def score_vs_rmsd(
         native_cif_file,
         flags_file,
         min_res,
-        uc_dim,
-        sg,
         score_fs,
         scores_file
 ):
@@ -208,8 +200,6 @@ def score_vs_rmsd(
         param_dict["cif_file"] = native_cif_file
         param_dict["flags_file"] = flags_file
         param_dict["res"] = min_res
-        param_dict["uc_dim"] = uc_dim
-        param_dict["sg"] = sg
         param_dict["score_fs"] = score_fs
 
         pool_params.append(param_dict)

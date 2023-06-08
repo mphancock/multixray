@@ -243,7 +243,7 @@ if __name__ == "__main__":
             source_dir=work_pdb_dir,
             dest_dir=pdb_dir
         )
-        copy_o_state.set_period(10)
+        copy_o_state.set_period(100)
         o_states.append(copy_o_state)
     else:
         work_pdb_dir = pdb_dir
@@ -267,7 +267,8 @@ if __name__ == "__main__":
         )
         pdb_ostate.set_period(10)
 
-    pdb_ostate.update()
+    # Write the original frame.
+    pdb_ostate.do_update(None)
     o_states.append(pdb_ostate)
 
     if args.com == "os":

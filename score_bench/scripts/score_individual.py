@@ -21,16 +21,15 @@ if __name__ == "__main__":
     # param_dict["w_xray"] = 30000
     # param_dict["score_fs"] = ["ml", "ff", "rmsd"]
 
-    param_dict["decoy_file"] = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/test/output_0/pdbs/1.pdb")
+    param_dict["decoy_file"] = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/38_7mhf_decoys/9313298/output_0/pdbs/52.pdb")
     param_dict["occs"] = [1]*1
-    param_dict["ref_file"] = Path(xray_dir, "data/pdbs/7mhk/7mhk_clean.pdb")
-    param_dict["cif_file"] = Path(xray_dir, "data/reflections/7mhk/7mhk.cif")
-    param_dict["flags_file"] = Path(xray_dir, "data/reflections/7mhk/7mhk.cif")
+    param_dict["ref_file"] = Path(xray_dir, "data/pdbs/7mhf/7mhf_refine.pdb")
+    param_dict["cif_file"] = Path(xray_dir, "data/reflections/7mhf/7mhf_no_H20_alt_H_ion.cif")
+    param_dict["flags_file"] = Path(xray_dir, "data/reflections/7mhf/7mhf_no_H20_alt_H_ion.cif")
     param_dict["res"] = 0
-    param_dict["uc_dim"] = (114.300, 54.290, 44.970, 90.00, 102.12, 90.00)
-    param_dict["sg"] = "C 1 2 1"
     param_dict["w_xray"] = None
-    param_dict["score_fs"] = ["ml", "ff", "rmsd"]
+    # param_dict["score_fs"] = ["ml", "ff", "rmsd"]
+    param_dict["score_fs"] = ["rmsd"]
 
     score_dict = score_rmsd.pool_score(
         params=param_dict
