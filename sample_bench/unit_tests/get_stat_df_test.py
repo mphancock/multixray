@@ -79,16 +79,16 @@ class TestGetStatDF(unittest.TestCase):
         self.assertEqual(stat_df["ff_min_0_log"].iloc[0], Path(self.data_path, "log_1.csv"))
         self.assertEqual(stat_df["ff_min_0_id"].iloc[0], 6)
 
-    def test_get_stat_df_equil_and_offset(self):
-        # Set equil to 5 and offset to 10
-        stat_df = get_stat_df(self.log_file_groups, self.fields, self.stats, self.N, 5, 10)
-        self.assertAlmostEqual(stat_df["xray_mean"].iloc[1], 5.695093119734579)
+    def test_get_stat_df_with_log_params(self):
+        # Set equil to 10 and offset to 5 and max frame to 50.
+        stat_df = get_stat_df(self.log_file_groups, self.fields, self.stats, self.N, offset=5, equil=10, max_frame=50)
+        self.assertAlmostEqual(stat_df["xray_mean"].iloc[1], 5.668518010535346)
 
     def test_get_stat_df_from_log_files_fast(self):
         log_file_groups = self.log_file_groups.copy()
         del log_file_groups[1]
 
-        stat_df = get_stat_df(log_file_groups, ["ff"], ["min"], self.N, self.offset, self.equil, True)
+        stat_df = get_stat_df(log_file_groups, ["ff"], ["min"], self.N, self.offset, self.equil)
 
         self.assertAlmostEqual(stat_df["ff_min_0"].iloc[0], 160.939455, delta=1e-5)
         self.assertAlmostEqual(stat_df["ff_min_1"].iloc[0], 161.779053, delta=1e-5)

@@ -67,6 +67,7 @@ def pool_get_stat_from_log_files(
     stat = params_dict["stat"]
     N = params_dict["N"]
     offset = params_dict["offset"]
+    max_frame = params_dict["max_frame"]
 
     # print(log_files, equil, field, stat)
     try:
@@ -76,7 +77,8 @@ def pool_get_stat_from_log_files(
             field=field,
             stat=stat,
             N=N,
-            offset=offset
+            offset=offset,
+            max_frame=max_frame
         )
     except Exception as e:
         return e
@@ -90,7 +92,8 @@ def get_stat_from_log_files(
         stat,
         equil,
         N,
-        offset
+        offset,
+        max_frame
 ):
     # Merge the log files into a single dataframe.
     log_dfs = list()
@@ -100,7 +103,13 @@ def get_stat_from_log_files(
             log_df = pd.read_csv(log_file)
             log_df["log"] = [log_file]*len(log_df)
             log_df["id"] = list(log_df.index)
-            log_dfs.append(log_df[equil::offset])
+
+            if max_frame is not None:
+                log_df_subset = log_df[equil:max_frame:offset]
+            else:
+                log_df_subset = log_df[equil::offset]
+            log_dfs.append(log_df_subset)
+
         except pd.errors.EmptyDataError:
             # raise RuntimeError("Log file {} is empty".format(log_file))
             continue
@@ -114,13 +123,8 @@ def get_stat_from_log_files(
 
         # 3 error cases to eturn nan entries: if the field is not in the log_df, if the log_df is empty, or if the stat is not invalid.
         if field not in log_df.columns:
-            # field_stat_df.loc[0] = [field, stat, np.nan, np.nan, np.nan]
             raise RuntimeError("Field {} not in log_df".format(field))
-        # if len(merge_log_df) == 0:
-        #     # field_stat_df.loc[0] = [field, stat, np.nan, np.nan, np.nan]
-        #     raise RuntimeError("log_df is empty")
         if stat not in ["min", "max", "mean", "std", "var"]:
-            # field_stat_df.loc[0] = [field, stat, np.nan, np.nan, np.nan]
             raise RuntimeError("Stat {} not valid".format(stat))
 
         field_stat_df = get_stat_from_log_df(
@@ -143,6 +147,7 @@ stats: the statistic (eg, mean) to compute for each field (field[i]_statistic[i]
 N: the number of entries to return for each field, stat pair. This only applies to min and max.
 offset: only look return stats for log entries with offset frequency. This is useful when we only want entries that have a corresponding pdb file.
 equil: the number of frames to discard before computing a statistic.
+max_frame: the number of frames to consider when computing a statistic. This is useful when there are more frames than there are corresponding pdb files and we do not want to consider surplus frames.
 test: additional param to get the stat_df without multiprocessing.
 
 returns
@@ -155,6 +160,7 @@ def get_stat_df(
         N,
         offset,
         equil,
+        max_frame=None,
         test=False
 ):
     if len(fields) != len(stats):
@@ -204,6 +210,7 @@ def get_stat_df(
             pool_param["stat"] = stats[i]
             pool_param["N"] = N
             pool_param["offset"] = offset
+            pool_param["max_frame"] = max_frame
             pool_params.append(pool_param)
 
     # Collect all of the field stat dfs and log file groups that are truned by get_stat_from_log_files. The field stat dfs will be used to populate the final stat df. The format of the field stat dfs has the following columns: field, stat, value, log, id. The df will only have more than one row if the stat is either "max" or "min" and N>1.
