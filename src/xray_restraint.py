@@ -95,6 +95,22 @@ class XtalRestraint(IMP.Restraint):
     ):
         self.w_xray = w_xray
 
+    def set_dynamic_w(
+            self,
+            dynamic_w
+    ):
+        self.dynamic_w = dynamic_w
+
+    def get_weight(
+            self
+    ):
+        return self.w_xray
+
+    def get_dynamic_w(
+            self
+    ):
+        return self.dynamic_w
+
     def get_df_dict(self):
         return self.df_dxs
 
@@ -169,6 +185,9 @@ class XtalRestraint(IMP.Restraint):
                 d = IMP.core.XYZR(self.get_model(), pid)
 
                 dxray_dx_scaled = w_xray * self.df_dxs[pid]
+
+                # if pid == self.pids[0]:
+                #     print(dxray_dx_scaled.get_magnitude())
                 d.add_to_derivatives(dxray_dx_scaled, sa.get_derivative_accumulator())
 
         sa.add_score(score)
