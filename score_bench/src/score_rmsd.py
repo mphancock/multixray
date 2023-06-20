@@ -13,6 +13,7 @@ import align_imp
 import cctbx_score
 import charmm
 import miller_ops
+import params
 
 
 def get_params(
@@ -38,31 +39,36 @@ def get_params(
     return params
 
 
+"""
+The function "pool_score" takes in a dictionary of parameters (params) and calculates scores based on the provided information. It reads in decoy and reference files in PDB format, sets occupancies, retrieves Miller array data, sets flags, and calls the score function to calculate scores. The scores are stored in a dictionary (scores_dict) and returned.
+
+Parameters:
+    params: A dictionary containing various parameters required for score calculation, including "decoy_file" (path to decoy file), "occs" (occupancy values), "ref_file" (path to reference file), "cif_file" (path to CIF file), "res" (resolution), and "score_fs" (list of score terms).
+
+Return:
+    scores_dict: A dictionary containing the calculated scores.
+
+"""
 def pool_score(
         params
 ):
-    scores_dict = score(
-        decoy_file=params["decoy_file"],
-        occs=params["occs"],
-        ref_file=params["ref_file"],
-        cif_file=params["cif_file"],
-        flags_file=params["flags_file"],
-        res=params["res"],
-        score_fs=params["score_fs"]
-    )
+    decoy_file=params["decoy_file"]
+    occs=params["occs"]
+    ref_file=params["ref_file"]
+    cif_file=params["cif_file"]
+    res=params["res"]
+    score_fs=params["score_fs"]
 
-    return scores_dict
+    scores_dict = dict()
+    # Indicate the native structure.
+    if decoy_file == ref_file:
+        scores_dict["native"] = 1
+    else:
+        scores_dict["native"] = 0
 
+    scores_dict["pdb_file"] = str(decoy_file)
 
-def score(
-        decoy_file,
-        occs,
-        ref_file,
-        cif_file,
-        flags_file,
-        res,
-        score_fs
-):
+    # Read in the models.
     m_ref = IMP.Model()
     h_refs = IMP.atom.read_multimodel_pdb(
         str(ref_file),
@@ -74,24 +80,73 @@ def score(
         str(decoy_file),
         m_decoy
     )
+
     n_states = len(h_decoys)
 
+    # Set occupancies. -1 means to use uniform occupancies.
+    if not occs:
+        occs = [1/n_states]*n_states
+
+    if len(occs) != len(h_decoys):
+        raise RuntimeError("Length of weights set ({}) is not equal to length of decoy structure set ({}) for decoy ({})".format(len(occs), len(h_decoys), str(decoy_file)))
+
+    for i in range(n_states):
+        pids = IMP.atom.Selection(h_decoys[i]).get_selected_particle_indexes()
+        for pid in pids:
+            IMP.atom.Atom(m_decoy, pid).set_occupancy(occs[i])
+
+    # Set f_obs.
+    f_obs = miller_ops.get_miller_array(
+        f_obs_file=cif_file,
+        label="_refln.F_meas_au"
+    )
+    f_obs = miller_ops.clean_miller_array(f_obs)
+
+    # Set flags.
+    status_array = miller_ops.get_miller_array(
+        f_obs_file=cif_file,
+        label="_refln.status"
+    )
+    flags = status_array.customized_copy(data=status_array.data()=="f")
+    f_obs, flags = f_obs.common_sets(other=flags)
+
+    score_value_dict = score(
+        hs=h_decoys,
+        hs_0=h_refs,
+        f_obs=f_obs,
+        flags=flags,
+        res=res,
+        score_fs=score_fs
+    )
+    scores_dict.update(score_value_dict)
+
+    return scores_dict
+
+
+"""
+The function "score" takes in various parameters such as hs, hs_0, cif_file, flags_file, res, and score_fs, and calculates different scores based on the given parameters. It uses the CHARMM program to compute force field (ff) scores and the CCTBX library to calculate maximum likelihood (ml) and least squares (ls) scores. The function also computes the root-mean-square deviation (rmsd) between two sets of input data. The scores are stored in a dictionary with the corresponding score term as the key.
+
+Parameters:
+    hs: A list of hierarchies. The occupancies of these heirachies will be used in score calculations.
+    hs_0: A list of reference hierachies used for computing RMSD.
+    f_obs: A miller array containing the observed structure factor amplitudes.
+    flags: A miller array containing the r_free flags for the observed structure factor amplitudes.
+    res: A numerical value representing the resolution. *****NOT IMPLEMENTED*****
+    score_fs: A list of score terms for which scores need to be calculated.
+
+Return:
+    scores_dict: A dictionary containing the calculated scores, with score terms as keys.
+"""
+def score(
+        hs,
+        hs_0,
+        f_obs,
+        flags,
+        res,
+        score_fs
+):
+    m = hs[0].get_model()
     scores_dict = dict()
-    scores_dict["pdb_file"] = str(decoy_file)
-    if decoy_file == ref_file:
-        scores_dict["native"] = 1
-    else:
-        scores_dict["native"] = 0
-
-    # Set occupancies.
-    if occs:
-        if len(occs) != len(h_decoys):
-            raise RuntimeError("Length of weights set ({}) is not equal to length of decoy structure set ({}) for decoy ({})".format(len(occs), len(h_decoys), str(decoy_file)))
-
-        for i in range(n_states):
-            pids = IMP.atom.Selection(h_decoys[i]).get_selected_particle_indexes()
-            for pid in pids:
-                IMP.atom.Atom(m_decoy, pid).set_occupancy(occs[i])
 
     if "total" in score_fs:
         score_terms = score_fs.copy()
@@ -108,38 +163,15 @@ def score(
         # First evaluate all ff terms.
         if score_term in ["ff", "bnd", "ang", "dih", "imp", "eps", "nbd"]:
             score = charmm.get_ff_score(
-                hs=h_decoys,
+                hs=hs,
                 term=score_term
             )
             scores_dict[score_term] = score
         elif score_term in ["ml", "ls"]:
-            # Load the f_obs object.
-            f_obs = miller_ops.get_miller_array(
-                f_obs_file=cif_file,
-                label="_refln.F_meas_au"
-            )
-            f_obs = miller_ops.clean_miller_array(f_obs)
-
-            f_obs = miller_ops.filter_f_obs_resolution(
-                f_obs=f_obs,
-                d_max=0,
-                d_min=res
-            )
-
-            if flags_file:
-                status_array = miller_ops.get_miller_array(
-                    f_obs_file=flags_file,
-                    label="_refln.status"
-                )
-                flags_array = status_array.customized_copy(data=status_array.data()=="f")
-                f_obs, r_free_flags = f_obs.common_sets(other=flags_array)
-            else:
-                r_free_flags = None
-
             results_dict = cctbx_score.get_score(
-                m=m_decoy,
+                m=m,
                 f_obs=f_obs,
-                r_free_flags=r_free_flags,
+                r_free_flags=flags,
                 target=score_term
             )
             scores_dict[score_term] = results_dict["score"]
@@ -148,8 +180,8 @@ def score(
             scores_dict["r_all"] = results_dict["r_all"]
         elif score_term == "rmsd":
             score = align_imp.compute_rmsd_between_average(
-                hs_1=h_decoys,
-                hs_2=h_refs
+                hs_1=hs,
+                hs_2=hs_0
             )
             scores_dict["rmsd"] = score
         else:
@@ -168,14 +200,11 @@ def score_vs_rmsd(
         score_fs,
         scores_file
 ):
-    if params_file:
-        param_dict = locals()
-        param_f = open(params_file, "a")
-        for key in param_dict.keys():
-            print("{:<15}{}\n".format(key, param_dict[key]))
-            param_f.write("{:<15}{}\n".format(key, param_dict[key]))
-        param_f.write("\n\n")
-        param_f.close()
+    param_dict = locals()
+    params.write_params(
+        param_dict=param_dict,
+        param_file=params_file
+    )
 
     pool_params = list()
 
@@ -185,17 +214,11 @@ def score_vs_rmsd(
         str(pdb_files[0]),
         m_decoy
     )
-    n_states = len(h_decoys)
 
     for pdb_file in pdb_files:
         param_dict = dict()
         param_dict["decoy_file"] = pdb_file
-
-        if pdb_file == native_pdb_file:
-            param_dict["occs"] = [1]
-        else:
-            param_dict["occs"] = [1/n_states]*n_states
-
+        param_dict["occs"] = None
         param_dict["ref_file"] = native_pdb_file
         param_dict["cif_file"] = native_cif_file
         param_dict["flags_file"] = flags_file
@@ -203,7 +226,6 @@ def score_vs_rmsd(
         param_dict["score_fs"] = score_fs
 
         pool_params.append(param_dict)
-
 
     print("CPUs: {}".format(multiprocessing.cpu_count()))
     pool_obj = multiprocessing.Pool(
