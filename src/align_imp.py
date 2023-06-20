@@ -157,7 +157,19 @@ def compute_min_weighted_rmsd(
     return min_rmsd
 
 """
-Given 2 sets of IMP hierarchies, the function returns the RMSD of the average structure of each set of hierarchies. This allows RMSD to be computed between sets of hierarchies of unequal size (eg, a decoy multi-state structure against a single-state native).
+Given 2 sets of IMP hierarchies, the function returns the RMSD of the average structure of each set of hierarchies. This allows RMSD to be computed between sets of hierarchies of unequal size (eg, a decoy multi-state structure against a single-state native). One challenge is that is important that any multi state structure contain identical copies otherwise average structures cannot be computed.
+
+Consider the following situation. We have a 1-state set of structures (h1) and a 2-state set of structures (h21, h22). If you try and compute the average structure between [h1] and [h21, h22], it will succeed becasue the pids of the average structures will match (because h1 and h21 match). If you try and compute an average structure between [h1] and [h22] it will fail because the average [h22] structure will have different set of pids. In this situation, we cannot rely on pids.
+
+**********
+Params
+    hs_1: list of IMP hierarchies of size N.
+    hs_2: list of IMP hierarchies of size M.
+
+**********
+Returns
+    rmsd: the rmsd between the average structures of hs_1 and hs_2.
+
 """
 def compute_rmsd_between_average(
         hs_1,
@@ -171,10 +183,18 @@ def compute_rmsd_between_average(
         hs=hs_2
     )
 
+    if len(avg_dict_1.keys()) != len(avg_dict_2.keys()):
+        raise RuntimeError("Number of atoms in average structures not equal: {} and {}".format(len(avg_dict_1.keys()), len(avg_dict_2.keys())))
+
+    n_pids = len(avg_dict_1.keys())
+
     rmsd = 0
-    for key in avg_dict_1.keys():
-        xyz_1 = avg_dict_1[key]
-        xyz_2 = avg_dict_2[key]
+    for i in range(n_pids):
+        key_1 = list(avg_dict_1.keys())[i]
+        key_2 = list(avg_dict_2.keys())[i]
+
+        xyz_1 = avg_dict_1[key_1]
+        xyz_2 = avg_dict_2[key_2]
         mag = (xyz_1-xyz_2).get_magnitude()
         rmsd = rmsd+mag**2
 
@@ -262,25 +282,30 @@ def compute_rmsd_aligning_first_to_second(
     return rmsd
 
 
-if __name__ == "__main__":
-    pdb_file_ref = Path(Path.home(), "xray/data/pdbs/3ca7/3ca7_clean.pdb")
-    pdb_file = Path(Path.home(), "xray/tmp/66_0_1000.pdb")
+# if __name__ == "__main__":
+#     pdb_file = Path("/wynton/group/sali/mhancock/xray/decoys/data/7mhf/38_7mhf_decoys/rand_1000_2x_38_39/106.pdb")
+#     pdb_file_0 = Path("/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb")
 
-    m_0, m = IMP.Model(), IMP.Model()
-    h_0 = IMP.atom.read_pdb(str(pdb_file_ref), m_0, IMP.atom.AllPDBSelector())
-    h = IMP.atom.read_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+#     m = IMP.Model()
+#     hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+#     m_0 = IMP.Model()
+#     h_0 = IMP.atom.read_pdb(str(pdb_file_0), m_0, IMP.atom.AllPDBSelector())
 
-    rmsd = align(
-        h=h,
-        h_0=h_0
-    )
-    print(rmsd)
+#     # avg_dict = average_structure.get_coord_avg_dict(
+#     #     hs=hs
+#     # )
+#     # print(avg_dict[list(avg_dict.keys())[0]])
+#     # print("2-state")
+#     # rmsd = compute_rmsd_between_average(
+#     #     hs_1=hs,
+#     #     hs_2=[h_0]
+#     # )
+#     # print(rmsd)
 
-    IMP.atom.write_pdb(h, str(Path(Path.home(), "xray/tmp/66_0_1000_align.pdb")))
-
-    #
-    # rmsd = compute_rmsd(
-    #     h_1=h_0,
-    #     h_2=h_1
-    # )
-    # print(rmsd)
+#     print("1-state")
+#     for h in hs:
+#         rmsd = compute_rmsd_between_average(
+#             hs_1=[h],
+#             hs_2=[h_0]
+#         )
+#         print(rmsd)

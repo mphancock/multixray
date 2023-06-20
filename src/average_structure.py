@@ -76,35 +76,57 @@ def get_coord_avg_dict_from_pdb_files(
     return avg_coord_dict
 
 
+"""
+This function is useful for computing the average structure from a set of structures (hs). It returns a dictionary containing the average coordinates for each atom in the structure.
+
+We check that each h in hs has equal size. Additionally, we do not assume that the occupancies of the structures are normalized or that all occupancies within a structure are equal.
+
+**********
+Params
+    hs: list of hierarchies to compute the average structure from.
+
+**********
+Returns
+    avg_coord_dict: dictionary containing the average coordinates for each atom in the structure. The dictionary is indexed by the particle id of the first structure in the set and the value is the average coordinate as a 3D IMP algebra vector.
+
+"""
 def get_coord_avg_dict(
         hs
 ):
-    sel = IMP.atom.Selection(hs[0])
-    pids = sel.get_selected_particle_indexes()
+    m = hs[0].get_model()
 
-    norm_fact = 0
-    # We are making a big assumption that the occupancy of all atoms in the structure is the same.
+    avg_dict = dict()
+    norm_dict = dict()
+
+    pids_0 = IMP.atom.Selection(hs[0]).get_selected_particle_indexes()
+    for pid_0 in pids_0:
+        avg_dict[pid_0] = IMP.algebra.Vector3D(0,0,0)
+        norm_dict[pid_0] = 0
+
+    # Check that all structures are of equal size.
     for h in hs:
-        occ = IMP.atom.Atom(h.get_model(), IMP.atom.Selection(h).get_selected_particle_indexes()[0]).get_occupancy()
+        n_pid = len(IMP.atom.Selection(h).get_selected_particle_indexes())
+        if n_pid != len(pids_0):
+            raise RuntimeError("Structures are not of equal size {} and {}.".format(n_pid, len(pids_0)))
 
-        norm_fact = norm_fact+occ
+    for h in hs:
+        pids = IMP.atom.Selection(h).get_selected_particle_indexes()
 
-    avg_coord_dict = dict()
-    for pid in pids:
-        coord_avg = IMP.algebra.Vector3D(0,0,0)
-        for i in range(len(hs)):
-            h = hs[i]
-            m = h.get_model()
+        for i in range(len(pids_0)):
+            # pid_0 is the reference pid from the first structure that is used to index the dictionary.
+            pid_0 = pids_0[i]
+            pid = pids[i]
+
             at = IMP.atom.Atom(m, pid)
-
             d = IMP.core.XYZ(m, pid)
+            avg_dict[pid_0] = avg_dict[pid_0] + d.get_coordinates()*at.get_occupancy()
+            norm_dict[pid_0] = norm_dict[pid_0] + at.get_occupancy()
 
-            coord_avg = coord_avg + d.get_coordinates()*at.get_occupancy()
+    # Normalize the averages.
+    for pid_0 in pids_0:
+        avg_dict[pid_0] = avg_dict[pid_0] / norm_dict[pid_0]
 
-        coord_avg = coord_avg / norm_fact
-        avg_coord_dict[pid] = coord_avg
-
-    return avg_coord_dict
+    return avg_dict
 
 
 def get_average_pdb_file_from_pdb_files(
@@ -153,18 +175,18 @@ def get_average_pdb_file_from_pdb_files(
     return rmsd_df.idxmin()["rmsd"]
 
 
-if __name__ == "__main__":
-    data_dir = Path(Path.home(), "xray/sample_bench/unit_tests/data")
-    pdb_files=[Path(data_dir, "0.pdb"), Path(data_dir, "1.pdb"), Path(data_dir, "2.pdb")]
-    coord_avg_dict = get_coord_avg_dict_from_pdb_files(
-        pdb_files=pdb_files
-    )
+# if __name__ == "__main__":
+#     data_dir = Path(Path.home(), "xray/sample_bench/unit_tests/data")
+#     pdb_files=[Path(data_dir, "0.pdb"), Path(data_dir, "1.pdb"), Path(data_dir, "2.pdb")]
+#     coord_avg_dict = get_coord_avg_dict_from_pdb_files(
+#         pdb_files=pdb_files
+#     )
 
-    print(coord_avg_dict.values())
+#     print(coord_avg_dict.values())
 
-    avg_pdb_file = get_average_pdb_file_from_pdb_files(
-        pdb_files=pdb_files,
-    )
-    print(avg_pdb_file)
+#     avg_pdb_file = get_average_pdb_file_from_pdb_files(
+#         pdb_files=pdb_files,
+#     )
+#     print(avg_pdb_file)
 
-    # print(avg_rmsd_df.head())
+#     # print(avg_rmsd_df.head())
