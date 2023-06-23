@@ -50,7 +50,12 @@ class LogStatistics(IMP.OptimizerState):
     def print_last_entry(self):
         log_line = ""
         for entry in self.log.keys():
-            log_line = log_line + str(round(self.log[entry][-1], 3)) + ","
+            if type(self.log[entry][-1]) == float:
+                last_entry = str(round(self.log[entry][-1], 3))
+            else:
+                last_entry = str(self.log[entry][-1])
+            log_line = log_line + last_entry  + ","
+
         print(log_line)
 
     def get_log(
@@ -58,6 +63,16 @@ class LogStatistics(IMP.OptimizerState):
     ):
         log_df = pd.DataFrame(self.log)
         return log_df
+
+    def get_tracker(
+            self,
+            name
+    ):
+        for tracker in self.all_trackers:
+            if tracker.get_name() == name:
+                return tracker
+
+        raise RuntimeError("Tracker {} not found".format(name))
 
     def do_update(self, call):
         for tracker in self.all_trackers:

@@ -1,4 +1,5 @@
 import time
+import numpy as np
 
 import IMP
 import IMP.atom
@@ -18,6 +19,7 @@ class Tracker:
         self.name = name
         self.m = m
         self.n = n
+        self.writing = True
 
     def get_name(
             self
@@ -52,6 +54,11 @@ class Tracker:
     ):
         self.n = n
 
+    def set_writing(
+            self,
+            writing
+    ):
+        self.writing = writing
 
 class XYZTracker(Tracker):
     def __init__(
@@ -143,11 +150,15 @@ class fTracker(Tracker):
     def evaluate(
             self
     ):
+        if not self.writing:
+            return np.nan
+
         # Try to see if the restraint has a get_f call that stores the score.
         try:
             return self.r.get_f()
         except AttributeError:
             return self.r.evaluate(False)
+
 
 
 # Stat must be one of the following: r_free, r_work, r_all.
@@ -170,6 +181,9 @@ class RFactorTracker(Tracker):
     def evaluate(
             self
     ):
+        if not self.writing:
+            return np.nan
+
         if self.stat == "r_free":
             return self.r_xray.get_r_free()
         elif self.stat == "r_work":

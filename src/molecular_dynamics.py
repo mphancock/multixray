@@ -84,8 +84,12 @@ def molecular_dynamics(
     # rs is a set of restraint sets
     if sa_sched:
         r_xray = rs[1].get_restraint(0)
-        w_xray_0 = r_xray.get_weight()
-        dyn_xray_0 = r_xray.get_dynamic_w()
+
+        log_ostate = o_states[0]
+        xray_only_tracker_names = ["xray_0", "r_work_0", "r_free_0", "pdb", "copy"]
+        xray_only_trackers = list()
+        for name in xray_only_tracker_names:
+            xray_only_trackers.append(log_ostate.get_tracker(name))
 
         while True:
             for T, d_min, steps, pids_work in sa_sched:
@@ -96,22 +100,24 @@ def molecular_dynamics(
 
                 if d_min < 0:
                     # Need to turn off dynamic xray scaling as well.
-                    # r_xray.set_dynamic_w(0)
-                    # r_xray.set_weight(0)
                     sf = IMP.core.RestraintsScoringFunction([rs[0]])
                     md.set_scoring_function(sf)
+
+                    # Turn off xray and pdb writing.
+                    for tracker in xray_only_trackers:
+                        tracker.set_writing(False)
                 else:
-                    # r_xray.set_weight(w_xray_0)
-                    # r_xray.set_dynamic_w(dyn_xray_0)
                     r_xray.set_d_min(
                         d_min=d_min
                     )
                     sf = IMP.core.RestraintsScoringFunction(rs)
                     md.set_scoring_function(sf)
 
+                    for tracker in xray_only_trackers:
+                        tracker.set_writing(True)
+
                 s_v.set_temperature(T)
                 md.set_temperature(T)
-                # md.assign_velocities(T)
                 md.set_maximum_time_step(t_step)
 
                 md.simulate(steps*t_step)

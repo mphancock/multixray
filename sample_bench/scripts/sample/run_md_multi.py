@@ -16,9 +16,9 @@ import trackers
 import com_restraint
 import log_statistics
 import align_imp
-import pdb_optimizer_state
+import pdb_writer
 import com_optimizer_state
-import copy_optimizer_state
+import copy_pdbs
 import update_weights_optimizer_state
 import molecular_dynamics
 
@@ -37,9 +37,8 @@ if __name__ == "__main__":
     parser.add_argument("--weights", type=int)
     parser.add_argument("--ref_pdb_file")
     parser.add_argument("--T", type=float)
-    parser.add_argument("--sa", type=int)
+    parser.add_argument("--sa")
     parser.add_argument("--steps", type=int)
-    parser.add_argument("--log_file")
     parser.add_argument("--save_best", action="store_true")
     parser.add_argument("--test", action="store_true")
     args = parser.parse_args()
@@ -57,7 +56,6 @@ if __name__ == "__main__":
     print("T: ", args.T)
     print("sa: ", args.sa)
     print("steps: ", args.steps)
-    print("log_file: ", args.log_file)
     print("save_best: ", args.save_best)
     print("test: ", args.test)
 
@@ -68,9 +66,10 @@ if __name__ == "__main__":
     m = IMP.Model()
     s = IMP.atom.AllPDBSelector()
     n_states = int(args.n_state)
-    hs = list()
-    for i in range(n_states):
-        hs.append(IMP.atom.read_pdb(str(pdb_file), m, s))
+    # hs = list()
+    # for i in range(n_states):
+    #     hs.append(IMP.atom.read_pdb(str(pdb_file), m, s))
+    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, s)
 
     print("weights")
     w_p = IMP.Particle(m, "weights")
@@ -89,18 +88,31 @@ if __name__ == "__main__":
 
     ## SAMPLE
     T = args.T
-    if args.sa:
-        sa_sched = [(T, 0, 500), (3000, 4, 100)]
-    else:
-        sa_sched = None
-
-    log_file = args.log_file
 
     pids = list()
     for h in hs:
         pids.extend(IMP.atom.Selection(h).get_selected_particle_indexes())
 
     save_best = args.save_best
+
+    if args.sa:
+        sa_sched = args.sa.split(";")
+        sa_sched = [[float(T), float(res), int(steps), dof_str] for T, res, steps, dof_str in [x.split(",") for x in sa_sched]]
+        for i in range(len(sa_sched)):
+            float, res, steps, dof_str = sa_sched[i]
+
+            if dof_str == "A":
+                pids_work = pids
+            elif dof_str == "S_side":
+                pids_work = (IMP.atom.Selection(hierarchy=h, residue_types=[IMP.atom.MET, IMP.atom.CYS]) - IMP.atom.Selection(hierarchy=h, atom_types=[IMP.atom.AT_CA, IMP.atom.AT_C, IMP.atom.AT_O, IMP.atom.AT_N])).get_selected_particle_indexes()
+            elif dof_str == "S":
+                pids_work = (IMP.atom.Selection(hierarchy=h, residue_types=[IMP.atom.MET, IMP.atom.CYS])).get_selected_particle_indexes()
+            else:
+                raise RuntimeError()
+
+            sa_sched[i][3] = pids_work
+    else:
+        sa_sched = None
 
     # We need to manually set the occupancies of the structures here because pdb file occupancies are limited to 2 decimal places.
     for pid in pids:
@@ -150,9 +162,10 @@ if __name__ == "__main__":
 
     m_0 = IMP.Model()
     s_0 = IMP.atom.AllPDBSelector()
-    h_0 = IMP.atom.read_pdb(str(Path(ref_pdb_file)), m_0, s_0)
+    # h_0 = IMP.atom.read_pdb(str(Path(ref_pdb_file)), m_0, s_0)
+    h0_s = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), m_0, s_0)
 
-    pids_ca_0 = list(IMP.atom.Selection(h_0, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes())
+    pids_ca_0 = list(IMP.atom.Selection(h0_s, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes())
     com_0 = IMP.atom.CenterOfMass.setup_particle(
         IMP.Particle(m_0),
         pids_ca_0
@@ -160,7 +173,7 @@ if __name__ == "__main__":
     print(com_0.get_coordinates())
 
     all_trackers = list()
-    pids_0 = list(IMP.atom.Selection(h_0).get_selected_particle_indexes())
+    pids_0 = list(IMP.atom.Selection(h0_s).get_selected_particle_indexes())
 
     step_tracker = trackers.StepTracker(
         name="step",
@@ -205,7 +218,8 @@ if __name__ == "__main__":
     rmsd_tracker = trackers.RMSDTracker(
         name="rmsd",
         hs=hs,
-        hs_0=[h_0],
+        # hs_0=[h_0],
+        hs_0=h0_s,
         align=False
     )
     all_trackers.append(rmsd_tracker)
@@ -219,10 +233,35 @@ if __name__ == "__main__":
         )
         all_trackers.append(occ_tracker)
 
+    ## WRITING PDBS
+    pdb_dir = Path(args.out_dir, "pdbs")
+    pdb_dir.mkdir()
+
+    tmp_pdb_dir = Path(args.tmp_out_dir, "pdbs")
+    tmp_pdb_dir.mkdir()
+
+    pdb_tracker = pdb_writer.PDBWriterTracker(
+        name="pdb",
+        hs=hs,
+        pdb_dir=tmp_pdb_dir,
+        freq=10
+    )
+    all_trackers.append(pdb_tracker)
+
+    # This freq needs to be equal to the logging frequency to ensure there are never more log entries than corresponding pdb files.
+    copy_tracker = copy_pdbs.PDBCopyTracker(
+        name="copy",
+        m=m,
+        source_dir=tmp_pdb_dir,
+        dest_dir=pdb_dir,
+        freq=100
+    )
+    all_trackers.append(copy_tracker)
+
     log_ostate = log_statistics.LogStatistics(
         m=m,
         all_trackers=all_trackers,
-        log_file=log_file,
+        log_file=Path(args.out_dir, "log.csv"),
         log_freq=100
     )
     for r in rs:
@@ -231,45 +270,6 @@ if __name__ == "__main__":
 
     o_states = list()
     o_states.append(log_ostate)
-
-    ## WRITING PDBS
-    pdb_dir = Path(args.out_dir, "pdbs")
-    pdb_dir.mkdir()
-
-    if args.tmp_out_dir:
-        work_pdb_dir = Path(args.tmp_out_dir, "pdbs")
-        copy_o_state = copy_optimizer_state.CopyOptimizerState(
-            m=m,
-            source_dir=work_pdb_dir,
-            dest_dir=pdb_dir
-        )
-        copy_o_state.set_period(100)
-        o_states.append(copy_o_state)
-    else:
-        work_pdb_dir = pdb_dir
-
-    work_pdb_dir.mkdir(exist_ok=True)
-
-    if save_best:
-        pdb_ostate = pdb_optimizer_state.WriteBestMultiStatePDBOptimizerState(
-            m=m,
-            hs=hs,
-            pdb_dir=work_pdb_dir,
-            tracker=r_free_tracker,
-            N=10,
-            n_skip=10
-        )
-    else:
-        pdb_ostate = pdb_optimizer_state.WriteMultiStatePDBOptimizerState(
-            m=m,
-            hs=hs,
-            pdb_dir=work_pdb_dir
-        )
-        pdb_ostate.set_period(10)
-
-    # Write the original frame.
-    pdb_ostate.do_update(None)
-    o_states.append(pdb_ostate)
 
     if args.com == "os":
         for h in hs:
@@ -297,7 +297,7 @@ if __name__ == "__main__":
         steps = -1
 
     molecular_dynamics.molecular_dynamics(
-        output_dir=work_pdb_dir,
+        output_dir=tmp_pdb_dir,
         hs=hs,
         rs=rs,
         T=T,
