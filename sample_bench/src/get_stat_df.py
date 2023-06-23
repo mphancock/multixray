@@ -29,8 +29,6 @@ Returns
 
     field_stat_df: pandas dataframe, dataframe containing the stat value(s) plus entry information. The dataframe will only be greater than a single row for min and max with N>1. The columns are [main_field, *bonus_fields] and the rows are [0, 1, ..., N-1].
 
-
-
 """
 def pool_get_stat_info_df(
         params_dict
@@ -41,8 +39,7 @@ def pool_get_stat_info_df(
     bonus_fields = params_dict["bonus_fields"]
     stat = params_dict["stat"]
     N = params_dict["N"]
-    offset = params_dict["offset"]
-    max_frame = params_dict["max_frame"]
+    pdb_only = params_dict["pdb_only"]
 
     # Merge the log files into a single dataframe.
     log_dfs = list()
@@ -53,21 +50,17 @@ def pool_get_stat_info_df(
             print("Skipped empty log_file: {}".format(log_file))
             continue
 
-        pdb_files = list()
+        # The pdb entry in the log only contains the index. We need to update it to include the full path based on the log path.
         for i in range(len(log_df)):
-            step = log_df["step"].iloc[i]
-            if step % 10 == 0:
-                pdb_files.append(str(Path(log_file.parents[0], "pdbs", "{}.pdb".format(step // 10))))
-            else:
-                pdb_files.append(np.nan)
-        log_df["pdb"] = pdb_files
+                pdb_name = log_df["pdb"].iloc[i]
+                if type(pdb_name) == str:
+                    log_df.loc[i, "pdb"] = str(Path(log_file.parents[0], "pdbs", pdb_name))
 
-        if max_frame is not None:
-            log_df_subset = log_df[equil:max_frame:offset]
+        if pdb_only:
+            log_sel_df = log_df[~log_df['pdb'].isna()].iloc[equil:]
         else:
-            log_df_subset = log_df[equil::offset]
-        log_dfs.append(log_df_subset)
-
+            log_sel_df = log_df.iloc[equil:]
+        log_dfs.append(log_sel_df)
 
     columns = [field]
     columns.extend(bonus_fields)
@@ -111,6 +104,8 @@ def pool_get_stat_info_df(
 """
 get_stat_df function takes in a set of output directories (presumably the set of output directories for a job) and returns a dataframe containing the stat for each field for each log file for all stat, field pair. Having this dataframe is important for sample volume benchmarks.
 
+With the updates to the logging we now know both which log entries have associated pdb files, as well as the # of pdb files being <= what is recorded in the log.
+
 *********
 params
     log_file_groups: the set of groups where each group contains one or more log files (the rows of the stat_df). Each stat, field pair is computed for each group of log files.
@@ -121,11 +116,9 @@ params
 
     N: the number of entries to return for each field, stat pair. This only applies to min and max.
 
-    offset: only look return stats for log entries with offset frequency. This is useful when we only want entries that have a corresponding pdb file.
-
     equil: the number of frames to discard before computing a statistic.
 
-    max_frame: the number of frames to consider when computing a statistic. This is useful when there are more frames than there are corresponding pdb files and we do not want to consider surplus frames.
+    pdb_only: only compute the statistic for log entries that have a pdb file.
 
     test: additional param to get the stat_df without multiprocessing.
 
@@ -140,9 +133,8 @@ def get_stat_df(
         main_stat,
         N=1,
         bonus_fields=[],
-        offset=1,
         equil=0,
-        max_frames=None,
+        pdb_only=False,
         test=False
 ):
     # Construct the stat_df.
@@ -177,15 +169,8 @@ def get_stat_df(
 
     # Iterate through each group of log files to distribute the calculation of a each field, stat pair.
     pool_params = list()
-    # for log_file_group in log_file_groups_tmp:
     for i in range(len(log_file_groups_tmp)):
         log_file_group = log_file_groups_tmp[i]
-
-        # This doesn't work with fast.
-        if max_frames and not fast:
-            max_frame = max_frames[i]
-        else:
-            max_frame = None
 
         # For each field, stat pair, create a pool_param.
         pool_param = dict()
@@ -195,8 +180,7 @@ def get_stat_df(
         pool_param["stat"] = main_stat
         pool_param["bonus_fields"] = bonus_fields
         pool_param["N"] = N
-        pool_param["offset"] = offset
-        pool_param["max_frame"] = max_frame
+        pool_param["pdb_only"] = pdb_only
         pool_params.append(pool_param)
 
     # Collect all of the field stat dfs and log file groups that are returned by get_stat_from_log_files. The field stat dfs will be used to populate the final stat df. The format of the field stat dfs has the following columns: field, stat, value, log, id. The df will only have more than one row if the stat is either "max" or "min" and N>1.
