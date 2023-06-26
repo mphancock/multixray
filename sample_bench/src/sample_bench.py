@@ -19,20 +19,12 @@ def get_field_min_for_group(
     group_mins = dict()
     fields = [score_field]
     fields.extend(extra_fields)
-    for field in fields:
-        group_mins[field] = np.inf
 
-    for log_file in log_file_group:
-        log_file_index = [str(log_file)]
-        score_field_column = "{}_min_0".format(score_field)
-        log_min = float(log_min_df.loc[log_file_index, score_field_column])
-
-        if log_min < group_mins[score_field]:
-            group_mins[score_field] = log_min
-
-            for field in extra_fields:
-                extra_field_column = "{}_{}".format(score_field_column, field)
-                group_mins[field] = float(log_min_df.loc[log_file_index, extra_field_column])
+    log_min_group_df = log_min_df.loc[[str(log_file) for log_file in log_file_group]]
+    min_entry = log_min_group_df.loc[log_min_df["{}_min_0".format(score_field)] == log_min_group_df["{}_min_0".format(score_field)].min()]
+    group_mins[score_field] = min_entry["{}_min_0".format(score_field)].values[0]
+    for field in extra_fields:
+        group_mins[field] = min_entry["{}_min_0_{}".format(score_field, field)].values[0]
 
     return group_mins
 
@@ -138,6 +130,11 @@ def get_sample_volume_df(
 
     print("CPUs: {}".format(multiprocessing.cpu_count()))
     t0 = time.time()
+
+    # pool_results = list()
+    # for pool_param in pool_params:
+    #     pool_results.append(get_all_group_mins(pool_param))
+
     pool_results = pool_obj.imap(
         get_all_group_mins,
         pool_params

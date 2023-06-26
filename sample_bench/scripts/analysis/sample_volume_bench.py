@@ -38,16 +38,10 @@ if __name__ == "__main__":
     sample_bench_dir.mkdir(parents=True, exist_ok=True)
 
     # First, construct the lookup table that contains for each log_file entry, the minimum value for that MD log for each of the requested fields.
-    # Need to run an offset of 10 to get pdb structures only.
     max_frames = list()
     log_files = list()
     for out_dir in out_dirs:
         log_files.append(Path(out_dir, "log.csv"))
-
-        pdb_dir = Path(out_dir, "pdbs")
-        n_pdbs = len(list(pdb_dir.glob("*.pdb")))
-        max_frame = (n_pdbs-1)*10
-        max_frames.append(max_frame)
 
     bonus_fields = args.bonus_fields.split(",")
     score_field = args.field
@@ -57,12 +51,11 @@ if __name__ == "__main__":
         main_stat="min",
         bonus_fields=bonus_fields,
         N=1,
-        offset=10,
         equil=100,
-        max_frames=max_frames
+        pdb_only=True
     )
     score_stat_df.to_csv(Path(sample_bench_dir, "stat_df_{}.csv".format(score_field)))
-    # score_stat_df = pd.read_csv(Path(out_file.parents[0], "score_stat_df.csv"), index_col=0)
+    # score_stat_df = pd.read_csv(Path(sample_bench_dir, "stat_df_{}.csv".format(score_field)), index_col=0)
 
     if args.max_n > len(log_files):
         max_n = len(log_files)
