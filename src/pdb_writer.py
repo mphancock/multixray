@@ -59,13 +59,36 @@ class WriteBestMultiStatePDBOptimizerState(IMP.OptimizerState):
         self.step = self.step+1
 
 
+"""
+This tracker writes a PDB file every freq steps.
+
+**********
+Parameters
+
+    name: the name of the tracker.
+
+    hs: the IMP hierarchies to write to PDB.
+
+    pdb_dir: the directory to write the PDB files to.
+
+    freq: the frequency to write PDB files.
+
+    log_pdb_dir: the directory to record the PDB files in the log. This is necessary because the PDB files are written locally to a temp directory but then moved to the permanent pdb directory.
+
+**********
+Returns
+
+    return_val: the path to the PDB file written.
+
+"""
 class PDBWriterTracker(trackers.Tracker):
     def __init__(
             self,
             name,
             hs,
             pdb_dir,
-            freq=10
+            freq=10,
+            log_pdb_dir=None
     ):
         trackers.Tracker.__init__(
             self,
@@ -77,20 +100,23 @@ class PDBWriterTracker(trackers.Tracker):
         self.pdb_dir = pdb_dir
         self.step = 0
         self.freq = freq
-
+        self.log_pdb_dir = log_pdb_dir
         self.cur_pdb_id = 0
 
     def evaluate(
             self
     ):
+        return_val = np.nan
         if self.step % self.freq == 0 and self.writing:
             cur_pdb_file = Path(self.pdb_dir, "{}.pdb".format(self.cur_pdb_id))
             IMP.atom.write_multimodel_pdb(self.hs, str(cur_pdb_file))
             self.cur_pdb_id = self.cur_pdb_id+1
-            pdb_name = cur_pdb_file.name
-        else:
-            pdb_name = np.nan
+
+            if self.log_pdb_dir:
+                return_val = Path(self.log_pdb_dir, cur_pdb_file.name)
+            else:
+                return_val = cur_pdb_file
 
         self.step = self.step+1
 
-        return pdb_name
+        return return_val
