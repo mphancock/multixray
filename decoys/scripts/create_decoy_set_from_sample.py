@@ -100,7 +100,7 @@ def get_random_sample_df(
             log_file, log_df = result
 
         print(log_file)
-        pdb_log_df = log_df[log_df['pdb'].notna()]
+        pdb_log_df = log_df[log_df['pdb'].notna()].iloc[equil:]
 
         log_dfs.append(pdb_log_df)
 
@@ -218,7 +218,7 @@ if __name__ == "__main__":
     decoy_name = "rand_1000_4x_38_39"
     best = False
     # equil is in terms of number of frames.
-    equil = 0
+    equil = 1
 
     decoy_pdb_dir = Path("/wynton/group/sali/mhancock/xray/decoys/data", target, job_name, decoy_name)
     decoy_pdb_dir.mkdir(exist_ok=True, parents=True)
