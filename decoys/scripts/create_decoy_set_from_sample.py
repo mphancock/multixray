@@ -100,17 +100,8 @@ def get_random_sample_df(
             log_file, log_df = result
 
         print(log_file)
-        n_pdbs = (len(log_df)-equil)//10
-        if n_pdbs > N:
-            pdb_log_df = log_df[equil::10].sample(N).copy()
-        else:
-            pdb_log_df = log_df[equil::10].sample(n_pdbs).copy()
+        pdb_log_df = log_df[log_df['pdb'].notna()]
 
-        output_dir = log_file.parents[0]
-        pdb_files = [Path(output_dir, "pdbs", "{}.pdb".format(step//10)) for step in pdb_log_df["step"]]
-        pdb_log_df["pdb_file"] = pdb_files
-
-        # To speed up the process, only include a random subset of the pdb files.
         log_dfs.append(pdb_log_df)
 
     merge_log_df = pd.concat(log_dfs)
@@ -119,7 +110,7 @@ def get_random_sample_df(
 
     sample_df = pd.DataFrame(index=range(N), columns=["pdb_file"])
     for i in range(N):
-        sample_df.loc[i]["pdb_file"] = sample_log_df.iloc[i]["pdb_file"]
+        sample_df.loc[i]["pdb_file"] = sample_log_df.iloc[i]["pdb"]
 
     return sample_df
 
@@ -219,61 +210,60 @@ def create_decoy_dataset_from_pdb_files(
 
 
 if __name__ == "__main__":
-    job_lookup = list()
-    job_lookup.append(("38_7mhf_decoys", "9313298"))
-    job_lookup.append(("39_7mhf_decoys_1000", "9313299"))
+    target = "3ca7"
+    job_name = "53_100"
 
-    target = "7mhf"
+    n_struct = 1
+    n_decoys = 1000
+    decoy_name = "rand_1000_4x_38_39"
+    best = False
+    # equil is in terms of number of frames.
+    equil = 0
 
-    for job_pair in job_lookup:
-        print(job_pair)
-        job_name, job_num = job_pair
+    decoy_pdb_dir = Path("/wynton/group/sali/mhancock/xray/decoys/data", target, job_name, decoy_name)
+    decoy_pdb_dir.mkdir(exist_ok=True, parents=True)
 
-        n_struct = 1
-        n_decoys = 1000
-        decoy_name = "rand_1000"
-        best = False
-        equil = 0
+    decoy_meta_dir = Path(Path.home(), "xray/decoys/data", target, job_name)
+    decoy_meta_dir.mkdir(exist_ok=True, parents=True)
+    decoy_meta_file = Path(decoy_meta_dir, "{}.csv".format(decoy_name))
 
-        decoy_pdb_dir = Path("/wynton/group/sali/mhancock/xray/decoys/data/7mhf", job_name, decoy_name)
-        decoy_pdb_dir.mkdir(exist_ok=True, parents=True)
+    sample_job_dirs = list()
+    sample_job_dirs.append(Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/53_100/9520043"))
+    sample_job_dirs.append(Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/54_1000/9520046"))
 
-        decoy_meta_dir = Path(Path.home(), "xray/decoys/data/7mhf", job_name)
-        decoy_meta_dir.mkdir(exist_ok=True, parents=True)
-        decoy_meta_file = Path(decoy_meta_dir, "{}.csv".format(decoy_name))
-
-        job_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", job_name, job_num)
-
-        # Get and save the dataframe containing all the decoy entries (each decoy entry containing 1 or more random pdb files and an equal number of weights).
-        out_dirs = list()
-        pdb_dirs = list()
-        for out_dir in job_dir.glob("output_*"):
+    # Get and save the dataframe containing all the decoy entries (each decoy entry containing 1 or more random pdb files and an equal number of weights).
+    out_dirs = list()
+    pdb_dirs = list()
+    log_files = list()
+    for sample_job_dir in sample_job_dirs:
+        for out_dir in sample_job_dir.glob("output_*"):
             if Path(out_dir, "pdbs").exists():
                 pdb_dirs.append(Path(out_dir, "pdbs"))
                 out_dirs.append(out_dir)
+                log_files.append(Path(out_dir, "log.csv"))
 
-        # Request additional pdb files in order to ensure that there are enough valid pdb files to create the decoy dataset.
-        pdb_files = get_pdb_files(
-            log_files=list(job_dir.glob("output_*/log.csv")),
-            N=int((n_decoys*n_struct)*1.1),
-            equil=equil,
-            best=best,
-            field="r_free_0"
-        )
-        # Check that the pdb files exist for all the entries in the sample df.
-        valid_pdb_files = list()
-        for pdb_file in pdb_files:
-            if pdb_file.exists():
-                valid_pdb_files.append(pdb_file)
+    # Request additional pdb files in order to ensure that there are enough valid pdb files to create the decoy dataset.
+    pdb_files = get_pdb_files(
+        log_files=log_files,
+        N=int((n_decoys*n_struct)*1.1),
+        equil=equil,
+        best=best,
+        field="r_free_0"
+    )
+    # Check that the pdb files exist for all the entries in the sample df.
+    valid_pdb_files = list()
+    for pdb_file in pdb_files:
+        if Path(pdb_file).exists():
+            valid_pdb_files.append(pdb_file)
 
-        print(len(valid_pdb_files))
+    print(len(valid_pdb_files))
 
-        # pdb_dirs = pdb_dirs[:10]
-        decoy_df = create_decoy_dataset_from_pdb_files(
-                pdb_files=valid_pdb_files,
-                decoy_pdb_dir=decoy_pdb_dir,
-                n_decoys=n_decoys,
-                n_struct=n_struct
-        )
-        decoy_df.to_csv(decoy_meta_file)
+    # pdb_dirs = pdb_dirs[:10]
+    decoy_df = create_decoy_dataset_from_pdb_files(
+            pdb_files=valid_pdb_files,
+            decoy_pdb_dir=decoy_pdb_dir,
+            n_decoys=n_decoys,
+            n_struct=n_struct
+    )
+    decoy_df.to_csv(decoy_meta_file)
 
