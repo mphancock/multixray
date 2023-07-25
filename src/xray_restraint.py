@@ -132,8 +132,6 @@ class XtalRestraint(IMP.Restraint):
     def do_add_score_and_derivatives(self, sa):
         results_dict = cctbx_score.get_score(
             m=self.get_model(),
-            # uc_dim=self.uc_dim,
-            # sg_symbol=self.sg_symbol,
             f_obs=self.f_obs,
             r_free_flags=self.flags,
             target=self.target
@@ -167,7 +165,8 @@ class XtalRestraint(IMP.Restraint):
         n_atoms = len(grads_occ) // self.n_state
         for i in range(self.n_state):
             state_grad_occs = grads_occ[i*n_atoms:(i+1)*n_atoms]
-            state_grad_w = state_grad_occs[0]
+            # state_grad_w = state_grad_occs[0]
+            state_grad_w = sum(state_grad_occs)
             self.w_grads[i] = state_grad_w
 
         if sa.get_derivative_accumulator():

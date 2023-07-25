@@ -106,9 +106,10 @@ class RMSDTracker(Tracker):
     def __init__(
             self,
             name,
+            rmsd_func,
             hs,
             hs_0,
-            align
+            ca_only
     ):
         Tracker.__init__(
             self,
@@ -118,14 +119,16 @@ class RMSDTracker(Tracker):
         )
         self.hs = hs
         self.hs_0 = hs_0
-        self.align = align
+        self.rmsd_func = rmsd_func
+        self.ca_only = ca_only
 
     def evaluate(
             self
     ):
-        rmsd = align_imp.compute_rmsd_between_average(
-            hs_1=self.hs,
-            hs_2=self.hs_0
+        rmsd = self.rmsd_func(
+            h_0s=self.hs,
+            h_1s=self.hs_0,
+            ca_only=self.ca_only
         )
 
         return rmsd
@@ -344,6 +347,11 @@ class StepTracker(Tracker):
             n=1
         )
         self.step = 0
+
+    def get_step(
+            self
+    ):
+        return self.step
 
     def evaluate(
             self

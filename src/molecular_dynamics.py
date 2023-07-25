@@ -86,6 +86,8 @@ def molecular_dynamics(
         r_xray = rs[1].get_restraint(0)
 
         log_ostate = o_states[0]
+        weight_ostate = o_states[-1]
+
         xray_only_tracker_names = ["xray_0", "r_work_0", "r_free_0", "pdb", "copy"]
         xray_only_trackers = list()
         for name in xray_only_tracker_names:
@@ -106,6 +108,9 @@ def molecular_dynamics(
                     # Turn off xray and pdb writing.
                     for tracker in xray_only_trackers:
                         tracker.set_writing(False)
+
+                    # Turn off weight updating.
+                    weight_ostate.set_on(False)
                 else:
                     r_xray.set_d_min(
                         d_min=d_min
@@ -115,6 +120,8 @@ def molecular_dynamics(
 
                     for tracker in xray_only_trackers:
                         tracker.set_writing(True)
+
+                    weight_ostate.set_on(True)
 
                 s_v.set_temperature(T)
                 md.set_temperature(T)

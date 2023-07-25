@@ -5,6 +5,7 @@ import IMP
 import IMP.atom
 
 import trackers
+import align_imp
 
 class WriteMultiStatePDBOptimizerState(IMP.OptimizerState):
     def __init__(
@@ -109,7 +110,9 @@ class PDBWriterTracker(trackers.Tracker):
         return_val = np.nan
         if self.step % self.freq == 0 and self.writing:
             cur_pdb_file = Path(self.pdb_dir, "{}.pdb".format(self.cur_pdb_id))
-            IMP.atom.write_multimodel_pdb(self.hs, str(cur_pdb_file))
+
+            hs_ordered = align_imp.get_ordered_hs(self.hs)
+            IMP.atom.write_multimodel_pdb(hs_ordered, str(cur_pdb_file))
             self.cur_pdb_id = self.cur_pdb_id+1
 
             if self.log_pdb_dir:

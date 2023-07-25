@@ -1,5 +1,6 @@
 import time
 import pandas as pd
+import numpy as np
 
 import IMP
 import IMP.core
@@ -50,7 +51,7 @@ class LogStatistics(IMP.OptimizerState):
     def print_last_entry(self):
         log_line = ""
         for entry in self.log.keys():
-            if type(self.log[entry][-1]) == float:
+            if type(self.log[entry][-1]) == float or type(self.log[entry][-1]) == np.float64:
                 last_entry = str(round(self.log[entry][-1], 3))
             else:
                 last_entry = str(self.log[entry][-1])

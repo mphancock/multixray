@@ -93,8 +93,6 @@ Returns
 def get_coord_avg_dict(
         hs
 ):
-    m = hs[0].get_model()
-
     avg_dict = dict()
     norm_dict = dict()
 
@@ -110,6 +108,8 @@ def get_coord_avg_dict(
             raise RuntimeError("Structures are not of equal size {} and {}.".format(n_pid, len(pids_0)))
 
     for h in hs:
+        m = h.get_model()
+
         pids = IMP.atom.Selection(h).get_selected_particle_indexes()
 
         for i in range(len(pids_0)):
