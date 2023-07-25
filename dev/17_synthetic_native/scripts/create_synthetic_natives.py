@@ -32,7 +32,7 @@ if __name__ == "__main__":
     rmsd_ranges = [(0,.5),(.5,1),(1,2),(2,3)]
     n_repeats = 10
 
-    n_state = 4
+    n_state = 1
     decoy_meta_file = Path(Path.home(), "xray/dev/17_synthetic_native/data/{}x_decoy_df.csv".format(n_state))
     cols = list()
     cols.append("decoy_file")
