@@ -49,12 +49,13 @@ def pool_get_stat_info_df(
         except pd.errors.EmptyDataError:
             print("Skipped empty log_file: {}".format(log_file))
             continue
+        except FileNotFoundError:
+            print("Skipped missing log_file: {}".format(log_file))
+            continue
 
-        # The pdb entry in the log only contains the index. We need to update it to include the full path based on the log path.
-        for i in range(len(log_df)):
-                pdb_name = log_df["pdb"].iloc[i]
-                if type(pdb_name) == str:
-                    log_df.loc[i, "pdb"] = str(Path(log_file.parents[0], "pdbs", pdb_name))
+        if "step" not in log_df.columns:
+            print("Skipped corrupt log file: {}".format(log_file))
+            continue
 
         if pdb_only:
             log_sel_df = log_df[~log_df['pdb'].isna()].iloc[equil:]
