@@ -1,10 +1,10 @@
 #!/bin/bash
 
-TMPDIR="/wynton/home/sali/mhancock/xray/sample_bench/out/test"
+TMPDIR="/wynton/home/sali/mhancock/xray/sample_bench/data/out/test"
 rm -r "$TMPDIR"
-mkdir "$TMPDIR"
+mkdir -p "$TMPDIR"
 
-JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/test"
+JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/data/out/test"
 rm -r "$JOB_DIR"
 mkdir -p "$JOB_DIR"
 
@@ -14,20 +14,30 @@ OUT_DIR="$JOB_DIR/output_$RUN_ID"
 mkdir "$TMP_OUT_DIR"
 mkdir "$OUT_DIR"
 
-CIF_FILES="/wynton/home/sali/mhancock/xray/data/reflections/7mhf/7mhf_refine.cif"
-RES=0
-W_XRAY=.5
+CIF_FILES="/wynton/home/sali/mhancock/xray/dev/17_synthetic_native/data/cifs/1_state_ref/0.cif"
+W_XRAY=1.0
 DYN_W_XRAY=1
-COM=os
-START_PDB_FILE="/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_6.pdb"
+START_PDB_FILE="/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_refine.pdb"
 N_STATE=1
-REF_PDB_FILE="/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb"
+REF_PDB_FILE="/wynton/home/sali/mhancock/xray/dev/17_synthetic_native/data/pdbs/1_state_ref/0.pdb"
 T=300
-SA=0
+RES=0
 LOG_FILE="$OUT_DIR/log.csv"
 
 cd "$TMPDIR"
 cp ~/xray/sample_bench/scripts/sample/run_md_multi.py .
-python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --cif_files "$CIF_FILES" --res "$RES" --w_xray "$W_XRAY" --dyn_w_xray "$DYN_W_XRAY" --com "$COM" --start_pdb_file "$START_PDB_FILE" --n_state "$N_STATE" --ref_pdb_file "$REF_PDB_FILE" --T "$T" --sa "$SA" --log_file "$LOG_FILE"
+python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --cif_files "$CIF_FILES" --res "$RES" --w_xray "$W_XRAY" --dyn_w_xray --start_pdb_file "$START_PDB_FILE" --n_state "$N_STATE" --ref_pdb_file "$REF_PDB_FILE" --T "$T" --weights
+
+# COM=os
+# START_PDB_FILE="/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_refine.pdb"
+# N_STATE=1
+# REF_PDB_FILE="/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_refine.pdb"
+# T=1000
+# STEPS=100
+# LOG_FILE="$OUT_DIR/log.csv"
+
+# cd "$TMPDIR"
+# cp ~/xray/sample_bench/scripts/sample/run_md_multi.py .
+# python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --com "$COM" --start_pdb_file "$START_PDB_FILE" --n_state "$N_STATE" --ref_pdb_file "$REF_PDB_FILE" --T "$T" --steps "$STEPS"
 
 cd "$HOME/xray/sample_bench/scripts/sample"

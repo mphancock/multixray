@@ -80,9 +80,9 @@ def read_log_file(
 
 
 def get_random_sample_df(
-        log_files,
-        N,
-        equil
+    log_files,
+    N,
+    equil
 ):
     # Load all log files into a single DataFrame and get a random subset.
     log_dfs = list()
@@ -108,11 +108,7 @@ def get_random_sample_df(
     print(len(merge_log_df))
     sample_log_df = merge_log_df.sample(n=N)
 
-    sample_df = pd.DataFrame(index=range(N), columns=["pdb_file"])
-    for i in range(N):
-        sample_df.loc[i]["pdb_file"] = sample_log_df.iloc[i]["pdb"]
-
-    return sample_df
+    return sample_log_df
 
 
 """
@@ -147,7 +143,8 @@ def get_pdb_files(
             N=N,
             equil=equil
         )
-        pdb_files = list(sample_df["pdb_file"])
+
+        pdb_files = list(sample_df["pdb"])
 
     return pdb_files
 
@@ -168,27 +165,48 @@ def create_decoy_dataset_from_pdb_files(
         pdb_files,
         decoy_pdb_dir,
         n_decoys,
-        n_struct
+        n_struct,
+        rand_occs
 ):
     # There need to be enough pdb files in the sample df to populate the decoy df.
     if len(pdb_files) < n_struct*n_decoys:
         raise RuntimeError("The sample df ({}) must have enough entries to populate the decoy df ({})".format(len(pdb_files), n_struct*n_decoys))
 
-    decoy_df = pd.DataFrame(index=list(range(n_decoys)), columns=range(n_struct))
+    columns = ["decoy_file"]
+    for i in range(n_struct):
+        columns.append("structure_{}".format(i))
+        columns.append("state_{}".format(i))
+        columns.append("w_{}".format(i))
+
+    decoy_df = pd.DataFrame(index=list(range(n_decoys)), columns=columns)
 
     pool_params = list()
     for i in range(n_decoys):
         out_file = Path(decoy_pdb_dir, "{}.pdb".format(i))
         decoy_pdb_files = pdb_files[i*n_struct:(i+1)*n_struct]
         for j in range(n_struct):
-            decoy_df.loc[i,j]=decoy_pdb_files[j]
+            # decoy_df.loc[i,j]=decoy_pdb_files[j]
+            decoy_df.loc[i, "decoy_file"] = out_file
+            decoy_df.loc[i, "structure_{}".format(j)] = decoy_pdb_files[j]
+            decoy_df.loc[i, "state_{}".format(j)] = 0
+
+        if rand_occs:
+            occs = [random.random() for i in range(n_struct)]
+            occ_sum = sum(occs)
+            occs = [occ/occ_sum for occ in occs]
+        else:
+            occs = [1/n_struct]*n_struct
+
+        for j in range(len(occs)):
+            decoy_df.loc[i, "w_{}".format(j)] = occs[j]
 
         params_dict = dict()
         params_dict["merge_pdb_file"] = out_file
         params_dict["pdb_files"] = decoy_pdb_files
-        params_dict["occs"] = [1]*n_struct
+        params_dict["occs"] = occs
         params_dict["n"] = -1
         params_dict["order"] = False
+        params_dict["state"] = 0
         params_dict["id"] = i
 
         pool_params.append(params_dict)
@@ -213,9 +231,9 @@ if __name__ == "__main__":
     target = "3ca7"
     job_name = "53_100"
 
-    n_struct = 1
+    n_struct = 2
     n_decoys = 1000
-    decoy_name = "rand_1000_4x_38_39"
+    decoy_name = "rand_1000_2x"
     best = False
     # equil is in terms of number of frames.
     equil = 1
@@ -229,7 +247,7 @@ if __name__ == "__main__":
 
     sample_job_dirs = list()
     sample_job_dirs.append(Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/53_100/9520043"))
-    sample_job_dirs.append(Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/54_1000/9520046"))
+    # sample_job_dirs.append(Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/54_1000/9520046"))
 
     # Get and save the dataframe containing all the decoy entries (each decoy entry containing 1 or more random pdb files and an equal number of weights).
     out_dirs = list()
@@ -263,7 +281,8 @@ if __name__ == "__main__":
             pdb_files=valid_pdb_files,
             decoy_pdb_dir=decoy_pdb_dir,
             n_decoys=n_decoys,
-            n_struct=n_struct
+            n_struct=n_struct,
+            rand_occs=True
     )
     decoy_df.to_csv(decoy_meta_file)
 

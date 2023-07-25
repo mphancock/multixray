@@ -155,9 +155,12 @@ if __name__ == "__main__":
         main_stat="min",
         bonus_fields=bonus_fields,
         N=1,
-        equil=100,
+        equil=1,
         pdb_only=True
     )
+
+    # Drop any rows with NaN values.
+    score_stat_df = score_stat_df.dropna()
     score_stat_df.to_csv(Path(sample_bench_dir, "stat_df_{}.csv".format(score_field)))
     # score_stat_df = pd.read_csv(Path(sample_bench_dir, "stat_df_{}.csv".format(score_field)), index_col=0)
 

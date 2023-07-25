@@ -15,6 +15,7 @@ if __name__ == "__main__":
     parser.add_argument("--param_file")
     parser.add_argument("--score_file")
     parser.add_argument("--add_native", action="store_true")
+    parser.add_argument("--score_fs")
     parser.add_argument("--test", action="store_true")
     args = parser.parse_args()
     print(args.pdb_dir)
@@ -23,6 +24,7 @@ if __name__ == "__main__":
     print(args.score_file)
     print(args.add_native)
     print(args.param_file)
+    print(args.score_fs)
     print(args.test)
 
     xray_dir = Path(Path.home(), "xray")
@@ -44,9 +46,7 @@ if __name__ == "__main__":
     native_cif_file = Path(args.cif_file)
     flags_file = native_cif_file
 
-    score_fs = list()
-    score_fs.append("ml")
-    score_fs.append("rmsd")
+    score_fs = args.score_fs.split(",")
 
     score_rmsd.score_vs_rmsd(
         params_file=args.param_file,

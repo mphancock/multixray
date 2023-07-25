@@ -5,51 +5,22 @@ import pandas as pd
 import multiprocessing
 
 sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
-import log_file_analysis
-
+import get_stat_df
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--job_name")
-    parser.add_argument("--job_id", type=int)
-    args = parser.parse_args()
-    print(args.job_name)
-    print(args.job_id)
+    job_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/57_sb_2x/9692409")
+    output_dirs = list(job_dir.glob("output*"))
+    log_files = [Path(output_dir, "log.csv") for output_dir in output_dirs]
 
-    job_name = args.job_name
-    exp_id = job_name.split("_")[0]
-    job_id = args.job_id
-
-    xray_dir = Path("/wynton/group/sali/mhancock/xray")
-    out_dirs = list(Path(xray_dir, "sample_bench/out/3ca7/single_md/{}/{}".format(job_name, job_id)).glob("output*"))
-    fields = ["tot", "rmsd"]
-
-    # First, construct the lookup table that contains for each log_file entry, the minimum value for that MD log for each of the requested fields.
-    log_files = [Path(out_dir, "log.csv") for out_dir in out_dirs]
-    stat_df = log_file_analysis.get_stat_df_from_logs(
-        log_files=log_files,
-        fields=["tot", "tot", "rmsd", "rmsd"],
-        stats=["min", "mean", "min", "mean"],
-        equil=1000,
-        include_id=True
+    stat_df = get_stat_df.get_stat_df(
+        log_file_groups=[[log_file] for log_file in log_files],
+        main_field="xray_0",
+        main_stat="min",
+        bonus_fields=["rmsd", "r_free_0", "occ_0", "occ_1", "pdb"],
+        N=1,
+        equil=1,
+        pdb_only=True
     )
-    print(stat_df.head())
+    stat_df.to_csv(Path(Path.home(), "xray/tmp/stat_df.csv"))
 
-    # Create an additional column that is the rmsd of the minimum scoring structure.
-    min_score_rmsds = list()
-    min_score_rmsd_aligns = list()
-    for i in range(len(stat_df)):
-        log_file = stat_df.loc[i, "log_file"]
-        min_score_id = stat_df.loc[i, "tot_min_id"]
-
-        log_df = pd.read_csv(log_file, index_col=0)
-        min_score_rmsd = log_df.loc[min_score_id, "rmsd"]
-        min_score_rmsd_align = log_df.loc[min_score_id, "rmsd_align"]
-        min_score_rmsds.append(min_score_rmsd)
-        min_score_rmsd_aligns.append(min_score_rmsd_align)
-
-    stat_df["tot_min_rmsd"] = min_score_rmsds
-    stat_df["tot_min_rmsd_align"] = min_score_rmsd_aligns
-
-    stat_df.to_csv(Path(Path.home(), "xray/sample_bench/data/stat_df/{}.csv".format(exp_id)))

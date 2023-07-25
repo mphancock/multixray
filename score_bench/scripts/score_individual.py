@@ -10,26 +10,14 @@ if __name__ == "__main__":
     xray_dir = Path(Path.home(), "xray")
 
     param_dict = dict()
-    # param_dict["decoy_file"] = Path(Path.home(), "xray/data/pdbs/3ca7/3ca7.pdb")
-    # param_dict["occs"] = [1]*1
-    # param_dict["ref_file"] = Path(Path.home(), "xray/data/pdbs/3ca7/3ca7.pdb")
-    # param_dict["cif_file"] = Path(Path.home(), "xray/data/reflections/3ca7/3ca7.cif")
-    # param_dict["flags_file"] = Path(xray_dir, "data/reflections/3ca7/3ca7.cif")
-    # param_dict["res"] = 0
-    # param_dict["uc_dim"] = (58.305, 36.154, 25.362, 90.00, 103.09, 90.00)
-    # param_dict["sg"] = "C 1 2 1"
-    # param_dict["w_xray"] = 30000
-    # param_dict["score_fs"] = ["ml", "ff", "rmsd"]
 
-    param_dict["decoy_file"] = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/38_7mhf_decoys/9313298/output_0/pdbs/52.pdb")
-    param_dict["occs"] = [1]*1
-    param_dict["ref_file"] = Path(xray_dir, "data/pdbs/7mhf/7mhf_refine.pdb")
-    param_dict["cif_file"] = Path(xray_dir, "data/reflections/7mhf/7mhf_no_H20_alt_H_ion.cif")
-    param_dict["flags_file"] = Path(xray_dir, "data/reflections/7mhf/7mhf_no_H20_alt_H_ion.cif")
+    param_dict["decoy_file"] = Path("/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_refine.pdb")
+    param_dict["occs"] = None
+    param_dict["ref_file"] = Path("/wynton/home/sali/mhancock/xray/dev/17_synthetic_native/data/pdbs/1_state_ref/0.pdb")
+    param_dict["cif_file"] = Path("/wynton/home/sali/mhancock/xray/data/reflections/3ca7/3ca7_refine.cif")
+    param_dict["flags_file"] = Path("/wynton/home/sali/mhancock/xray/data/reflections/3ca7_refine.cif")
     param_dict["res"] = 0
-    param_dict["w_xray"] = None
-    # param_dict["score_fs"] = ["ml", "ff", "rmsd"]
-    param_dict["score_fs"] = ["rmsd"]
+    param_dict["score_fs"] = ["ml", "rmsd_avg","rmsd_ord"]
 
     score_dict = score_rmsd.pool_score(
         params=param_dict
