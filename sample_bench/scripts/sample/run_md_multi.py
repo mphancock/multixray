@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 import argparse
 import shutil
+import random
 
 import IMP
 import IMP.atom
@@ -21,6 +22,9 @@ import com_optimizer_state
 import copy_pdbs
 import update_weights_optimizer_state
 import molecular_dynamics
+import params
+import weight_restraint
+import miller_ops
 
 
 if __name__ == "__main__":
@@ -30,11 +34,11 @@ if __name__ == "__main__":
     parser.add_argument("--cif_files")
     parser.add_argument("--res", type=float)
     parser.add_argument("--w_xray", type=float)
-    parser.add_argument("--dyn_w_xray", type=int)
-    parser.add_argument("--com")
+    parser.add_argument("--dyn_w_xray", action="store_true")
+    # parser.add_argument("--com")
     parser.add_argument("--start_pdb_file")
     parser.add_argument("--n_state")
-    parser.add_argument("--weights", type=int)
+    parser.add_argument("--weights", action="store_true")
     parser.add_argument("--ref_pdb_file")
     parser.add_argument("--T", type=float)
     parser.add_argument("--sa")
@@ -48,7 +52,7 @@ if __name__ == "__main__":
     print("res: ", args.res)
     print("w_xray: ", args.w_xray)
     print("dyn_w_xray: ", args.dyn_w_xray)
-    print("com: ", args.com)
+    # print("com: ", args.com)
     print("start_pdb_file: ", args.start_pdb_file)
     print("n_state: ", args.n_state)
     print("weights: ", args.weights)
@@ -58,6 +62,8 @@ if __name__ == "__main__":
     print("steps: ", args.steps)
     print("save_best: ", args.save_best)
     print("test: ", args.test)
+
+    params.write_params(vars(args), Path(args.out_dir, "params.txt"))
 
     # Representation.
     pdb_file = Path(args.start_pdb_file)
@@ -69,12 +75,34 @@ if __name__ == "__main__":
     # hs = list()
     # for i in range(n_states):
     #     hs.append(IMP.atom.read_pdb(str(pdb_file), m, s))
+
     hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, s)
+
+    if len(hs) != n_states:
+        m = IMP.Model()
+        hs.clear()
+
+        for i in range(n_states):
+            hs.append(IMP.atom.read_pdb(str(pdb_file), m, s))
 
     print("weights")
     w_p = IMP.Particle(m, "weights")
     w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
     w = IMP.isd.Weight(m, w_pid)
+
+    if args.weights:
+        w.set_weights([random.random() for i in range(n_states)])
+    else:
+        w.set_weights([1/n_states]*n_states)
+    # w.set_weights([random.random() for i in range(n_states)])
+
+    # We need to manually set the occupancies of the structures here because pdb file occupancies are limited to 2 decimal places.
+    for i in range(n_states):
+        pids = IMP.atom.Selection(hs[i]).get_selected_particle_indexes()
+        for pid in pids:
+            IMP.atom.Atom(m, pid).set_occupancy(w.get_weight(i))
+
+    w.set_weights_are_optimized(True)
 
     for i in range(n_states):
         print(w.get_weight(i))
@@ -114,9 +142,6 @@ if __name__ == "__main__":
     else:
         sa_sched = None
 
-    # We need to manually set the occupancies of the structures here because pdb file occupancies are limited to 2 decimal places.
-    for pid in pids:
-        IMP.atom.Atom(m, pid).set_occupancy(1/n_states)
     ps = [m.get_particle(pid) for pid in pids]
 
     ## SCORING
@@ -216,13 +241,22 @@ if __name__ == "__main__":
         all_trackers.append(r_free_tracker)
 
     rmsd_tracker = trackers.RMSDTracker(
-        name="rmsd",
+        name="rmsd_ord",
         hs=hs,
-        # hs_0=[h_0],
         hs_0=h0_s,
-        align=False
+        rmsd_func=align_imp.compute_rmsd_ordered,
+        ca_only=True
     )
     all_trackers.append(rmsd_tracker)
+
+    rmsd_all_tracker = trackers.RMSDTracker(
+        name="rmsd_avg",
+        hs=hs,
+        hs_0=h0_s,
+        rmsd_func=align_imp.compute_rmsd_between_average,
+        ca_only=True
+    )
+    all_trackers.append(rmsd_all_tracker)
 
     for i in range(n_states):
         state_pids = IMP.atom.Selection(hs[i]).get_selected_particle_indexes()
@@ -244,7 +278,8 @@ if __name__ == "__main__":
         name="pdb",
         hs=hs,
         pdb_dir=tmp_pdb_dir,
-        freq=10
+        freq=10,
+        log_pdb_dir=pdb_dir
     )
     all_trackers.append(pdb_tracker)
 
@@ -271,24 +306,47 @@ if __name__ == "__main__":
     o_states = list()
     o_states.append(log_ostate)
 
-    if args.com == "os":
-        for h in hs:
-            pids_ca = list(IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes())
-            com_os = com_optimizer_state.CenterOfMassOptimizerState(
-                m=m,
-                pids=pids_ca,
-                com_0=com_0
-            )
-            o_states.append(com_os)
+    # if args.com == "os":
+    for h in hs:
+        pids_ca = list(IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes())
+        com_os = com_optimizer_state.CenterOfMassOptimizerState(
+            m=m,
+            pids=pids_ca,
+            com_0=com_0
+        )
+        o_states.append(com_os)
 
     if args.weights:
-        w_os = update_weights_optimizer_state.UpdateWeightsOptimizerState(
+        f_obs = miller_ops.get_miller_array(
+            f_obs_file=cif_file,
+            label="_refln.F_meas_au"
+        )
+        f_obs_array = miller_ops.clean_miller_array(f_obs)
+        # Set flags.
+        status_array = miller_ops.get_miller_array(
+            f_obs_file=cif_file,
+            label="_refln.status"
+        )
+        flags_array = status_array.customized_copy(data=status_array.data()=="f")
+        f_obs, flags_array = f_obs_array.common_sets(other=flags_array)
+
+        wr = weight_restraint.WeightRestraint(
             m=m,
             hs=hs,
             w=w,
-            r_xtal=r_xtal
+            f_obs=f_obs,
+            flags=flags_array,
+            scale=1.0
         )
-        w_os.set_period(10)
+
+        w_os = update_weights_optimizer_state.OptimizeWeightsOptimizerState(
+            m=m,
+            wr=wr,
+            r_xray=r_xray,
+            n_state=n_states,
+            step_tracker=step_tracker
+        )
+        w_os.set_period(100)
         o_states.append(w_os)
 
     if args.steps:
