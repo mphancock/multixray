@@ -35,9 +35,9 @@ if __name__ == "__main__":
     parser.add_argument("--res", type=float)
     parser.add_argument("--w_xray", type=float)
     parser.add_argument("--dyn_w_xray", action="store_true")
-    # parser.add_argument("--com")
     parser.add_argument("--start_pdb_file")
     parser.add_argument("--n_state")
+    parser.add_argument("--init_weights")
     parser.add_argument("--weights", action="store_true")
     parser.add_argument("--ref_pdb_file")
     parser.add_argument("--T", type=float)
@@ -46,22 +46,6 @@ if __name__ == "__main__":
     parser.add_argument("--save_best", action="store_true")
     parser.add_argument("--test", action="store_true")
     args = parser.parse_args()
-    print("out_dir: ", args.out_dir)
-    print("tmp_out_dir: ", args.tmp_out_dir)
-    print("cif_files: ", args.cif_files)
-    print("res: ", args.res)
-    print("w_xray: ", args.w_xray)
-    print("dyn_w_xray: ", args.dyn_w_xray)
-    # print("com: ", args.com)
-    print("start_pdb_file: ", args.start_pdb_file)
-    print("n_state: ", args.n_state)
-    print("weights: ", args.weights)
-    print("ref_pdb_file: ", args.ref_pdb_file)
-    print("T: ", args.T)
-    print("sa: ", args.sa)
-    print("steps: ", args.steps)
-    print("save_best: ", args.save_best)
-    print("test: ", args.test)
 
     params.write_params(vars(args), Path(args.out_dir, "params.txt"))
 
@@ -72,26 +56,33 @@ if __name__ == "__main__":
     m = IMP.Model()
     s = IMP.atom.AllPDBSelector()
     n_states = int(args.n_state)
-    # hs = list()
-    # for i in range(n_states):
-    #     hs.append(IMP.atom.read_pdb(str(pdb_file), m, s))
 
     hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, s)
 
-    if len(hs) != n_states:
+    if len(hs) == 1 and len(hs) < n_states:
         m = IMP.Model()
         hs.clear()
 
         for i in range(n_states):
             hs.append(IMP.atom.read_pdb(str(pdb_file), m, s))
 
-    print("weights")
+    # Setup the weights.
     w_p = IMP.Particle(m, "weights")
     w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
     w = IMP.isd.Weight(m, w_pid)
 
-    if args.weights:
+    if args.init_weights:
+        init_weights = args.init_weights.split(",")
+        init_weights = [float(w) for w in init_weights]
+        if len(init_weights) != n_states:
+            raise RuntimeError("Number of initial weights does not match number of states.")
+    else:
+        init_weights = None
+
+    if args.weights and not init_weights:
         w.set_weights([random.random() for i in range(n_states)])
+    elif init_weights:
+        w.set_weights(init_weights)
     else:
         w.set_weights([1/n_states]*n_states)
     # w.set_weights([random.random() for i in range(n_states)])
@@ -103,9 +94,6 @@ if __name__ == "__main__":
             IMP.atom.Atom(m, pid).set_occupancy(w.get_weight(i))
 
     w.set_weights_are_optimized(True)
-
-    for i in range(n_states):
-        print(w.get_weight(i))
 
     # Setup waters (if any).
     for h in hs:
@@ -195,7 +183,6 @@ if __name__ == "__main__":
         IMP.Particle(m_0),
         pids_ca_0
     )
-    print(com_0.get_coordinates())
 
     all_trackers = list()
     pids_0 = list(IMP.atom.Selection(h0_s).get_selected_particle_indexes())
