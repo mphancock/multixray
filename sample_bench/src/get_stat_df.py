@@ -53,8 +53,12 @@ def pool_get_stat_info_df(
             print("Skipped missing log_file: {}".format(log_file))
             continue
 
-        if "step" not in log_df.columns:
-            print("Skipped corrupt log file: {}".format(log_file))
+        # Create a set of columns to check for existence
+        check_cols = set(["step", "time", field] + bonus_fields)
+
+        # Check if all columns in check_cols exist in the DataFrame. This guaruntees that merge_log_df will contain all of the necessary columns.
+        if not check_cols.issubset(log_df.columns):
+            print("Skipped corrupt log file (missing columns): {}".format(log_file))
             continue
 
         if pdb_only:
@@ -73,9 +77,6 @@ def pool_get_stat_info_df(
             # Check that all the fields, bonus fields, and stats are valid.
             if stat not in ["min", "max", "mean", "std", "var"]:
                 return RuntimeError("Stat {} not valid".format(stat))
-            for column in columns:
-                if column not in merge_log_df.columns:
-                    return RuntimeError("Column {} not in merge_log_df".format(column))
 
             # Compute the stat. Return np.nan if there are no log files or the length of the merged log file is 0.
             if stat in ["min", "max"]:
