@@ -45,12 +45,11 @@ def molecular_dynamics(
 ):
     params.write_params(
         param_dict=locals(),
-        param_file=Path(output_dir, "params.txt")
+        param_file=Path(output_dir, "params_md.txt")
     )
 
     m = hs[0].get_model()
     n_states = len(hs)
-    print("N_STATES: {}".format(n_states))
 
     pids = list()
     for h in hs:
