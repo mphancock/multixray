@@ -50,8 +50,6 @@ def compute_rmsd_between_average(
     else:
         pids = IMP.atom.Selection(h_0s[0]).get_selected_particle_indexes()
 
-    print(len(pids))
-
     rmsd = 0
     for pid in pids:
         xyz_1 = avg_dict_1[pid]
@@ -150,8 +148,6 @@ def get_ordered_hs(
     ids = list(np.argsort(occs))
     ids.reverse()
 
-    print(ids)
-
     h_0s_ordered = [h_0s[i] for i in ids]
 
     return h_0s_ordered
@@ -170,18 +166,17 @@ def single_h_to_hs(
     h,
     n_state
 ):
-    hs = list()
-    hs.append(h)
+    h_clones = list()
 
     m = h.get_model()
-    for i in range(n_state-1):
+    for i in range(n_state):
         h_clone = IMP.atom.create_clone(h)
-        hs.append(h_clone)
+        h_clones.append(h_clone)
 
-    for h in hs:
+    for h in h_clones:
         set_occupancies(h=h, occ=1/n_state)
 
-    return hs
+    return h_clones
 
 
 def compute_rmsd_ordered(
