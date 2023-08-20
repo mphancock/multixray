@@ -56,7 +56,6 @@ if __name__ == "__main__":
     m = IMP.Model()
     s = IMP.atom.AllPDBSelector()
     n_states = int(args.n_state)
-
     hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, s)
 
     if len(hs) == 1 and len(hs) < n_states:
@@ -66,26 +65,45 @@ if __name__ == "__main__":
         for i in range(n_states):
             hs.append(IMP.atom.read_pdb(str(pdb_file), m, s))
 
+    m_0 = IMP.Model()
+    s_0 = IMP.atom.AllPDBSelector()
+    h0_s = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), m_0, s_0)
+
     # Setup the weights.
     w_p = IMP.Particle(m, "weights")
     w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
     w = IMP.isd.Weight(m, w_pid)
 
-    if args.init_weights:
+    if args.init_weights == "ref":
+        init_weights = [IMP.atom.Atom(m, IMP.atom.Selection(hierarchy=h, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()[0]).get_occupancy() for h in hs]
+    elif args.init_weights == "rand":
+        init_weights = [random.random() for i in range(n_states)]
+    elif args.init_weights == "uni":
+        init_weights = [1/n_states]*n_states
+    else:
         init_weights = args.init_weights.split(",")
         init_weights = [float(w) for w in init_weights]
         if len(init_weights) != n_states:
             raise RuntimeError("Number of initial weights does not match number of states.")
-    else:
-        init_weights = None
 
-    if args.weights and not init_weights:
-        w.set_weights([random.random() for i in range(n_states)])
-    elif init_weights:
-        w.set_weights(init_weights)
+    # Normalize and check for trivial weights only if init weights was rand. I do this because some of the synthetic natives have trivial weights but I don't want to overrule them.
+    if args.init_weights == "rand":
+        weights = [w/sum(init_weights) for w in init_weights]
+        trivial_w = False
+        for weight in weights:
+            if weight < .05:
+                trivial_w = True
+        while trivial_w:
+            weights = [random.random() for i in range(n_states)]
+            weights = [w/sum(weights) for w in weights]
+            trivial_w = False
+            for weight in weights:
+                if weight < .05:
+                    trivial_w = True
     else:
-        w.set_weights([1/n_states]*n_states)
-    # w.set_weights([random.random() for i in range(n_states)])
+        weights = init_weights
+
+    w.set_weights(weights)
 
     # We need to manually set the occupancies of the structures here because pdb file occupancies are limited to 2 decimal places.
     for i in range(n_states):
@@ -173,11 +191,6 @@ if __name__ == "__main__":
             r_xrays.append(r_xray)
             rs.append(rs_xray)
 
-    m_0 = IMP.Model()
-    s_0 = IMP.atom.AllPDBSelector()
-    # h_0 = IMP.atom.read_pdb(str(Path(ref_pdb_file)), m_0, s_0)
-    h0_s = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), m_0, s_0)
-
     pids_ca_0 = list(IMP.atom.Selection(h0_s, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes())
     com_0 = IMP.atom.CenterOfMass.setup_particle(
         IMP.Particle(m_0),
@@ -226,15 +239,6 @@ if __name__ == "__main__":
             stat="r_free"
         )
         all_trackers.append(r_free_tracker)
-
-    rmsd_tracker = trackers.RMSDTracker(
-        name="rmsd_ord",
-        hs=hs,
-        hs_0=h0_s,
-        rmsd_func=align_imp.compute_rmsd_ordered,
-        ca_only=True
-    )
-    all_trackers.append(rmsd_tracker)
 
     rmsd_all_tracker = trackers.RMSDTracker(
         name="rmsd_avg",
