@@ -75,6 +75,11 @@ class LogStatistics(IMP.OptimizerState):
 
         raise RuntimeError("Tracker {} not found".format(name))
 
+    def get_trackers(
+            self
+    ):
+        return self.all_trackers
+
     def do_update(self, call):
         for tracker in self.all_trackers:
             result = tracker.evaluate()

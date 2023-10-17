@@ -168,7 +168,6 @@ def single_h_to_hs(
 ):
     h_clones = list()
 
-    m = h.get_model()
     for i in range(n_state):
         h_clone = IMP.atom.create_clone(h)
         h_clones.append(h_clone)
@@ -184,12 +183,16 @@ def compute_rmsd_ordered(
         h_1s,
         ca_only
 ):
+    clone_0, clone_1 = False, False
+
     if len(h_0s) != len(h_1s):
         n_state = max(len(h_0s), len(h_1s))
         if len(h_0s) == 1:
             h_0s = single_h_to_hs(h=h_0s[0], n_state=n_state)
+            clone_0 = True
         elif len(h_1s) == 1:
             h_1s = single_h_to_hs(h=h_1s[0], n_state=n_state)
+            clone_1 = True
         else:
             raise RuntimeError("h_0s and h_1s not of equal size: {} and {}".format(len(h_0s), len(h_1s)))
 
@@ -201,6 +204,14 @@ def compute_rmsd_ordered(
         h_1s=h_1s_ordered,
         ca_only=ca_only
     )
+
+    # Need to cleanup the hierarchies because they are attatched to the hierarchies underlying model.
+    if clone_0:
+        for h in h_0s:
+            IMP.atom.destroy(h)
+    elif clone_1:
+        for h in h_1s:
+            IMP.atom.destroy(h)
 
     return rmsd
 
@@ -245,18 +256,18 @@ def compute_rmsd_dom_state(
     return rmsd
 
 
-def compute_weight_delta(
+def compute_avg_delta_weight(
         h_0s,
         h_1s,
         ca_only
 ):
-    n_state = len(h_0s)
+    n_states = len(h_0s)
     delta = 0
 
     h_0s_ordered = get_ordered_hs(h_0s)
     h_1s_ordered = get_ordered_hs(h_1s)
 
-    for i in range(n_state):
+    for i in range(n_states):
         h_0 = h_0s_ordered[i]
         h_1 = h_1s_ordered[i]
 
@@ -264,11 +275,13 @@ def compute_weight_delta(
         pid_1 = IMP.atom.Selection(h_1).get_selected_particles()[0]
 
         occ_0 = IMP.atom.Atom(h_0.get_model(), pid_0).get_occupancy()
-        occ_1 = IMP.atom.Atom(h_1.get_model(), pid_0).get_occupancy()
+        occ_1 = IMP.atom.Atom(h_1.get_model(), pid_1).get_occupancy()
 
         delta = delta + np.sqrt((occ_0-occ_1)**2)
 
-    return delta
+    avg_delta = delta / n_states
+
+    return avg_delta
 
 
 if __name__ == "__main__":

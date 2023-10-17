@@ -1,9 +1,12 @@
 from pathlib import Path
 import sys
 import argparse
+import time
 
 sys.path.append(str(Path(Path.home(), "xray/score_bench/src")))
 import score_rmsd
+sys.path.append(str(Path(Path.home(), "xray/src")))
+import params
 
 
 if __name__ == "__main__":
@@ -26,6 +29,7 @@ if __name__ == "__main__":
     print(args.param_file)
     print(args.score_fs)
     print(args.test)
+    params.write_params(vars(args), Path(args.param_file))
 
     xray_dir = Path(Path.home(), "xray")
     bench_dir = Path(xray_dir, "score_bench")
@@ -48,6 +52,7 @@ if __name__ == "__main__":
 
     score_fs = args.score_fs.split(",")
 
+    t0 = time.time()
     score_rmsd.score_vs_rmsd(
         params_file=args.param_file,
         pdb_files=pdb_files,
@@ -58,3 +63,4 @@ if __name__ == "__main__":
         score_fs=score_fs,
         scores_file=args.score_file
     )
+    print("Score RMSD analysis took {}s to run".format(time.time()-t0))

@@ -1,0 +1,11 @@
+pdb_dir        /wynton/group/sali/mhancock/xray/decoys/data/3ca7/81_native_2x_decoys/native_2x_2
+cif_file       /wynton/home/sali/mhancock/xray/dev/17_synthetic_native/data/cifs/2_state_ref/19.cif
+min_res        0.0
+ref_pdb_file   /wynton/home/sali/mhancock/xray/dev/17_synthetic_native/data/pdbs/2_state_ref/19.pdb
+param_file     /wynton/home/sali/mhancock/xray/score_bench/data/3ca7/81_native_2x_decoys/native_2x_2/19_native_2x_2.txt
+score_file     /wynton/home/sali/mhancock/xray/score_bench/data/3ca7/81_native_2x_decoys/native_2x_2/19_native_2x_2.csv
+add_native     True
+score_fs       ml,rmsd_avg,ff
+test           False
+
+

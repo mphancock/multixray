@@ -2,26 +2,26 @@
 #$ -cwd
 #$ -o /wynton/group/sali/mhancock/xray/sample_bench/tmp/$JOB_ID.$TASK_ID.o
 #$ -j y
-#$ -l mem_free=5G
-#$ -l scratch=5G
-#$ -t 1-50
+#$ -l mem_free=1G
+#$ -l scratch=1G
 #$ -l hostname='qb3-id*'
 
 # Setup the conda environment.
 eval "$(conda shell.bash hook)"
 module load CBI conda-stage
-conda activate imp_218_cctbx
+conda activate imp_219_cctbx
 
 
 JOB_NAME="$1"
-JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/$JOB_NAME/$2"
+JOB_DIR="$2"
+OFFSET="$4"
 mkdir -p "$JOB_DIR"
 
-RUN_ID=$((SGE_TASK_ID-1))
+RUN_ID=$((SGE_TASK_ID-1+$OFFSET))
 TMP_OUT_DIR="$TMPDIR/output_$RUN_ID"
 OUT_DIR="$JOB_DIR/output_$RUN_ID"
 
-# Delete the job dir
+# Delete the output dir.
 rm -r "$OUT_DIR"
 mkdir "$TMP_OUT_DIR"
 mkdir "$OUT_DIR"

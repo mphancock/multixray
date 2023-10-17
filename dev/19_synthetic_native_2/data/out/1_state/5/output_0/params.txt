@@ -1,0 +1,22 @@
+out_dir        /wynton/home/sali/mhancock/xray/dev/19_synthetic_native_2/data/out/1_state/5/output_0
+tmp_out_dir    None
+cif_files      None
+w_xray         None
+dyn_w_xray     False
+start_pdb_file /wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_refine.pdb
+n_state        1
+init_weights   rand
+weights        False
+ref_pdb_file   /wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_refine.pdb
+T              300.0
+sa             100,-1,600,A;1000,-1,1000,S
+steps          100
+save_best      False
+test           False
+bfactor        None
+dropout        False
+d_min          None
+rand_noise     False
+main_chain     False
+
+

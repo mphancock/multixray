@@ -39,6 +39,7 @@ def pool_score(
     decoy_file=params["decoy_file"]
     occs=params["occs"]
     ref_file=params["ref_file"]
+    adp_file=params["adp_file"]
     cif_file=params["cif_file"]
     score_fs=params["score_fs"]
 
@@ -86,17 +87,23 @@ def pool_score(
             flags = status_array.customized_copy(data=status_array.data()=="f")
             f_obs, flags = f_obs.common_sets(other=flags)
 
+            pids = list()
+            for h in h_decoys:
+                pids.extend(IMP.atom.Selection(h).get_selected_particle_indexes())
+
             results_dict = cctbx_score.get_score(
-                m=h_decoys[0].get_model(),
+                hs=h_decoys,
+                pids=pids,
                 f_obs=f_obs,
                 r_free_flags=flags,
-                target=score_f
+                target=score_f,
+                u_aniso_file=adp_file
             )
             score = results_dict["score"]
             scores_dict["r_free"] = results_dict["r_free"]
             scores_dict["r_work"] = results_dict["r_work"]
             scores_dict["r_all"] = results_dict["r_all"]
-        elif score_f in ["rmsd_avg", "rmsd_ord", "rmsd_dom", "weight_delta"]:
+        elif score_f in ["rmsd_avg", "rmsd_ord", "rmsd_dom", "avg_delta_w"]:
             m_ref = IMP.Model()
             h_refs = IMP.atom.read_multimodel_pdb(str(ref_file), m_ref, IMP.atom.AllPDBSelector())
 
@@ -106,8 +113,8 @@ def pool_score(
                 f = align_imp.compute_rmsd_ordered
             elif score_f == "rmsd_dom":
                 f = align_imp.compute_rmsd_dom_state
-            else:
-                f = align_imp.compute_weight_delta
+            elif score_f == "avg_delta_w":
+                f = align_imp.compute_avg_delta_weight
             score = f(
                     h_0s=h_decoys,
                     h_1s=h_refs,
@@ -136,11 +143,11 @@ def score_vs_rmsd(
         score_fs,
         scores_file
 ):
-    param_dict = locals()
-    params.write_params(
-        param_dict=param_dict,
-        param_file=params_file
-    )
+    # param_dict = locals()
+    # params.write_params(
+    #     param_dict=param_dict,
+    #     param_file=params_file
+    # )
 
     pool_params = list()
 
@@ -154,6 +161,7 @@ def score_vs_rmsd(
         param_dict["flags_file"] = flags_file
         param_dict["res"] = min_res
         param_dict["score_fs"] = score_fs
+        param_dict["adp_file"] = None
 
         pool_params.append(param_dict)
 

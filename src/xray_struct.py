@@ -1,26 +1,72 @@
+from pathlib import Path
 import math
+
 import IMP.core
 import IMP.atom
+
 import cctbx.xray
 import cctbx.crystal
 import cctbx.array_family.flex
+from mmtbx.tls import tools
+import mmtbx.model
 import iotbx.pdb
+from cctbx.array_family import flex
+
+
+def get_u_aniso_from_file(
+    u_aniso_file,
+    pids
+):
+    # The particles will line up based on the order they are read in from the pdb file.
+    model = mmtbx.model.manager(model_input=iotbx.pdb.input(str(u_aniso_file)))
+    xray_struct = model.get_xray_structure()
+    scatterers = xray_struct.scatterers()
+
+    if len(pids) % len(scatterers) != 0:
+        raise RuntimeError("get_u_aniso_from_file only works when the number of pids is a multiple of the number of scatterers in the pdb file.")
+
+    # u_anisos_dict = dict()
+
+    adps = list()
+    for i in range(len(scatterers)):
+        scatterer = scatterers[i]
+        u_aniso = scatterer.u_star
+        adps.append(u_aniso)
+
+    u_aniso_dict = dict()
+    for i in range(len(pids)):
+        u_aniso_dict[pids[i]] = adps[i%len(scatterers)]
+
+    return u_aniso_dict
 
 
 """
 Given an IMP model, the unit cell dimensions, and the space group; the function converts the IMP structure representation into the cctbx structure representation and returns the corresponding cctbx xray structure.
 """
 def get_xray_structure(
-        m,
-        crystal_symmetry
+        hs,
+        pids,
+        crystal_symmetry,
+        u_aniso_file=None
 ):
+    m = hs[0].get_model()
+
     scatterers = cctbx.array_family.flex.xray_scatterer()
     unit_cell = crystal_symmetry.unit_cell()
 
-    b_factors = cctbx.array_family.flex.double()
-    for pid in m.get_particle_indexes():
-        if IMP.atom.Atom.get_is_setup(m, pid):
+    if u_aniso_file:
+        u_stars_dict = get_u_aniso_from_file(
+            u_aniso_file,
+            pids=pids
+        )
 
+    for h in hs:
+        # Get only subset of pids that are in th state corresponding to h.
+        pids_state = IMP.atom.Selection(h).get_selected_particle_indexes()
+        pids_state_subset = list(set(pids).intersection(set(pids_state)))
+
+        for i in range(len(pids_state_subset)):
+            pid = pids_state_subset[i]
             d = IMP.core.XYZR(m, pid)
             d.set_coordinates_are_optimized(True)
             coords_cart = (d.get_x(), d.get_y(), d.get_z())
@@ -31,22 +77,27 @@ def get_xray_structure(
             e = a.get_element()
             e_name = element_table.get_name(e)
 
-            b_factor = a.get_temperature_factor()
-            # b_factors.append(b_factor)
-            u = b_factor / (8 * math.pi**2)
-
             occ = a.get_occupancy()
+            b_factor = a.get_temperature_factor()
 
             scatterer = cctbx.xray.scatterer(
                 label=m.get_particle_name(pid),
                 site=coords_frac,
-                u=u,
+                b=b_factor,
                 occupancy=occ,
                 scattering_type=e_name,
                 fp=0,
                 fdp=0
             )
-            scatterer.set_use_u(True, False)
+
+            # print(i)
+            if u_aniso_file:
+                scatterer.set_use_u(False, True)
+                u_star = u_stars_dict[pid]
+                scatterer.u_star = u_star
+            else:
+                scatterer.set_use_u(True, False)
+
             scatterers.append(scatterer)
 
     xray_structure = cctbx.xray.structure(
@@ -102,3 +153,33 @@ def get_cctbx_multi_structure_from_pdbs(
         )
 
     return multi_structure
+
+
+if __name__ == "__main__":
+    u_aniso_file = Path(Path.home(), "xray/dev/26_phenix_refine/data/7mhj_heavy/7mhj_heavy_refine_001.pdb")
+    # get_u_aniso_from_file(u_aniso_file)
+
+    pdb_file = Path(Path.home(), "xray/data/pdbs/7mhf/7mhj_heavy.pdb")
+    m = IMP.Model()
+    h = IMP.atom.read_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+    pids = IMP.atom.Selection(h).get_selected_particle_indexes()
+
+    crystal_symmetry = cctbx.crystal.symmetry(
+        unit_cell=(114.880, 54.736, 45.240, 90.00, 101.42, 90.00),
+        space_group_symbol="P1"
+    )
+
+    xray_struct = iotbx.pdb.input(str(u_aniso_file)).xray_structure_simple(
+        crystal_symmetry=crystal_symmetry
+    )
+
+    # xray_struct = get_xray_structure(
+    #     m,
+    #     pids,
+    #     crystal_symmetry=crystal_symmetry,
+    #     u_aniso_file=u_aniso_file
+    # )
+
+    # print(xray_struct.scatterers()[0].u_star)
+    print(xray_struct.show_scatterers())
+    print(xray_struct.show_scatterer_flags_summary())

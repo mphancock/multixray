@@ -1,4 +1,5 @@
 import time
+from typing import Any
 import numpy as np
 
 import IMP
@@ -19,22 +20,27 @@ class Tracker:
         self.name = name
         self.m = m
         self.n = n
-        self.writing = True
+        self.on = True
+        self.xray_only = False
+        self.period = 1
 
-    def get_name(
-            self
-    ):
+    def get_name(self):
         return self.name
 
-    def get_model(
-            self
-    ):
+    def get_model(self):
         return self.m
 
-    def get_n(
-            self
-    ):
+    def get_n(self):
         return self.n
+
+    def get_on(self):
+        return self.on
+
+    def get_xray_only(self):
+        return self.xray_only
+
+    def get_period(self):
+        return self.period
 
     def set_name(
             self,
@@ -54,11 +60,24 @@ class Tracker:
     ):
         self.n = n
 
-    def set_writing(
+    def set_on(self):
+        self.on = True
+
+    def set_off(self):
+        self.on = False
+
+    def set_xray_only(
             self,
-            writing
+            xray_only
     ):
-        self.writing = writing
+        self.xray_only = xray_only
+
+    def set_period(
+            self,
+            period
+    ):
+        self.period = period
+
 
 class XYZTracker(Tracker):
     def __init__(
@@ -153,7 +172,7 @@ class fTracker(Tracker):
     def evaluate(
             self
     ):
-        if not self.writing:
+        if not self.get_on():
             return np.nan
 
         # Try to see if the restraint has a get_f call that stores the score.
@@ -184,7 +203,7 @@ class RFactorTracker(Tracker):
     def evaluate(
             self
     ):
-        if not self.writing:
+        if not self.get_on():
             return np.nan
 
         if self.stat == "r_free":
@@ -351,6 +370,7 @@ class StepTracker(Tracker):
     def get_step(
             self
     ):
+        print(self.step)
         return self.step
 
     def evaluate(
@@ -359,3 +379,25 @@ class StepTracker(Tracker):
         step = self.step
         self.step = self.step + 1
         return step
+
+
+class DFMagRatioTracker(Tracker):
+    def __init__(
+            self,
+            name,
+            m,
+            xr
+    ):
+        Tracker.__init__(
+            self,
+            name=name,
+            m=m,
+            n=1
+        )
+
+        self.xr = xr
+
+    def evaluate(
+            self
+    ):
+        return self.xr.get_df_mag_ratio()

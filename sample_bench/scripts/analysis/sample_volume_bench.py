@@ -123,23 +123,20 @@ def get_sample_volume_df(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--job_dir")
-    parser.add_argument("--sample_bench_dir")
     parser.add_argument("--ref_pdb_file")
     parser.add_argument("--field")
     parser.add_argument("--bonus_fields")
+    parser.add_argument("--file")
     args = parser.parse_args()
-    print(args.job_dir)
-    print(args.sample_bench_dir)
-    print(args.ref_pdb_file)
-    print(args.field)
-    print(args.bonus_fields)
+    print(vars(args))
+    # print(args.job_dir)
+    # print(args.ref_pdb_file)
+    # print(args.field)
+    # print(args.bonus_fields)
+    # print(args.file)
 
     job_dir = Path(args.job_dir)
     out_dirs = list(job_dir.glob("output*"))
-    out_dirs = out_dirs
-
-    sample_bench_dir = Path(args.sample_bench_dir)
-    sample_bench_dir.mkdir(parents=True, exist_ok=True)
 
     # First, construct the lookup table that contains for each log_file entry, the minimum value for that MD log for each of the requested fields.
     max_frames = list()
@@ -147,22 +144,25 @@ if __name__ == "__main__":
     for out_dir in out_dirs:
         log_files.append(Path(out_dir, "log.csv"))
 
-    bonus_fields = args.bonus_fields.split(",")
-    score_field = args.field
+    if args.bonus_fields == "":
+        bonus_fields = list()
+    else:
+        bonus_fields = args.bonus_fields.split(",")
+
     score_stat_df = get_stat_df.get_stat_df(
         log_file_groups=[[log_file] for log_file in log_files],
-        main_field=score_field,
+        main_field=args.field,
         main_stat="min",
         bonus_fields=bonus_fields,
         N=1,
         equil=1,
-        pdb_only=True
+        pdb_only=True,
+        rmsd_filter=10
     )
 
     # Drop any rows with NaN values.
     score_stat_df = score_stat_df.dropna()
-    score_stat_df.to_csv(Path(sample_bench_dir, "stat_df_{}.csv".format(score_field)))
-    # score_stat_df = pd.read_csv(Path(sample_bench_dir, "stat_df_{}.csv".format(score_field)), index_col=0)
+    # score_stat_df.to_csv(Path(sample_bench_dir, "stat_df_{}.csv".format(args.field)))
 
     sample_bench_bonus_fields = bonus_fields.copy()
     if "pdb" in sample_bench_bonus_fields:
@@ -172,8 +172,8 @@ if __name__ == "__main__":
     sample_volume_df = get_sample_volume_df(
         log_files=log_files,
         log_min_df=score_stat_df,
-        score_field=score_field,
+        score_field=args.field,
         extra_fields=sample_bench_bonus_fields,
         max_n=len(score_stat_df)
     )
-    sample_volume_df.to_csv(Path(sample_bench_dir, "sample_bench_{}.csv".format(score_field)))
+    sample_volume_df.to_csv(Path(args.file))

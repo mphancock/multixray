@@ -8,18 +8,18 @@ import score_rmsd
 
 
 if __name__ == "__main__":
-    rmsd_df = pd.DataFrame(index=list(range(40)))
+    rmsd_df = pd.DataFrame(index=list(range(10)))
 
-    for decoy_name in ["1_state_ref", "2_state_ref", "2_state_uni", "4_state_ref"]:
-        scores_file = Path(Path.home(), "xray/dev/17_synthetic_native/data/scores/{}.csv".format(decoy_name))
+    for decoy_name in ["4_state"]:
+        scores_file = Path(Path.home(), "xray/dev/19_synthetic_native_2/data/scores/{}.csv".format(decoy_name))
         pool_params = list()
 
-        score_fs = ["ml", "ff","rmsd_avg","rmsd_ord","rmsd_dom", "weight_delta"]
+        score_fs = ["ml", "ff","rmsd_avg"]
 
-        for i in range(40):
-            pdb_file = Path(Path.home(), "xray/dev/17_synthetic_native/data/pdbs/{}/{}.pdb".format(decoy_name, i))
+        for i in range(10):
+            pdb_file = Path(Path.home(), "xray/dev/19_synthetic_native_2/data/pdbs/{}/{}.pdb".format(decoy_name, i))
 
-            cif_file = Path(Path.home(), "xray/dev/17_synthetic_native/data/cifs/{}/{}.cif".format(decoy_name, i))
+            cif_file = Path(Path.home(), "xray/dev/19_synthetic_native_2/data/cifs/{}/{}.cif".format(decoy_name, i))
 
             param_dict = dict()
             param_dict["decoy_file"] = Path("/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_refine.pdb")
@@ -29,6 +29,7 @@ if __name__ == "__main__":
             param_dict["flags_file"] = cif_file
             param_dict["res"] = 0
             param_dict["score_fs"] = score_fs
+            param_dict["adp_file"] = None
 
             pool_params.append(param_dict)
 

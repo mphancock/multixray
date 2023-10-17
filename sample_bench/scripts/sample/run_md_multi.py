@@ -19,8 +19,8 @@ import log_statistics
 import align_imp
 import pdb_writer
 import com_optimizer_state
-import copy_pdbs
 import update_weights_optimizer_state
+import reset
 import molecular_dynamics
 import params
 import weight_restraint
@@ -32,19 +32,20 @@ if __name__ == "__main__":
     parser.add_argument("--out_dir")
     parser.add_argument("--tmp_out_dir")
     parser.add_argument("--cif_files")
-    parser.add_argument("--res", type=float)
     parser.add_argument("--w_xray", type=float)
     parser.add_argument("--dyn_w_xray", action="store_true")
     parser.add_argument("--start_pdb_file")
+    parser.add_argument("--u_aniso_file")
     parser.add_argument("--n_state")
     parser.add_argument("--init_weights")
-    parser.add_argument("--weights", action="store_true")
     parser.add_argument("--ref_pdb_file")
-    parser.add_argument("--T", type=float)
     parser.add_argument("--sa")
     parser.add_argument("--steps", type=int)
-    parser.add_argument("--save_best", action="store_true")
-    parser.add_argument("--test", action="store_true")
+    parser.add_argument("--bfactor", type=int)
+    parser.add_argument("--dropout", action="store_true")
+    parser.add_argument("--d_min", type=float)
+    parser.add_argument("--rand_noise", action="store_true")
+    parser.add_argument("--main_chain", action="store_true")
     args = parser.parse_args()
 
     params.write_params(vars(args), Path(args.out_dir, "params.txt"))
@@ -54,20 +55,37 @@ if __name__ == "__main__":
     ref_pdb_file = Path(args.ref_pdb_file)
 
     m = IMP.Model()
-    s = IMP.atom.AllPDBSelector()
+
+    # s = IMP.atom.AllPDBSelector()
+
     n_states = int(args.n_state)
-    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, s)
+    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
 
     if len(hs) == 1 and len(hs) < n_states:
         m = IMP.Model()
         hs.clear()
 
         for i in range(n_states):
-            hs.append(IMP.atom.read_pdb(str(pdb_file), m, s))
+            hs.append(IMP.atom.read_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector()))
+
+    pids = list()
 
     m_0 = IMP.Model()
-    s_0 = IMP.atom.AllPDBSelector()
-    h0_s = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), m_0, s_0)
+    h0_s = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), m_0, IMP.atom.AllPDBSelector())
+
+    # Get all particle ids.
+    pids = list()
+    pids_main_chain = list()
+    for h in hs:
+        pids.extend(IMP.atom.Selection(h).get_selected_particle_indexes())
+        pids_main_chain.extend(IMP.atom.Selection(h, atom_types=[IMP.atom.AT_CA, IMP.atom.AT_C, IMP.atom.AT_O, IMP.atom.AT_N]).get_selected_particle_indexes())
+    pids_side_chain = list(set(pids) - set(pids_main_chain))
+
+    # Setup bfactors.
+    if args.bfactor:
+        for h in hs:
+            for pid in IMP.atom.Selection(h).get_selected_particle_indexes():
+                IMP.atom.Atom(m, pid).set_temperature_factor(args.bfactor)
 
     # Setup the weights.
     w_p = IMP.Particle(m, "weights")
@@ -105,11 +123,8 @@ if __name__ == "__main__":
 
     w.set_weights(weights)
 
-    # We need to manually set the occupancies of the structures here because pdb file occupancies are limited to 2 decimal places.
-    for i in range(n_states):
-        pids = IMP.atom.Selection(hs[i]).get_selected_particle_indexes()
-        for pid in pids:
-            IMP.atom.Atom(m, pid).set_occupancy(w.get_weight(i))
+    # # We need to manually set the occupancies of the structures here because pdb file occupancies are limited to 2 decimal places.
+    update_weights_optimizer_state.update_multi_state_model(hs, m, w)
 
     w.set_weights_are_optimized(True)
 
@@ -118,35 +133,38 @@ if __name__ == "__main__":
         h20s = IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("HET: O  ")).get_selected_particle_indexes()
         for pid in h20s:
             IMP.atom.CHARMMAtom.setup_particle(m, pid, "O")
-            print(IMP.atom.CHARMMAtom(m, pid).get_charmm_type())
 
     ## SAMPLE
-    T = args.T
+    sa_sched_str = args.sa.split(";")
+    sa_sched_str = [sa_step_str[1:-1] for sa_step_str in sa_sched_str]
 
-    pids = list()
-    for h in hs:
-        pids.extend(IMP.atom.Selection(h).get_selected_particle_indexes())
+    sa_sched = list()
+    keys = ["step", "T", "dof", "pdb", "w", "res"]
+    for sa_step_str in sa_sched_str:
+        sa_step = dict()
+        for key_val in sa_step_str.split(","):
+            for key in keys:
+                if key in key_val:
+                    if key in ["step", "T", "pdb", "w", "res"]:
+                        val_str = key_val[len(key):]
+                        val = int(val_str)
+                    else:
+                        val_str = key_val[len(key):]
+                        if val_str == "A":
+                            val = pids
+                        elif val_str == "S":
+                            val = pids_side_chain
+                        else:
+                            raise RuntimeError()
 
-    save_best = args.save_best
+                    sa_step[key] = val
 
-    if args.sa:
-        sa_sched = args.sa.split(";")
-        sa_sched = [[float(T), float(res), int(steps), dof_str] for T, res, steps, dof_str in [x.split(",") for x in sa_sched]]
-        for i in range(len(sa_sched)):
-            float, res, steps, dof_str = sa_sched[i]
+        sa_sched.append(sa_step)
 
-            if dof_str == "A":
-                pids_work = pids
-            elif dof_str == "S_side":
-                pids_work = (IMP.atom.Selection(hierarchy=h, residue_types=[IMP.atom.MET, IMP.atom.CYS]) - IMP.atom.Selection(hierarchy=h, atom_types=[IMP.atom.AT_CA, IMP.atom.AT_C, IMP.atom.AT_O, IMP.atom.AT_N])).get_selected_particle_indexes()
-            elif dof_str == "S":
-                pids_work = (IMP.atom.Selection(hierarchy=h, residue_types=[IMP.atom.MET, IMP.atom.CYS])).get_selected_particle_indexes()
-            else:
-                raise RuntimeError()
-
-            sa_sched[i][3] = pids_work
-    else:
-        sa_sched = None
+    use_weights = False
+    for sa_step in sa_sched:
+        if sa_step["w"]:
+            use_weights = True
 
     ps = [m.get_particle(pid) for pid in pids]
 
@@ -163,26 +181,30 @@ if __name__ == "__main__":
     rset_charmm.set_weight(1/n_states)
     rs.append(rset_charmm)
 
-    r_xrays = list()
+    # List of the atom and weight restraints.
+    r_xrays, wrs = list(), list()
     if args.cif_files:
         cif_files = args.cif_files.split(",")
-        d_min = args.res
-        dyn_w_xray = args.dyn_w_xray
-        w_xray = args.w_xray
+        if args.main_chain:
+            pids_xray = pids_main_chain
+        else:
+            pids_xray = pids
 
         # cif file here is a string.
         for cif_file in cif_files:
             r_xray = xray_restraint.XtalRestraint(
-                m=m,
+                hs=hs,
                 n_state=n_states,
-                pids=pids,
+                pids=pids_xray,
                 f_obs_file=cif_file,
-                d_min=d_min,
-                d_max=None,
                 scale=True,
                 target="ml",
-                w_xray=w_xray,
-                dynamic_w=dyn_w_xray
+                w_xray=args.w_xray,
+                dynamic_w=args.dyn_w_xray,
+                dropout=args.dropout,
+                d_min=args.d_min,
+                rand_noise=args.rand_noise,
+                u_aniso_file=args.u_aniso_file
             )
 
             rs_xray = IMP.RestraintSet(m, 1.0)
@@ -191,6 +213,32 @@ if __name__ == "__main__":
             r_xrays.append(r_xray)
             rs.append(rs_xray)
 
+            if use_weights:
+                f_obs = miller_ops.get_miller_array(
+                    f_obs_file=cif_file,
+                    label="_refln.F_meas_au"
+                )
+                f_obs_array = miller_ops.clean_miller_array(f_obs)
+                # Set flags.
+                status_array = miller_ops.get_miller_array(
+                    f_obs_file=cif_file,
+                    label="_refln.status"
+                )
+                flags_array = status_array.customized_copy(data=status_array.data()=="f")
+                f_obs, flags_array = f_obs_array.common_sets(other=flags_array)
+
+                wr = weight_restraint.WeightRestraint(
+                    m=m,
+                    hs=hs,
+                    pids=pids_xray,
+                    w=w,
+                    f_obs=f_obs,
+                    flags=flags_array,
+                    scale=0.5
+                )
+                wrs.append(wr)
+
+    # Setup the center of mass optimizer state.
     pids_ca_0 = list(IMP.atom.Selection(h0_s, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes())
     com_0 = IMP.atom.CenterOfMass.setup_particle(
         IMP.Particle(m_0),
@@ -204,18 +252,21 @@ if __name__ == "__main__":
         name="step",
         m=m
     )
+    step_tracker.set_xray_only(False)
     all_trackers.append(step_tracker)
 
     time_tracker = trackers.TimeTracker(
         name="time",
         m=m
     )
+    time_tracker.set_xray_only(False)
     all_trackers.append(time_tracker)
 
     ff_tracker = trackers.fTracker(
         name="ff",
         r=rset_charmm
     )
+    ff_tracker.set_xray_only(False)
     all_trackers.append(ff_tracker)
 
     # Add the trackers for each xtal restraint.
@@ -224,6 +275,7 @@ if __name__ == "__main__":
             name="xray_{}".format(i),
             r=r_xrays[i]
         )
+        xray_tracker.set_xray_only(True)
         all_trackers.append(xray_tracker)
 
         r_work_tracker = trackers.RFactorTracker(
@@ -231,6 +283,7 @@ if __name__ == "__main__":
             r_xray=r_xrays[i],
             stat="r_work"
         )
+        r_work_tracker.set_xray_only(True)
         all_trackers.append(r_work_tracker)
 
         r_free_tracker = trackers.RFactorTracker(
@@ -238,6 +291,7 @@ if __name__ == "__main__":
             r_xray=r_xrays[i],
             stat="r_free"
         )
+        r_free_tracker.set_xray_only(True)
         all_trackers.append(r_free_tracker)
 
     rmsd_all_tracker = trackers.RMSDTracker(
@@ -247,6 +301,7 @@ if __name__ == "__main__":
         rmsd_func=align_imp.compute_rmsd_between_average,
         ca_only=True
     )
+    rmsd_all_tracker.set_xray_only(False)
     all_trackers.append(rmsd_all_tracker)
 
     for i in range(n_states):
@@ -256,33 +311,52 @@ if __name__ == "__main__":
             m=m,
             at=IMP.atom.Atom(m, state_pids[0])
         )
+        occ_tracker.set_xray_only(False)
         all_trackers.append(occ_tracker)
 
     ## WRITING PDBS
     pdb_dir = Path(args.out_dir, "pdbs")
     pdb_dir.mkdir()
 
-    tmp_pdb_dir = Path(args.tmp_out_dir, "pdbs")
-    tmp_pdb_dir.mkdir()
+    if args.tmp_out_dir:
+        tmp_pdb_dir = Path(args.tmp_out_dir, "pdbs")
+        tmp_pdb_dir.mkdir()
+    else:
+        tmp_pdb_dir = pdb_dir
 
     pdb_tracker = pdb_writer.PDBWriterTracker(
         name="pdb",
         hs=hs,
         pdb_dir=tmp_pdb_dir,
-        freq=10,
         log_pdb_dir=pdb_dir
     )
+    pdb_tracker.set_xray_only(False)
+    pdb_tracker.set_period(10)
     all_trackers.append(pdb_tracker)
 
     # This freq needs to be equal to the logging frequency to ensure there are never more log entries than corresponding pdb files.
-    copy_tracker = copy_pdbs.PDBCopyTracker(
-        name="copy",
-        m=m,
-        source_dir=tmp_pdb_dir,
-        dest_dir=pdb_dir,
-        freq=100
+    if args.tmp_out_dir:
+        copy_tracker = pdb_writer.PDBCopyTracker(
+            name="copy",
+            m=m,
+            source_dir=tmp_pdb_dir,
+            dest_dir=pdb_dir
+        )
+        copy_tracker.set_xray_only(False)
+        copy_tracker.set_period(10)
+        all_trackers.append(copy_tracker)
+
+    # Setup the reset tracker.
+    reset_tracker = reset.ResetTracker(
+        name="reset",
+        hs=hs,
+        w=w,
+        r_charmm=rset_charmm,
+        sa_sched=sa_sched,
+        h_0=h0_s[0]
     )
-    all_trackers.append(copy_tracker)
+    reset_tracker.set_xray_only(False)
+    all_trackers.append(reset_tracker)
 
     log_ostate = log_statistics.LogStatistics(
         m=m,
@@ -290,6 +364,7 @@ if __name__ == "__main__":
         log_file=Path(args.out_dir, "log.csv"),
         log_freq=100
     )
+
     for r in rs:
         r.evaluate(calc_derivs=True)
     log_ostate.update()
@@ -297,7 +372,6 @@ if __name__ == "__main__":
     o_states = list()
     o_states.append(log_ostate)
 
-    # if args.com == "os":
     for h in hs:
         pids_ca = list(IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes())
         com_os = com_optimizer_state.CenterOfMassOptimizerState(
@@ -307,51 +381,36 @@ if __name__ == "__main__":
         )
         o_states.append(com_os)
 
-    if args.weights:
-        f_obs = miller_ops.get_miller_array(
-            f_obs_file=cif_file,
-            label="_refln.F_meas_au"
-        )
-        f_obs_array = miller_ops.clean_miller_array(f_obs)
-        # Set flags.
-        status_array = miller_ops.get_miller_array(
-            f_obs_file=cif_file,
-            label="_refln.status"
-        )
-        flags_array = status_array.customized_copy(data=status_array.data()=="f")
-        f_obs, flags_array = f_obs_array.common_sets(other=flags_array)
-
-        wr = weight_restraint.WeightRestraint(
+    # Setup the weight optimizer state.
+    if use_weights and n_states > 1:
+        w_os = update_weights_optimizer_state.UpdateWeightsOptimizerState(
             m=m,
             hs=hs,
             w=w,
-            f_obs=f_obs,
-            flags=flags_array,
-            scale=1.0
+            r_xrays=r_xrays,
+            n_proposals=10,
+            radius=.05
         )
 
-        w_os = update_weights_optimizer_state.OptimizeWeightsOptimizerState(
-            m=m,
-            wr=wr,
-            r_xray=r_xray,
-            n_state=n_states,
-            step_tracker=step_tracker
-        )
         w_os.set_period(100)
         o_states.append(w_os)
 
     if args.steps:
         steps = args.steps
     else:
-        steps = -1
+        steps = 1e99
 
     molecular_dynamics.molecular_dynamics(
-        output_dir=tmp_pdb_dir,
+        pdb_dir=tmp_pdb_dir,
         hs=hs,
-        rs=rs,
-        T=T,
+        r_sets=rs,
         t_step=2,
-        steps=steps,
+        n_step=steps,
         sa_sched=sa_sched,
         o_states=o_states
     )
+
+    pdb_tracker.do_evaluate()
+
+    if args.tmp_out_dir:
+        copy_tracker.do_evaluate()

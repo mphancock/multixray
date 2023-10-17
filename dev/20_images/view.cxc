@@ -1,0 +1,6 @@
+view matrix camera 0.1414,-0.38111,0.91365,83.723,0.86762,-0.3967,-0.29977,-16.912,0.47669,0.83509,0.27456,30.319
+lighting soft
+graphics silhouettes true
+hide cartoons
+show atoms
+set bgColor white

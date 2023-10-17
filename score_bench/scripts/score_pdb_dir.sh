@@ -12,15 +12,17 @@
 # module load CBI conda-stage
 # conda activate imp_218_cctbx
 
-DECOY_NAME=rand_1000_2x
-SCORE_FILE_NAME="$DECOY_NAME"_to_1x
-
-JOB_NAME=53_100
+DECOY_NAME=0
+JOB_NAME=100_natives_4x
 MIN_RES=0
-CIF_FILE="$HOME/xray/data/reflections/3ca7/3ca7_refine_2.cif"
+CIF_FILE="$HOME/xray/data/cifs/3ca7/3ca7_refine.cif"
 REF_PDB_FILE="/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_refine.pdb"
-SCORE_FS="ml,rmsd_order,rmsd_avg,weight_delta,rmsd_dom,dom_weight"
+SCORE_FS="ml,rmsd_avg"
 PDB_DIR="/wynton/group/sali/mhancock/xray/decoys/data/3ca7/$JOB_NAME/$DECOY_NAME"
+
+REF_PDB_FILE_NAME="$(basename $REF_PDB_FILE .pdb)"
+SCORE_FILE_NAME="$REF_PDB_FILE_NAME"_"$DECOY_NAME"
+echo $SCORE_FILE_NAME
 
 SCORE_DIR="$HOME/xray/score_bench/data/3ca7/$JOB_NAME"
 mkdir -p "$SCORE_DIR"

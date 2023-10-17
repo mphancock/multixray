@@ -16,18 +16,17 @@ import pdb_writer
 
 
 if __name__ == "__main__":
-    pdb_files = list(Path(Path.home(), "xray/dev/17_synthetic_native/data/pdbs/1_state").glob("*.pdb"))
+    n_state = 4
+    # for pdb_file in pdb_files:
+    for i in range(10):
+        pdb_file = Path(Path.home(), "xray/dev/19_synthetic_native_2/data/out/{}_state/{}/output_0/pdbs/1.pdb".format(n_state, i))
+        print(pdb_file)
 
-    for pdb_file in pdb_files:
-        ref_pdb_file = Path(Path.home(), "xray/dev/17_synthetic_native/data/pdbs/1_state_ref/{}.pdb".format(pdb_file.stem))
-        # pdb_file = Path("/wynton/group/sali/mhancock/xray/decoys/data/3ca7/53_100/rand_1000_2x/67.pdb")
+        ref_pdb_file = Path(Path.home(), "xray/dev/19_synthetic_native_2/data/pdbs/{}_state/{}.pdb".format(n_state, i))
         pdb_file_ref = Path("/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_refine.pdb")
         n_steps = 100
         m = IMP.Model()
         hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
-
-        # job_dir = Path(Path.home(), "xray/dev/11_refine/data/3ca7_4_state")
-        # job_dir.mkdir(exist_ok=True)
 
         for i in range(len(hs)):
             h = hs[i]

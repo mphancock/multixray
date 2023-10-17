@@ -2,6 +2,8 @@ import IMP
 import IMP.atom
 from pathlib import Path
 import numpy as np
+import multiprocessing
+import pandas as pd
 
 
 def write_merge_pdf_file_pool(
@@ -17,6 +19,43 @@ def write_merge_pdf_file_pool(
     )
 
     return param_dict["id"]
+
+
+def read_pdb_pool(
+        pdb_file
+):
+    print(pdb_file)
+    m = IMP.Model()
+    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+
+    return m, hs
+
+
+"""
+When writing multi-state MD trajectories, we need each model to represent a distinct frame. Thus, we need to relabel each structure in the multi-state model as a distinct chain in the same model.
+"""
+def relabel_chains(
+        hs,
+        m
+):
+    h_0 = hs[0]
+    for i in range(1, len(hs)):
+        h_0.add_child(IMP.atom.get_root(hs[i]).get_children()[0])
+
+    hchains = list()
+    for pid in m.get_particle_indexes():
+        if IMP.atom.Chain.get_is_setup(m, pid):
+            hchain = IMP.atom.Chain(m, pid)
+            # print(hchain.get_id())
+            hchains.append(hchain)
+
+    for j in range(len(hchains)):
+        hchain = hchains[j]
+        chain_id = chr(ord('A') + j)
+        hchain.set_id(chain_id)
+        # print(hchain.get_id())
+
+    return hs
 
 
 """
@@ -51,7 +90,6 @@ def write_merge_pdb_file(
     ms_all = list()
 
     pdb_files_order = list()
-
     if order:
         pdb_ids = [int(pdb_file.stem) for pdb_file in pdb_files]
         pdb_min = np.min(pdb_ids)
@@ -69,16 +107,20 @@ def write_merge_pdb_file(
     else:
         pdb_files_order = pdb_files
 
-    for i in range(len(pdb_files_order)):
-        pdb_file = pdb_files_order[i]
-        print(pdb_file)
-        m = IMP.Model()
+    pool_obj = multiprocessing.Pool(multiprocessing.cpu_count())
+    pool_results = pool_obj.imap(read_pdb_pool, pdb_files_order)
 
-        hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
-        h = hs[state]
+    i = 0
+    for pool_result in pool_results:
+        m, hs = pool_result
+
+        if state < 0:
+            hs = relabel_chains(hs, m)
+            h = hs[0]
+        else:
+            h = hs[state]
 
         pids = IMP.atom.Selection(h).get_selected_particle_indexes()
-
         if occs:
             for pid in pids:
                 at = IMP.atom.Atom(m, pid)
@@ -86,22 +128,28 @@ def write_merge_pdb_file(
 
         hs_all.append(h)
         ms_all.append(m)
+        i = i+1
 
     # Cannot return hs, because the hierarchy objects will get deallocated.
     IMP.atom.write_multimodel_pdb(hs_all, str(merge_pdb_file))
 
 
 if __name__ == "__main__":
-    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/63_native_2x/39/output_0/pdbs")
+    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/75_2/1603088/output_0/pdbs")
     pdb_files = list(pdb_dir.glob("*.pdb"))
+
+    # pdb_meta_file = Path(Path.home(), "xray/sample_bench/data/7mhf/62_7mhj_8/sample_min_xray_0.csv")
+    # pdb_file_df = pd.read_csv(pdb_meta_file, index_col=0)
+    # pdb_files = list(pdb_file_df.nsmallest(10, "xray_0").index)
+
     print(pdb_files)
 
-    out_file = Path(Path.home(), "xray/tmp/merge_0.pdb")
+    out_file = Path(Path.home(), "xray/tmp/traj.pdb")
     write_merge_pdb_file(
         merge_pdb_file=out_file,
         pdb_files=pdb_files,
-        occs=None ,
-        n=500,
+        occs=None,
+        n=-1,
         order=True,
-        state=0
+        state=-1
     )

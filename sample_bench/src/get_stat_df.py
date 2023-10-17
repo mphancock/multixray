@@ -40,6 +40,7 @@ def pool_get_stat_info_df(
     stat = params_dict["stat"]
     N = params_dict["N"]
     pdb_only = params_dict["pdb_only"]
+    rmsd_filter = params_dict["rmsd_filter"]
 
     # Merge the log files into a single dataframe.
     log_dfs = list()
@@ -65,6 +66,10 @@ def pool_get_stat_info_df(
             log_sel_df = log_df[~log_df['pdb'].isna()].iloc[equil:]
         else:
             log_sel_df = log_df.iloc[equil:]
+
+        if rmsd_filter is not None:
+            log_sel_df = log_sel_df[log_sel_df["rmsd_avg"] <= rmsd_filter]
+
         log_dfs.append(log_sel_df)
 
     columns = [field]
@@ -97,8 +102,9 @@ def pool_get_stat_info_df(
                 stat_info_df.loc[0] = [stat_val]
         else:
             stat_info_df.loc[0] = [np.nan]*len(stat_info_df.columns)
-    else:
-        stat_info_df.loc[0] = [np.nan]*len(stat_info_df.columns)
+    # else:
+    #     return RuntimeError("No valid log files found")
+        # stat_info_df.loc[0] = [np.nan]*len(stat_info_df.columns)
 
     return log_files, stat_info_df
 
@@ -122,6 +128,8 @@ params
 
     pdb_only: only compute the statistic for log entries that have a pdb file.
 
+    rmsd_filter: only compute the statistic for log entries that have an rmsd less than or equal to the rmsd_filter. This is useful for computing statistics from log files with unphysiological structures.
+
     test: additional param to get the stat_df without multiprocessing.
 
 *********
@@ -137,6 +145,7 @@ def get_stat_df(
         bonus_fields=[],
         equil=0,
         pdb_only=False,
+        rmsd_filter=None,
         test=False
 ):
     # Construct the stat_df.
@@ -183,6 +192,7 @@ def get_stat_df(
         pool_param["bonus_fields"] = bonus_fields
         pool_param["N"] = N
         pool_param["pdb_only"] = pdb_only
+        pool_param["rmsd_filter"] = rmsd_filter
         pool_params.append(pool_param)
 
     # Collect all of the field stat dfs and log file groups that are returned by get_stat_from_log_files. The field stat dfs will be used to populate the final stat df. The format of the field stat dfs has the following columns: field, stat, value, log, id. The df will only have more than one row if the stat is either "max" or "min" and N>1.
@@ -199,7 +209,11 @@ def get_stat_df(
                 pool_obj.close()
                 raise pool_result
             else:
-                results.append(pool_result)
+                log_file_group, stat_info_df = pool_result
+
+                # There are instances where the length of stat_info_df will be 0 (eg, if the log files are empty)
+                if len(stat_info_df) > 0:
+                    results.append(pool_result)
 
     # If the fast flag is turned on, then the field_stat_dfs, and log_files need to be merged.
     if fast:

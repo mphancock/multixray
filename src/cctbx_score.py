@@ -1,5 +1,9 @@
 from pathlib import Path
 import sys
+import time
+
+import IMP
+import IMP.atom
 
 import mmtbx.f_model
 import cctbx.crystal
@@ -12,15 +16,19 @@ import miller_ops
 
 
 def get_score(
-        m,
+        hs,
+        pids,
         f_obs,
         r_free_flags,
-        target
+        target,
+        u_aniso_file
 ):
     crystal_symmetry = f_obs.crystal_symmetry()
     xray_structure = xray_struct.get_xray_structure(
-        m=m,
-        crystal_symmetry=crystal_symmetry
+        hs=hs,
+        pids=pids,
+        crystal_symmetry=crystal_symmetry,
+        u_aniso_file=u_aniso_file
     )
 
     xray_structure.scatterers().flags_set_grads(
@@ -33,7 +41,6 @@ def get_score(
         iselection=xray_structure.all_selection().iselection()
     )
 
-    r_factor_target = False
     target_name = target
 
     f_model_manager = mmtbx.f_model.manager(
@@ -74,3 +81,38 @@ def get_score(
     results_dict["r_all"] = r_all
 
     return results_dict
+
+
+if __name__ == "__main__":
+    u_aniso_file = Path(Path.home(), "xray/dev/26_phenix_refine/data/7mhj_heavy/7mhj_heavy_refine_001.pdb")
+    pdb_file = Path(Path.home(), "xray/data/pdbs/7mhf/7mhj_heavy.pdb")
+    m = IMP.Model()
+    h = IMP.atom.read_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+    pids = IMP.atom.Selection(h).get_selected_particle_indexes()
+
+    crystal_symmetry = cctbx.crystal.symmetry(
+        unit_cell=(114.880, 54.736, 45.240, 90.00, 101.42, 90.00),
+        space_group_symbol="P1"
+    )
+
+    f_obs_file = Path(Path.home(), "xray/data/cifs/7mhf/7mhj.cif")
+    f_obs_array = miller_ops.get_miller_array(
+        f_obs_file=f_obs_file,
+        label="_refln.F_meas_au"
+    )
+    f_obs_array = miller_ops.clean_miller_array(f_obs_array)
+    status_array = miller_ops.get_miller_array(
+        f_obs_file=f_obs_file,
+        label="_refln.status"
+    )
+    flags_array = status_array.customized_copy(data=status_array.data()=="f")
+    f_obs_array, flags_array = f_obs_array.common_sets(other=flags_array)
+
+    score = get_score(
+        hs=[h],
+        f_obs=f_obs_array,
+        r_free_flags=flags_array,
+        target="ml",
+        u_aniso_file=u_aniso_file
+    )
+    print(score["r_free"], score["r_work"])

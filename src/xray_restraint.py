@@ -1,6 +1,12 @@
+import time
+import random
+import numpy as np
+
 import IMP
 import IMP.core
 import IMP.algebra
+
+from cctbx.array_family import flex
 
 import xray_struct
 import miller_ops
@@ -8,24 +14,31 @@ import cctbx_score
 import derivatives
 
 
+"""
+pids may only be a subset of the total pids (eg, only the pids in the main chain).
+"""
 class XtalRestraint(IMP.Restraint):
     def __init__(
             self,
-            m,
-            n_state,
+            hs,
             pids,
+            n_state,
             f_obs_file,
-            d_min,
-            d_max,
             scale,
             target,
             w_xray,
-            dynamic_w
+            dynamic_w,
+            u_aniso_file,
+            dropout=False,
+            d_min=None,
+            rand_noise=False
     ):
-        IMP.Restraint.__init__(self, m, "xray")
+        IMP.Restraint.__init__(self, hs[0].get_model(), "XrayRestraint%1%")
+        self.hs = hs
         self.n_state = n_state
         self.pids = pids
         self.f_obs_file = f_obs_file
+        self.u_aniso_file = u_aniso_file
 
         # Set f_obs.
         f_obs_array = miller_ops.get_miller_array(
@@ -34,15 +47,64 @@ class XtalRestraint(IMP.Restraint):
         )
         f_obs_array = miller_ops.clean_miller_array(f_obs_array)
 
-        # Set flags.
-        status_array = miller_ops.get_miller_array(
-            f_obs_file=f_obs_file,
-            label="_refln.status"
-        )
-        flags_array = status_array.customized_copy(data=status_array.data()=="f")
+        rand_flags = False
+        if rand_flags:
+            flags_array = f_obs_array.generate_r_free_flags(
+                fraction=0.2,
+                max_free=len(f_obs_array.data())
+            )
+        else:
+            # Set flags from file.
+            status_array = miller_ops.get_miller_array(
+                f_obs_file=f_obs_file,
+                label="_refln.status"
+            )
+            flags_array = status_array.customized_copy(data=status_array.data()=="f")
         f_obs_array, flags_array = f_obs_array.common_sets(other=flags_array)
+
+        if d_min:
+            d_filter = list()
+            ds = f_obs_array.d_spacings()
+            for i in range(len(ds.data())):
+                # Keep all free reflections.
+
+                if flags_array.data()[i]:
+                    d_filter.append(True)
+                elif ds.data()[i] > d_min:
+                    d_filter.append(True)
+                else:
+                    d_filter.append(False)
+
+            f_obs_array = f_obs_array.select(flex.bool(d_filter))
+
+        if rand_noise:
+            # Add noise to the work reflections.
+            for i in range(len(f_obs_array.data())):
+                f_ob = f_obs_array.data()[i]
+                f_ob_err = np.random.normal(loc=f_ob, scale=f_ob*.05)
+                f_obs_array.data()[i] = f_ob_err
+
+        # Dropout some work reflections.
+        if dropout:
+            rand_select = list()
+
+            for i in range(len(f_obs_array.data())):
+                if not flags_array.data()[i]:
+                    rand_select.append(random.choices([True, False], weights=[0.8, 0.2])[0])
+                else:
+                    rand_select.append(True)
+
+            f_obs_array = f_obs_array.select(flex.bool(rand_select))
+
+        # flags_array = status_array.customized_copy(data=status_array.data()=="f")
+
+        f_obs_array, flags_array = f_obs_array.common_sets(other=flags_array)
+        print("N_OBS: ", len(f_obs_array.data()), len(flags_array.data()))
+
         self.f_obs = f_obs_array
         self.flags = flags_array
+        self.f_obs_filt = f_obs_array
+        self.f_flags_filt = flags_array
 
         self.d_max = None
         self.d_min = None
@@ -52,6 +114,7 @@ class XtalRestraint(IMP.Restraint):
         self.target = target
         self.w_xray = None
         self.dynamic_w = dynamic_w
+        self.df_mag_ratio = None
 
         self.set_weight(
             w_xray=w_xray
@@ -77,14 +140,8 @@ class XtalRestraint(IMP.Restraint):
             d_max=self.d_max,
             d_min=self.d_min
         )
-
-    def set_d_max(
-            self,
-            d_max
-    ):
-        self.d_max = d_max
-        self.f_obs_filt = miller_ops.filter_f_obs_resolution(
-            f_obs=self.f_obs,
+        self.flags_filt = miller_ops.filter_f_obs_resolution(
+            f_obs=self.flags,
             d_max=self.d_max,
             d_min=self.d_min
         )
@@ -101,15 +158,14 @@ class XtalRestraint(IMP.Restraint):
     ):
         self.dynamic_w = dynamic_w
 
-    def get_weight(
-            self
-    ):
+    def get_weight(self):
         return self.w_xray
 
-    def get_dynamic_w(
-            self
-    ):
+    def get_dynamic_w(self):
         return self.dynamic_w
+
+    def get_df_mag_ratio(self):
+        return self.df_mag_ratio
 
     def get_df_dict(self):
         return self.df_dxs
@@ -130,11 +186,16 @@ class XtalRestraint(IMP.Restraint):
         return self.r_all
 
     def do_add_score_and_derivatives(self, sa):
+        at = IMP.atom.Atom(self.get_model(), self.pids[0])
+
+        # Get the derivatives.
         results_dict = cctbx_score.get_score(
-            m=self.get_model(),
-            f_obs=self.f_obs,
-            r_free_flags=self.flags,
-            target=self.target
+            hs=self.hs,
+            pids=self.pids,
+            f_obs=self.f_obs_filt,
+            r_free_flags=self.flags_filt,
+            target=self.target,
+            u_aniso_file=self.u_aniso_file
         )
 
         score = results_dict["score"]
@@ -175,6 +236,7 @@ class XtalRestraint(IMP.Restraint):
 
             if self.dynamic_w:
                 df_mag_ratio = dff_avg_mag / dxray_avg_mag
+                self.df_mag_ratio = df_mag_ratio
 
             for pid in self.pids:
                 w_xray = self.w_xray
@@ -195,6 +257,8 @@ class XtalRestraint(IMP.Restraint):
         self.r_free = r_free
         self.r_work = r_work
         self.r_all = r_all
+
+        # print(self.score)
 
     def do_get_inputs(self):
         return [self.get_model().get_particle(pid) for pid in self.pids]

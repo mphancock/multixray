@@ -4,10 +4,15 @@ import IMP
 import IMP.atom
 
 
-def set_b_factors():
-    for pid in m.get_particle_indexes():
-        at = IMP.atom.Atom(m, pid)
-        at.set_temperature_factor(20)
+def set_b_factors(
+    hs,
+    b
+):
+    for h in hs:
+        pids = IMP.atom.Selection(h).get_selected_particle_indexes()
+        for pid in pids:
+            at = IMP.atom.Atom(m, pid)
+            at.set_temperature_factor(b)
 
 
 def set_occupancies(
@@ -22,17 +27,14 @@ def set_occupancies(
 
 
 if __name__ == "__main__":
-    pdb_file = Path(Path.home(), "xray/tmp/9.pdb")
-    new_pdb_file = Path(Path.home(), "xray/tmp/9_25.pdb")
+    pdb_file = Path(Path.home(), "xray/data/pdbs/3ca7/3ca7_refine.pdb")
+    new_pdb_file = Path(Path.home(), "xray/data/pdbs/3ca7/3ca7_refine_b_factor.pdb")
 
     m = IMP.Model()
     sel = IMP.atom.AllPDBSelector()
 
     hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, sel)
 
-    set_occupancies(
-        hs=hs,
-        occ=.25
-    )
+    set_b_factors(hs, 15)
 
     IMP.atom.write_multimodel_pdb(hs, str(new_pdb_file))

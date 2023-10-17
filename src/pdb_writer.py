@@ -1,4 +1,6 @@
+import shutil
 from pathlib import Path
+import time
 import numpy as np
 
 import IMP
@@ -6,58 +8,6 @@ import IMP.atom
 
 import trackers
 import align_imp
-
-class WriteMultiStatePDBOptimizerState(IMP.OptimizerState):
-    def __init__(
-            self,
-            m,
-            hs,
-            pdb_dir
-    ):
-        IMP.OptimizerState.__init__(self, m, "PDBWriter%1%")
-        self.hs = hs
-        self.pdb_dir = pdb_dir
-        self.cur_pdb_id = 0
-        self.cur_pdb_file = Path(self.pdb_dir, "{}.pdb".format(self.cur_pdb_id))
-
-    def do_update(self, call):
-        IMP.atom.write_multimodel_pdb(self.hs, str(self.cur_pdb_file))
-
-        self.cur_pdb_id = self.cur_pdb_id+1
-        self.cur_pdb_file = Path(self.pdb_dir, "{}.pdb".format(self.cur_pdb_id))
-
-
-class WriteBestMultiStatePDBOptimizerState(IMP.OptimizerState):
-    def __init__(
-            self,
-            m,
-            hs,
-            pdb_dir,
-            tracker,
-            N,
-            n_skip
-    ):
-        IMP.OptimizerState.__init__(self, m, "PDBWriter%1%")
-        self.hs = hs
-        self.pdb_dir = pdb_dir
-        self.tracker = tracker
-        self.cache = [np.infty]*N
-        self.n_skip = n_skip
-
-        self.step = 0
-
-    def do_update(self, call):
-        score = self.tracker.evaluate()
-        if score < np.max(self.cache) and self.step > self.n_skip:
-            print("Updating cache")
-            max_id = np.argmax(self.cache)
-            self.cache[max_id] = score
-            print(self.cache)
-
-            pdb_file = Path(self.pdb_dir, "{}.pdb".format(max_id))
-            IMP.atom.write_multimodel_pdb(self.hs, str(pdb_file))
-
-        self.step = self.step+1
 
 
 """
@@ -88,7 +38,6 @@ class PDBWriterTracker(trackers.Tracker):
             name,
             hs,
             pdb_dir,
-            freq=10,
             log_pdb_dir=None
     ):
         trackers.Tracker.__init__(
@@ -100,26 +49,71 @@ class PDBWriterTracker(trackers.Tracker):
         self.hs = hs
         self.pdb_dir = pdb_dir
         self.step = 0
-        self.freq = freq
         self.log_pdb_dir = log_pdb_dir
         self.cur_pdb_id = 0
+
+    def do_evaluate(self):
+        cur_pdb_file = Path(self.pdb_dir, "{}.pdb".format(self.cur_pdb_id))
+
+        hs_ordered = align_imp.get_ordered_hs(self.hs)
+        print(cur_pdb_file)
+        IMP.atom.write_multimodel_pdb(hs_ordered, str(cur_pdb_file))
+        self.cur_pdb_id = self.cur_pdb_id+1
+
+        # final_pdb_file is the pdb file after copying.
+        if self.log_pdb_dir:
+            final_pdb_file = Path(self.log_pdb_dir, cur_pdb_file.name)
+        else:
+            final_pdb_file = cur_pdb_file
+
+        return final_pdb_file
 
     def evaluate(
             self
     ):
-        return_val = np.nan
-        if self.step % self.freq == 0 and self.writing:
-            cur_pdb_file = Path(self.pdb_dir, "{}.pdb".format(self.cur_pdb_id))
-
-            hs_ordered = align_imp.get_ordered_hs(self.hs)
-            IMP.atom.write_multimodel_pdb(hs_ordered, str(cur_pdb_file))
-            self.cur_pdb_id = self.cur_pdb_id+1
-
-            if self.log_pdb_dir:
-                return_val = Path(self.log_pdb_dir, cur_pdb_file.name)
-            else:
-                return_val = cur_pdb_file
+        if self.step % self.get_period() == 0 and self.get_on():
+            final_pdb_file = self.do_evaluate()
+        else:
+            final_pdb_file = np.nan
 
         self.step = self.step+1
 
-        return return_val
+        return final_pdb_file
+
+
+class PDBCopyTracker(trackers.Tracker):
+    def __init__(
+            self,
+            name,
+            m,
+            source_dir,
+            dest_dir
+    ):
+        trackers.Tracker.__init__(
+            self,
+            name=name,
+            m=m,
+            n=1
+        )
+        self.source_dir = source_dir
+        self.dest_dir = dest_dir
+        self.step = 0
+
+    def do_evaluate(self):
+        for file in self.source_dir.glob("*.pdb"):
+            dest_file = Path(self.dest_dir, file.name)
+            shutil.move(file, dest_file)
+
+        return 1
+
+    def evaluate(
+            self
+    ):
+        if self.step % self.get_period() == 0 and self.get_on():
+            copied = self.do_evaluate()
+        else:
+            copied = 0
+
+        self.step = self.step+1
+
+        return copied

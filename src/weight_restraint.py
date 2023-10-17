@@ -11,6 +11,7 @@ class WeightRestraint(IMP.Restraint):
             self,
             m,
             hs,
+            pids,
             w,
             f_obs,
             flags,
@@ -19,6 +20,7 @@ class WeightRestraint(IMP.Restraint):
         IMP.Restraint.__init__(self, m, "weight")
         self.m = m
         self.hs = hs
+        self.pids = pids
         self.w = w
         self.n_state = len(self.hs)
         self.f_obs = f_obs
@@ -61,7 +63,6 @@ class WeightRestraint(IMP.Restraint):
     ):
         # Update all occupancies based on weight of first pid.
         # n_atoms = len(self.pids)/self.n_state
-
         for i in range(self.n_state):
             occ = self.w.get_weight(i)
             pids = IMP.atom.Selection(self.hs[i]).get_selected_particle_indexes()
@@ -72,6 +73,7 @@ class WeightRestraint(IMP.Restraint):
 
         xray_structure = xray_struct.get_xray_structure(
             m=self.m,
+            pids=self.pids,
             crystal_symmetry=self.f_obs.crystal_symmetry()
         )
 
@@ -123,7 +125,7 @@ class WeightRestraint(IMP.Restraint):
             avg_g = sum(occ_gs[i])
             avg_gs.append(avg_g)
 
-        # Normalize.
+        # Normalize against the average gradient.
         state_gs = list()
         for i in range(self.n_state):
             state_gs.append(avg_gs[i]-avg_gs[-1])
@@ -133,6 +135,8 @@ class WeightRestraint(IMP.Restraint):
         if sa.get_derivative_accumulator():
             for i in range(self.n_state):
                 self.w.add_to_weight_derivative(i, self.get_scale()*state_gs[i], sa.get_derivative_accumulator())
+
+        print(self.w.get_weights_derivatives())
 
     def do_get_inputs(self):
         w_pid = self.w.get_particle_index()

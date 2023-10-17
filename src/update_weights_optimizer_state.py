@@ -1,6 +1,22 @@
+import numpy as np
+import random
+
 import IMP
 import IMP.core
 import IMP.atom
+
+
+def update_multi_state_model(
+        hs,
+        m,
+        w
+):
+    # Update the occupancies of the model based on the weight particle attatched to first pid.
+    for i in range(len(hs)):
+        occ = w.get_weight(i)
+        pids = IMP.atom.Selection(hs[i]).get_selected_particle_indexes()
+        for pid in pids:
+            IMP.atom.Atom(m, pid).set_occupancy(occ)
 
 
 class UpdateWeightsOptimizerState(IMP.OptimizerState):
@@ -9,57 +25,105 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
             m,
             hs,
             w,
-            r_xtal
+            r_xrays,
+            n_proposals,
+            radius
     ):
         IMP.OptimizerState.__init__(self, m, "UpdateWeightsOptimizerState%1%")
         self.m = m
         self.hs = hs
         self.w = w
-        self.r_xtal = r_xtal
+        self.r_xrays = r_xrays
+        self.n_proposals = n_proposals
+        self.radius = radius
+
+        self.on = True
+
+    def get_on(self):
+        return self.on
+
+    def set_on(
+        self,
+        on
+    ):
+        self.on = on
 
     def do_update(self, call):
-        # First, update w from w_grads.
-        w_grads = self.r_xtal.get_w_grads()
-        print(w_grads)
+        w_origs = self.w.get_weights()
+        w_origs_scores = [r_xray.get_f() for r_xray in self.r_xrays]
 
-        # Normalize
-        for i in range(len(w_grads)):
-            w_grads[i] = w_grads[i]-w_grads[-1]
+        all_w_tmps = [w_origs]
+        all_w_tmps_scores = [w_origs_scores]
 
-        # w_grads_scale = [w_grads[i]*1000 for i in range(len(w_grads))]
-        ws = self.w.get_weights()
-        for i in range(len(ws)):
-            ws[i] = ws[i] + w_grads[i]
-        self.w.set_weights(ws)
-        print(w_grads)
-        print(self.w.get_weights())
+        for i in range(self.n_proposals):
+            w_tmps = np.random.normal(w_origs, self.radius)
 
-        # Then, update the atomic structures.
-        for i in range(len(self.hs)):
-            sel = IMP.atom.Selection(self.hs[i])
-            pids = sel.get_selected_particle_indexes()
-            for pid in pids:
-                at = IMP.atom.Atom(self.m, pid)
-                at.set_occupancy(self.w.get_weight(i))
+            # if any proposed weight is 0, then randomly select a new set of weights.
+            for w in w_tmps:
+                if w < 1e-5:
+                    w_tmps = [random.random()] * len(w_origs)
+                    break
+
+            w_tmps = [w/sum(w_tmps) for w in w_tmps]
+            all_w_tmps.append(w_tmps)
+
+        # Check the score for all proposed weights.
+        for w_tmps in all_w_tmps:
+            self.w.set_weights(w_tmps)
+            update_multi_state_model(self.hs, self.m, self.w)
+
+            # Check satisfaction of all x_rays.
+            w_tmps_scores = list()
+            for r_xray in self.r_xrays:
+                # Don't need to compute derivatives.
+                r_xray.evaluate(False)
+                f_tmp = r_xray.get_f()
+                w_tmps_scores.append(f_tmp)
+
+            all_w_tmps_scores.append(w_tmps_scores)
+
+        best_ws = all_w_tmps[0]
+        best_scores = all_w_tmps_scores[0]
+        # Find the best set of weights:
+        for i in range(len(all_w_tmps)):
+            ws = all_w_tmps[i]
+            ws_scores = all_w_tmps_scores[i]
+
+            best = True
+            for j in range(len(ws_scores)):
+                if ws_scores[j] > best_scores[j]:
+                    best = False
+                    break
+
+            if best:
+                best_ws = ws
+                best_scores = ws_scores
+
+            print(ws, ws_scores, best)
+
+
+        # print("best: ", best_ws, best_scores)
+        self.w.set_weights(best_ws)
+        # print(self.w.get_weights())
+        update_multi_state_model(self.hs, self.m, self.w)
 
 
 class OptimizeWeightsOptimizerState(IMP.OptimizerState):
     def __init__(
         self,
         m,
-        wr,
-        r_xray,
+        wrs,
+        w,
         n_state,
         step_tracker
     ):
         IMP.OptimizerState.__init__(self, m, "OptimizeWeightsOptimizerState%1%")
         self.m = m
-        self.wr = wr
-        self.r_xray = r_xray
+        self.wrs = wrs
         self.n_state = n_state
         self.step_tracker = step_tracker
 
-        self.w = self.wr.get_w()
+        self.w = w
         self.on = True
 
     def get_on(self):
@@ -74,8 +138,10 @@ class OptimizeWeightsOptimizerState(IMP.OptimizerState):
     def do_update(self, call):
         if self.on and self.step_tracker.get_step() > 0:
         # if self.on and self.r_xray.get_r_work() < .2:
-            self.wr.reset()
-            sf = IMP.core.RestraintsScoringFunction([self.wr])
+            for wr in self.wrs:
+                wr.reset()
+
+            sf = IMP.core.RestraintsScoringFunction(self.wrs)
             # sf.evaluate(True)
 
             cg = IMP.core.ConjugateGradients(self.m)

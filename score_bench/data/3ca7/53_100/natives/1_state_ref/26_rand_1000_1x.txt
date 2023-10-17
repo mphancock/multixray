@@ -1,0 +1,11 @@
+pdb_dir        /wynton/group/sali/mhancock/xray/decoys/data/3ca7/53_100/rand_1000_1x
+cif_file       /wynton/home/sali/mhancock/xray/dev/17_synthetic_native/data/cifs/1_state_ref/26.cif
+min_res        0.0
+ref_pdb_file   /wynton/home/sali/mhancock/xray/dev/17_synthetic_native/data/pdbs/1_state_ref/26.pdb
+param_file     /wynton/home/sali/mhancock/xray/score_bench/data/3ca7/53_100/natives/1_state_ref/26_rand_1000_1x.txt
+score_file     /wynton/home/sali/mhancock/xray/score_bench/data/3ca7/53_100/natives/1_state_ref/26_rand_1000_1x.csv
+add_native     True
+score_fs       ml,rmsd_avg
+test           False
+
+

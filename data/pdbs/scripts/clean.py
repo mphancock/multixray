@@ -4,9 +4,6 @@ import sys
 import IMP
 import IMP.atom
 
-sys.path.append(str(Path(Path.home(), "xray/src")))
-from charmm import charmm_restraints
-
 
 def normalize_coordinates(
         m, pids
@@ -41,15 +38,15 @@ def normalize_coordinates(
 
 
 if __name__ == "__main__":
-    pdb_file = Path(Path.home(), "xray/data/pdbs/7mhf/7mhf.pdb")
-    save_pdb_file = Path(Path.home(), "xray/data/pdbs/7mhf/7mhf_no_alt_no_H.pdb")
+    pdb_file = Path(Path.home(), "xray/data/pdbs/7mhf/7mhj.pdb")
+    save_pdb_file = Path(Path.home(), "xray/data/pdbs/7mhf/7mhj_heavy.pdb")
 
     m = IMP.Model()
     # sel = IMP.atom.NonWaterPDBSelector()
-    sel_1 = IMP.atom.NonHydrogenPDBSelector()
+    # sel_1 = IMP.atom.NonHydrogenPDBSelector()
     # sel = IMP.atom.AllPDBSelector()
     sel_2 = IMP.atom.NonAlternativePDBSelector()
-    # sel_1 = IMP.atom.NonWaterNonHydrogenPDBSelector()
+    sel_1 = IMP.atom.NonWaterNonHydrogenPDBSelector()
     # sel_2 = IMP.atom.WaterPDBSelector()
     sel = IMP.atom.AndPDBSelector(sel_1, sel_2)
 
@@ -66,9 +63,9 @@ if __name__ == "__main__":
     print(len(pids))
 
     # Set all atomic b factors to 0 and occupancies to 1.
-    for pid in pids:
-        atom = IMP.atom.Atom(m, pid)
-        atom.set_occupancy(1)
+    # for pid in pids:
+    #     atom = IMP.atom.Atom(m, pid)
+    #     atom.set_occupancy(1)
         # atom.set_temperature_factor(0)
 
     IMP.atom.write_pdb(

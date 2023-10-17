@@ -4,15 +4,15 @@ import sys
 import IMP
 import IMP.atom
 
-sys.path.append(str(Path(Path.home(), "Documents/xray/src")))
+sys.path.append(str(Path(Path.home(), "xray/src")))
 import align_imp
 
 
 if __name__ == "__main__":
-    pdb_dir = Path(Path.home(), "Documents/xray/dev/17_synthetic_native/data/pdbs/2_state_ref")
+    pdb_dir = Path(Path.home(), "xray/dev/17_synthetic_native_realistic/data/pdbs/2_state_ref")
 
     for pdb_file in  pdb_dir.glob("*"):
-        order_pdb_file = Path(Path.home(), "Documents/xray/dev/17_synthetic_native/data/pdbs/2_state_ref_ordered", pdb_file.name)
+        order_pdb_file = Path(Path.home(), "xray/dev/17_synthetic_native_realistic/data/pdbs/2_state_ref_ordered", pdb_file.name)
         print(pdb_file)
 
         m = IMP.Model()
