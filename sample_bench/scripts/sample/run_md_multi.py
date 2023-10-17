@@ -3,12 +3,15 @@ import sys
 import argparse
 import shutil
 import random
+import numpy as np
 
 import IMP
 import IMP.atom
 import IMP.core
 import IMP.isd
 import IMP.algebra
+
+from cctbx.array_family import flex
 
 sys.path.append(str(Path(Path.home(), "xray/src")))
 import charmm
@@ -192,18 +195,50 @@ if __name__ == "__main__":
 
         # cif file here is a string.
         for cif_file in cif_files:
+            f_obs_array = miller_ops.get_miller_array(
+                f_obs_file=cif_file,
+                label="_refln.F_meas_au"
+            )
+            f_obs_array = miller_ops.clean_miller_array(f_obs_array)
+
+            rand_flags = False
+            if rand_flags:
+                flags_array = f_obs_array.generate_r_free_flags(
+                    fraction=0.05,
+                    max_free=len(f_obs_array.data())
+                )
+            else:
+                # Set flags from file.
+                status_array = miller_ops.get_miller_array(
+                    f_obs_file=cif_file,
+                    label="_refln.status"
+                )
+                flags_array = status_array.customized_copy(data=status_array.data()=="f")
+            f_obs_array, flags_array = f_obs_array.common_sets(other=flags_array)
+
+            if args.rand_noise:
+                # Add noise to the work reflections.
+                for i in range(len(f_obs_array.data())):
+                    f_ob = f_obs_array.data()[i]
+                    f_ob_err = np.random.normal(loc=f_ob, scale=f_ob*.05)
+                    f_obs_array.data()[i] = f_ob_err
+
+            # Dropout some work reflections.
+            if args.dropout:
+                # Define your probabilities
+                probabilities = [0.8, 0.2]
+                mask = np.random.choice([True, False], size=len(f_obs_array.data()), p=probabilities)
+                f_obs_array = f_obs_array.select(flex.bool(mask))
+
+            f_obs_array, flags_array = f_obs_array.common_sets(other=flags_array)
+            print("N_OBS: ", len(f_obs_array.data()), len(flags_array.data()))
+
             r_xray = xray_restraint.XtalRestraint(
                 hs=hs,
-                n_state=n_states,
                 pids=pids_xray,
-                f_obs_file=cif_file,
-                scale=True,
-                target="ml",
+                f_obs=f_obs_array,
+                free_flags=flags_array,
                 w_xray=args.w_xray,
-                dynamic_w=args.dyn_w_xray,
-                dropout=args.dropout,
-                d_min=args.d_min,
-                rand_noise=args.rand_noise,
                 u_aniso_file=args.u_aniso_file
             )
 
