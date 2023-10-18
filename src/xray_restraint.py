@@ -4,6 +4,7 @@ import IMP.algebra
 
 import miller_ops
 import cctbx_score
+import update_weights_optimizer_state
 
 
 """
@@ -14,6 +15,7 @@ class XtalRestraint(IMP.Restraint):
             self,
             hs,
             pids,
+            w,
             f_obs,
             free_flags,
             w_xray,
@@ -23,6 +25,7 @@ class XtalRestraint(IMP.Restraint):
         self.hs = hs
         self.n_state = len(self.hs)
         self.pids = pids
+        self.w = w
 
         self.f_obs = f_obs
         self.free_flags = free_flags
@@ -48,6 +51,12 @@ class XtalRestraint(IMP.Restraint):
         self.r_free = 0
         self.r_work = 0
         self.r_all = 0
+
+        update_weights_optimizer_state.update_multi_state_model(
+            hs=self.hs,
+            m=self.get_model(),
+            w=self.w
+        )
 
     def set_d_min(
             self,
@@ -96,6 +105,12 @@ class XtalRestraint(IMP.Restraint):
         return self.r_all
 
     def do_add_score_and_derivatives(self, sa):
+        update_weights_optimizer_state.update_multi_state_model(
+            hs=self.hs,
+            m=self.get_model(),
+            w=self.w
+        )
+
         # Get the derivatives.
         results_dict = cctbx_score.get_score(
             hs=self.hs,

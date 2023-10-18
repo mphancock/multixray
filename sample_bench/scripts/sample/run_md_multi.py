@@ -30,6 +30,11 @@ import weight_restraint
 import miller_ops
 
 
+def get_n_state_from_pdb_file(pdb_file):
+    m = IMP.Model()
+    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+    return len(hs)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--out_dir")
@@ -41,7 +46,7 @@ if __name__ == "__main__":
     parser.add_argument("--u_aniso_file")
     parser.add_argument("--n_state")
     parser.add_argument("--init_weights")
-    parser.add_argument("--ref_pdb_file")
+    parser.add_argument("--ref_pdb_files")
     parser.add_argument("--sa")
     parser.add_argument("--steps", type=int)
     parser.add_argument("--bfactor", type=int)
@@ -53,28 +58,64 @@ if __name__ == "__main__":
 
     params.write_params(vars(args), Path(args.out_dir, "params.txt"))
 
-    # Representation.
+    ### REPRESENTATION
     pdb_file = Path(args.start_pdb_file)
-    ref_pdb_file = Path(args.ref_pdb_file)
-
-    m = IMP.Model()
-
-    # s = IMP.atom.AllPDBSelector()
-
     n_states = int(args.n_state)
-    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+    pdb_file_n_state = get_n_state_from_pdb_file(pdb_file)
 
-    if len(hs) == 1 and len(hs) < n_states:
-        m = IMP.Model()
-        hs.clear()
-
+    m, m_0 = IMP.Model(), IMP.Model()
+    if pdb_file_n_state == 1:
+        hs, h_0s = list(), list()
         for i in range(n_states):
             hs.append(IMP.atom.read_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector()))
+            h_0s.append(IMP.atom.read_pdb(str(pdb_file), m_0, IMP.atom.AllPDBSelector()))
+    else:
+        hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+        h_0s = IMP.atom.read_multimodel_pdb(str(pdb_file), m_0, IMP.atom.AllPDBSelector())
 
-    pids = list()
+    # There are multiple ref pdb files because there should be one for each Xray dataset.
+    ref_pdb_files = [Path(ref_pdb_file) for ref_pdb_file in args.ref_pdb_files.split(",")]
+    all_ref_ms, all_ref_hs = list(), list()
+    for ref_pdb_file in ref_pdb_files:
+        ref_m = IMP.Model()
+        ref_hs = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), ref_m, IMP.atom.AllPDBSelector())
+        all_ref_ms.append(ref_m)
+        all_ref_hs.append(ref_hs)
 
-    m_0 = IMP.Model()
-    h0_s = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), m_0, IMP.atom.AllPDBSelector())
+    ws = list()
+    if args.cif_files:
+        n_cif = len(args.cif_files.split(","))
+        if len(all_ref_hs) != n_cif:
+            raise RuntimeError("Number of cif files ({}) does not match number of ref pdb files ({})".format(n_cif, len(all_ref_hs)))
+
+        for i in range(n_cif):
+            # Setup the weights.
+            w_p = IMP.Particle(m, "weights")
+            w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
+            w = IMP.isd.Weight(m, w_pid)
+
+            if args.init_weights == "ref":
+                weights = update_weights_optimizer_state.get_weights_from_hs(all_ref_hs[i])
+            elif args.init_weights == "rand":
+                weights = [random.random() for i in range(n_states)]
+                weights = [w / sum(weights) for w in weights]
+
+                while any(weight < 0.05 for weight in weights):
+                    weights = [random.random() for _ in range(n_states)]
+                    weights = [w / sum(weights) for w in weights]
+            elif args.init_weights == "uni":
+                weights = [1/n_states]*n_states
+            else:
+                init_weights = args.init_weights.split(",")
+                init_weights = [float(w) for w in init_weights]
+                if len(init_weights) != n_states:
+                    raise RuntimeError("Number of initial weights does not match number of states.")
+
+            w.set_weights(weights)
+            ws.append(w)
+
+    for w in ws:
+        print(w.get_weights())
 
     # Get all particle ids.
     pids = list()
@@ -90,45 +131,10 @@ if __name__ == "__main__":
             for pid in IMP.atom.Selection(h).get_selected_particle_indexes():
                 IMP.atom.Atom(m, pid).set_temperature_factor(args.bfactor)
 
-    # Setup the weights.
-    w_p = IMP.Particle(m, "weights")
-    w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
-    w = IMP.isd.Weight(m, w_pid)
 
-    if args.init_weights == "ref":
-        init_weights = [IMP.atom.Atom(m, IMP.atom.Selection(hierarchy=h, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()[0]).get_occupancy() for h in hs]
-    elif args.init_weights == "rand":
-        init_weights = [random.random() for i in range(n_states)]
-    elif args.init_weights == "uni":
-        init_weights = [1/n_states]*n_states
-    else:
-        init_weights = args.init_weights.split(",")
-        init_weights = [float(w) for w in init_weights]
-        if len(init_weights) != n_states:
-            raise RuntimeError("Number of initial weights does not match number of states.")
-
-    # Normalize and check for trivial weights only if init weights was rand. I do this because some of the synthetic natives have trivial weights but I don't want to overrule them.
-    if args.init_weights == "rand":
-        weights = [w/sum(init_weights) for w in init_weights]
-        trivial_w = False
-        for weight in weights:
-            if weight < .05:
-                trivial_w = True
-        while trivial_w:
-            weights = [random.random() for i in range(n_states)]
-            weights = [w/sum(weights) for w in weights]
-            trivial_w = False
-            for weight in weights:
-                if weight < .05:
-                    trivial_w = True
-    else:
-        weights = init_weights
-
-    w.set_weights(weights)
 
     # # We need to manually set the occupancies of the structures here because pdb file occupancies are limited to 2 decimal places.
     update_weights_optimizer_state.update_multi_state_model(hs, m, w)
-
     w.set_weights_are_optimized(True)
 
     # Setup waters (if any).
@@ -171,7 +177,7 @@ if __name__ == "__main__":
 
     ps = [m.get_particle(pid) for pid in pids]
 
-    ## SCORING
+    ### SCORING
     rs = list()
     rset_charmm = IMP.RestraintSet(m, 1.0)
     for h in hs:
@@ -188,13 +194,17 @@ if __name__ == "__main__":
     r_xrays, wrs = list(), list()
     if args.cif_files:
         cif_files = args.cif_files.split(",")
+
         if args.main_chain:
             pids_xray = pids_main_chain
         else:
             pids_xray = pids
 
         # cif file here is a string.
-        for cif_file in cif_files:
+        for i in range(len(cif_files)):
+            cif_file = cif_files[i]
+            w = ws[i]
+
             f_obs_array = miller_ops.get_miller_array(
                 f_obs_file=cif_file,
                 label="_refln.F_meas_au"
@@ -236,6 +246,7 @@ if __name__ == "__main__":
             r_xray = xray_restraint.XtalRestraint(
                 hs=hs,
                 pids=pids_xray,
+                w=w,
                 f_obs=f_obs_array,
                 free_flags=flags_array,
                 w_xray=args.w_xray,
@@ -273,16 +284,14 @@ if __name__ == "__main__":
                 )
                 wrs.append(wr)
 
-    # Setup the center of mass optimizer state.
-    pids_ca_0 = list(IMP.atom.Selection(h0_s, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes())
+    # Setup the center of mass optimizer state based on the first state of the starting structure.
+    pids_ca_0 = list(IMP.atom.Selection(h_0s, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes())
     com_0 = IMP.atom.CenterOfMass.setup_particle(
         IMP.Particle(m_0),
         pids_ca_0
     )
 
     all_trackers = list()
-    pids_0 = list(IMP.atom.Selection(h0_s).get_selected_particle_indexes())
-
     step_tracker = trackers.StepTracker(
         name="step",
         m=m
@@ -329,27 +338,28 @@ if __name__ == "__main__":
         r_free_tracker.set_xray_only(True)
         all_trackers.append(r_free_tracker)
 
-    rmsd_all_tracker = trackers.RMSDTracker(
-        name="rmsd_avg",
-        hs=hs,
-        hs_0=h0_s,
-        rmsd_func=align_imp.compute_rmsd_between_average,
-        ca_only=True
-    )
-    rmsd_all_tracker.set_xray_only(False)
-    all_trackers.append(rmsd_all_tracker)
-
-    for i in range(n_states):
-        state_pids = IMP.atom.Selection(hs[i]).get_selected_particle_indexes()
-        occ_tracker = trackers.OccTracker(
-            name="occ_{}".format(i),
-            m=m,
-            at=IMP.atom.Atom(m, state_pids[0])
+    for i in range(len(all_ref_hs)):
+        ref_hs = all_ref_hs[i]
+        rmsd_all_tracker = trackers.RMSDTracker(
+            name="rmsd_avg_{}".format(i),
+            hs=hs,
+            ref_hs=ref_hs,
+            rmsd_func=align_imp.compute_rmsd_between_average,
+            ca_only=True
         )
-        occ_tracker.set_xray_only(False)
-        all_trackers.append(occ_tracker)
+        rmsd_all_tracker.set_xray_only(False)
+        all_trackers.append(rmsd_all_tracker)
 
-    ## WRITING PDBS
+    for i in range(len(ws)):
+        weight_tracker = trackers.WeightTracker(
+            name="weight_{}".format(i),
+            m=m,
+            w=ws[i]
+        )
+        weight_tracker.set_xray_only(False)
+        all_trackers.append(weight_tracker)
+
+    # pdb writer trackers.
     pdb_dir = Path(args.out_dir, "pdbs")
     pdb_dir.mkdir()
 
@@ -381,14 +391,14 @@ if __name__ == "__main__":
         copy_tracker.set_period(10)
         all_trackers.append(copy_tracker)
 
-    # Setup the reset tracker.
+    # If the simulation becomes numerically unstable, reset the hs to the starting h_0s.
     reset_tracker = reset.ResetTracker(
         name="reset",
         hs=hs,
         w=w,
         r_charmm=rset_charmm,
         sa_sched=sa_sched,
-        h_0=h0_s[0]
+        h_0=h_0s[0],
     )
     reset_tracker.set_xray_only(False)
     all_trackers.append(reset_tracker)

@@ -19,6 +19,16 @@ def update_multi_state_model(
             IMP.atom.Atom(m, pid).set_occupancy(occ)
 
 
+def get_weights_from_hs(hs):
+    weights = list()
+    for h in hs:
+        pids = IMP.atom.Selection(h).get_selected_particle_indexes()
+        occ = IMP.atom.Atom(h.get_model(), pids[0]).get_occupancy()
+        weights.append(occ)
+
+    return weights
+
+
 class UpdateWeightsOptimizerState(IMP.OptimizerState):
     def __init__(
             self,
