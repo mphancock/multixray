@@ -127,7 +127,7 @@ class RMSDTracker(Tracker):
             name,
             rmsd_func,
             hs,
-            hs_0,
+            ref_hs,
             ca_only
     ):
         Tracker.__init__(
@@ -137,7 +137,7 @@ class RMSDTracker(Tracker):
             n=1
         )
         self.hs = hs
-        self.hs_0 = hs_0
+        self.hs_0 = ref_hs
         self.rmsd_func = rmsd_func
         self.ca_only = ca_only
 
@@ -150,7 +150,7 @@ class RMSDTracker(Tracker):
             ca_only=self.ca_only
         )
 
-        return rmsd
+        return float(rmsd)
 
 
 class fTracker(Tracker):
@@ -328,6 +328,26 @@ class OccTracker(Tracker):
 
         return occ
 
+class WeightTracker(Tracker):
+    def __init__(
+            self,
+            name,
+            m,
+            w
+    ):
+        Tracker.__init__(
+            self,
+            name=name,
+            m=m,
+            n=len(w.get_weights())
+        )
+        self.w = w
+
+    def evaluate(self):
+        weights = self.w.get_weights()
+        weights = [weights[i] for i in range(weights.get_dimension())]
+
+        return weights
 
 class TimeTracker(Tracker):
     def __init__(

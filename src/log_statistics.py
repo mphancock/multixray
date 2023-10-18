@@ -22,39 +22,33 @@ class LogStatistics(IMP.OptimizerState):
         self.log_file = log_file
         self.log_freq = log_freq
 
-        log = dict()
-        self.log = log
+        columns = list()
         for tracker in self.all_trackers:
-            self.add_tracker(
-                tracker=tracker
-            )
+            if tracker.get_n() > 1:
+                for i in range(tracker.get_n()):
+                    columns.append(tracker.get_name()+"_"+str(i))
+            else:
+                columns.append(tracker.get_name())
 
+        self.log_df = pd.DataFrame(columns=columns)
         self.print_header()
 
-    def add_tracker(
-            self,
-            tracker
-    ):
-        if tracker.get_n() > 1:
-            for i in range(tracker.get_n()):
-                self.log[(tracker.get_name()+str(i))] = list()
-        else:
-            self.log[(tracker.get_name())] = list()
 
     def print_header(self):
         log_line = ""
-        for entry in self.log.keys():
+        for entry in self.log_df.columns:
             log_line = log_line + entry + ","
 
         print(log_line)
 
     def print_last_entry(self):
         log_line = ""
-        for entry in self.log.keys():
-            if type(self.log[entry][-1]) == float or type(self.log[entry][-1]) == np.float64:
-                last_entry = str(round(self.log[entry][-1], 3))
+        for column in self.log_df.columns:
+            val = self.log_df.iloc[-1][column]
+            if type(val) == float or type(val) == np.float64:
+                last_entry = str(round(val, 3))
             else:
-                last_entry = str(self.log[entry][-1])
+                last_entry = str(val)
             log_line = log_line + last_entry  + ","
 
         print(log_line)
@@ -62,8 +56,7 @@ class LogStatistics(IMP.OptimizerState):
     def get_log(
             self
     ):
-        log_df = pd.DataFrame(self.log)
-        return log_df
+        return self.log_df
 
     def get_tracker(
             self,
@@ -81,20 +74,18 @@ class LogStatistics(IMP.OptimizerState):
         return self.all_trackers
 
     def do_update(self, call):
+        entries = list()
         for tracker in self.all_trackers:
             result = tracker.evaluate()
-
             if tracker.get_n() > 1:
                 for i in range(tracker.get_n()):
-                    entry = tracker.get_name() + str(i)
-                    self.log[entry].append(result[i])
+                    entries.append(result[i])
             else:
-                self.log[tracker.get_name()].append(result)
+                entries.append(result)
 
+        self.log_df.loc[len(self.log_df)] = entries
         self.print_last_entry()
 
         if self.get_number_of_updates()%self.log_freq == 0:
-            t0 = time.time()
             log_df = self.get_log()
             log_df.to_csv(self.log_file)
-            # print("Log write took: {}s".format(time.time()-t0))
