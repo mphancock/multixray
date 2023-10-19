@@ -8,12 +8,12 @@ import get_stat_df
 
 
 if __name__ == "__main__":
-    job_name = "100_natives_4x"
+    job_name = "111_synth_2_xray"
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7", job_name)
     analysis_dir = Path(Path.home(), "xray/sample_bench/data/3ca7", job_name)
     analysis_dir.mkdir(exist_ok=True)
     log_file = Path(analysis_dir, "score_analysis.csv".format(job_name))
-    n_jobs = 10
+    n_jobs = 4
 
     log_df = pd.DataFrame(index=list(range(n_jobs)))
     for job_id in range(n_jobs):
@@ -24,11 +24,9 @@ if __name__ == "__main__":
 
         # Get the average min R free and min R free from all output logs for a given w_xray.
         # R_free_0 is the first R_free reported.
-        for field in ["xray_0", "r_free_0"]:
-            if field == "xray_0":
-                bonus_fields = ["r_free_0", "rmsd_avg", "pdb"]
-            else:
-                bonus_fields = ["xray_0", "rmsd_avg", "pdb"]
+        for field in ["xray_0+xray_1"]:
+            if field == "xray_0+xray_1":
+                bonus_fields = ["r_free_0", "r_free_1", "rmsd_avg_0", "rmsd_avg_1", "pdb"]
 
             stat_df = get_stat_df.get_stat_df(
                 log_file_groups=[[log_file] for log_file in log_files],
