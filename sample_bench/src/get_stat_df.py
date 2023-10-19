@@ -36,6 +36,12 @@ def pool_get_stat_info_df(
     log_files = params_dict["log_files"]
     equil = params_dict["equil"]
     field = params_dict["field"]
+
+    if "+" in field:
+        fields = field.split("+")
+    else:
+        fields = [field]
+
     bonus_fields = params_dict["bonus_fields"]
     stat = params_dict["stat"]
     N = params_dict["N"]
@@ -55,10 +61,12 @@ def pool_get_stat_info_df(
             continue
 
         # Create a set of columns to check for existence
-        check_cols = set(["step", "time", field] + bonus_fields)
+        check_cols = ["step", "time"]
+        check_cols.extend(bonus_fields)
+        check_cols.extend(fields)
 
         # Check if all columns in check_cols exist in the DataFrame. This guaruntees that merge_log_df will contain all of the necessary columns.
-        if not check_cols.issubset(log_df.columns):
+        if not set(check_cols).issubset(log_df.columns):
             print("Skipped corrupt log file (missing columns): {}".format(log_file))
             continue
 
@@ -68,7 +76,7 @@ def pool_get_stat_info_df(
             log_sel_df = log_df.iloc[equil:]
 
         if rmsd_filter is not None:
-            log_sel_df = log_sel_df[log_sel_df["rmsd_avg"] <= rmsd_filter]
+            log_sel_df = log_sel_df[log_sel_df["rmsd_avg_0"] <= rmsd_filter]
 
         log_dfs.append(log_sel_df)
 
@@ -78,7 +86,11 @@ def pool_get_stat_info_df(
 
     if len(log_dfs) > 0:
         merge_log_df = pd.concat(log_dfs)
-        if len(merge_log_df) > 0:
+
+        if len(fields) > 1:
+            merge_log_df[field] = merge_log_df[fields].sum(axis=1)
+
+        if len(merge_log_df) > (equil+N):
             # Check that all the fields, bonus fields, and stats are valid.
             if stat not in ["min", "max", "mean", "std", "var"]:
                 return RuntimeError("Stat {} not valid".format(stat))
@@ -101,10 +113,7 @@ def pool_get_stat_info_df(
 
                 stat_info_df.loc[0] = [stat_val]
         else:
-            stat_info_df.loc[0] = [np.nan]*len(stat_info_df.columns)
-    # else:
-    #     return RuntimeError("No valid log files found")
-        # stat_info_df.loc[0] = [np.nan]*len(stat_info_df.columns)
+            print("Not enough entries to compute stat: {}".format(log_files))
 
     return log_files, stat_info_df
 
