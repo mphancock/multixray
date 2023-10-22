@@ -80,6 +80,9 @@ class XtalRestraint(IMP.Restraint):
     ):
         self.w_xray = w_xray
 
+    def set_w(self, w):
+        self.w = w
+
     def get_weight(self):
         return self.w_xray
 
@@ -105,15 +108,10 @@ class XtalRestraint(IMP.Restraint):
         return self.r_all
 
     def do_add_score_and_derivatives(self, sa):
-        update_weights_optimizer_state.update_multi_state_model(
-            hs=self.hs,
-            m=self.get_model(),
-            w=self.w
-        )
-
         # Get the derivatives.
         results_dict = cctbx_score.get_score(
             hs=self.hs,
+            w=self.w,
             pids=self.pids,
             f_obs=self.f_obs_filt,
             r_free_flags=self.flags_filt,

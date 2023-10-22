@@ -9,7 +9,7 @@ sys.path.append(str(Path(Path.home(), "xray/src")))
 import params
 import reset
 import pdb_writer
-
+import log_statistics
 
 """
 Run a generic multi-state molecular dynamics simulation.
@@ -75,7 +75,12 @@ def molecular_dynamics(
     md.set_maximum_time_step(t_step)
 
     # Set MD in the reset tracker.
-    trackers = o_states[0].get_trackers()
+    log_ostate = None
+    for o_state in o_states:
+        if type(o_state) == log_statistics.LogStatistics:
+            log_ostate = o_state
+
+    trackers = log_ostate.get_trackers()
     for tracker in trackers:
         if type(tracker) == reset.ResetTracker:
             tracker.set_md(md)
@@ -83,8 +88,6 @@ def molecular_dynamics(
     # rs is a set of restraint sets
     if sa_sched:
         # Get the log ostate, always exists.
-        log_ostate = o_states[0]
-
         write_pdb_tracker = None
         copy_pdb_tracker = None
         for tracker in trackers:
@@ -110,12 +113,12 @@ def molecular_dynamics(
         sf = IMP.core.RestraintsScoringFunction(r_sets)
         sf_not_xray = IMP.core.RestraintsScoringFunction(r_set_not_xrays)
 
-        # Get the weight ostate, if exists.
-        weight_ostate = None
+        # Get the weight ostates, if exists.
+        weight_ostates = list()
         for o_state in o_states:
             print(o_state.get_name())
             if "UpdateWeightsOptimizerState" in o_state.get_name():
-                weight_ostate = o_state
+                weight_ostates.append(o_state)
 
         step_tracker = log_ostate.get_tracker("step")
         while step_tracker.get_step() < n_step:
@@ -156,10 +159,12 @@ def molecular_dynamics(
                             tracker.set_on()
 
                 if w:
-                    if weight_ostate:
+                    for weight_ostate in weight_ostates:
+                        print("Turning on weight ostates: {}".format(weight_ostate.get_name()))
                         weight_ostate.set_on(True)
                 else:
-                    if weight_ostate:
+                    for weight_ostate in weight_ostates:
+                        print("Turning off weight ostates: {}".format(weight_ostate.get_name()))
                         weight_ostate.set_on(False)
 
                 if pdb:

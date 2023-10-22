@@ -17,6 +17,7 @@ import miller_ops
 
 def get_score(
         hs,
+        w,
         pids,
         f_obs,
         r_free_flags,
@@ -26,6 +27,7 @@ def get_score(
     crystal_symmetry = f_obs.crystal_symmetry()
     xray_structure = xray_struct.get_xray_structure(
         hs=hs,
+        w=w,
         pids=pids,
         crystal_symmetry=crystal_symmetry,
         u_aniso_file=u_aniso_file

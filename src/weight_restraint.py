@@ -5,6 +5,7 @@ import IMP.atom
 import mmtbx
 
 import xray_struct
+import update_weights_optimizer_state
 
 class WeightRestraint(IMP.Restraint):
     def __init__(
@@ -62,15 +63,6 @@ class WeightRestraint(IMP.Restraint):
             sa
     ):
         # Update all occupancies based on weight of first pid.
-        # n_atoms = len(self.pids)/self.n_state
-        for i in range(self.n_state):
-            occ = self.w.get_weight(i)
-            pids = IMP.atom.Selection(self.hs[i]).get_selected_particle_indexes()
-            for pid in pids:
-                IMP.atom.Atom(self.m, pid).set_occupancy(occ)
-
-            print(occ)
-
         xray_structure = xray_struct.get_xray_structure(
             m=self.m,
             pids=self.pids,

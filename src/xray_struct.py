@@ -45,6 +45,7 @@ Given an IMP model, the unit cell dimensions, and the space group; the function 
 """
 def get_xray_structure(
         hs,
+        w,
         pids,
         crystal_symmetry,
         u_aniso_file=None
@@ -60,13 +61,15 @@ def get_xray_structure(
             pids=pids
         )
 
-    for h in hs:
+    for i in range(len(hs)):
+        h = hs[i]
+
         # Get only subset of pids that are in th state corresponding to h.
         pids_state = IMP.atom.Selection(h).get_selected_particle_indexes()
         pids_state_subset = list(set(pids).intersection(set(pids_state)))
 
-        for i in range(len(pids_state_subset)):
-            pid = pids_state_subset[i]
+        for j in range(len(pids_state_subset)):
+            pid = pids_state_subset[j]
             d = IMP.core.XYZR(m, pid)
             d.set_coordinates_are_optimized(True)
             coords_cart = (d.get_x(), d.get_y(), d.get_z())
@@ -77,7 +80,7 @@ def get_xray_structure(
             e = a.get_element()
             e_name = element_table.get_name(e)
 
-            occ = a.get_occupancy()
+            occ = w.get_weight(i)
             b_factor = a.get_temperature_factor()
 
             scatterer = cctbx.xray.scatterer(
