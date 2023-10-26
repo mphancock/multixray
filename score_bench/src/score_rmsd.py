@@ -5,7 +5,9 @@ import itertools
 import pandas as pd
 import numpy as np
 
-import IMP, IMP.atom
+import IMP
+import IMP.atom
+import IMP.isd
 
 sys.path.append(str(Path(Path.home(), "xray/src")))
 import align_imp
@@ -61,9 +63,16 @@ def pool_score(
 
     n_states = len(h_decoys)
 
-    if occs:
-        for i in range(n_states):
-            align_imp.set_occupancies(h=h_decoys[i], occ=occs[i])
+    m = h_decoys[0].get_model()
+    w_p = IMP.Particle(m, "weights")
+    w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
+    w = IMP.isd.Weight(m, w_pid)
+
+    if not occs:
+        occs = list()
+        for h in h_decoys:
+            occs.append(IMP.atom.Atom(h.get_model(), IMP.atom.Selection(h).get_selected_particle_indexes()[0]).get_occupancy())
+    w.set_weights(occs)
 
     for score_f in score_fs:
         if score_f in ["ff", "bnd", "ang", "dih", "imp", "eps", "nbd"]:
@@ -93,6 +102,7 @@ def pool_score(
 
             results_dict = cctbx_score.get_score(
                 hs=h_decoys,
+                w=w,
                 pids=pids,
                 f_obs=f_obs,
                 r_free_flags=flags,
@@ -124,6 +134,8 @@ def pool_score(
             hs_ordered = align_imp.get_ordered_hs(h_0s=h_decoys)
             pid_tmp = IMP.atom.Selection(hs_ordered[0]).get_selected_particle_indexes()[0]
             score = IMP.atom.Atom(m, pid_tmp).get_occupancy()
+        elif score_f == "w":
+            score = list(w.get_weights())
         else:
             score = np.nan
 
