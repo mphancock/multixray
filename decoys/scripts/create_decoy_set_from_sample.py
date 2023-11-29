@@ -24,7 +24,7 @@ def get_random_sample_df(
     for log_df in log_dfs:
         pdb_log_df = log_df[log_df['pdb'].notna()].iloc[equil:]
         if rmsd_range:
-            pdb_log_df = pdb_log_df[(pdb_log_df['rmsd_avg'] >= rmsd_range[0]) & (pdb_log_df['rmsd_avg'] <= rmsd_range[1])]
+            pdb_log_df = pdb_log_df[(pdb_log_df['rmsd_avg_0'] >= rmsd_range[0]) & (pdb_log_df['rmsd_avg_0'] <= rmsd_range[1])]
 
         pdb_log_dfs.append(pdb_log_df)
 
@@ -155,29 +155,6 @@ def get_occs_from_pdb_files(
     return occs
 
 
-def create_decoy_dataset_from_pdb_files(
-        pdb_files,
-        occs,
-        decoy_pdb_dir,
-        n_decoys,
-        n_state,
-        decoy_ids
-):
-    decoy_df = pd.DataFrame(index=list(range(n_decoys)))
-
-    for i in range(n_decoys):
-        out_file = Path(decoy_pdb_dir, "{}.pdb".format(decoy_ids[i]))
-        decoy_df.loc[i, "decoy_file"] = out_file
-        for j in range(n_state):
-            decoy_df.loc[i, "pdb_{}".format(j)] = pdb_files[i]
-            decoy_df.loc[i, "id_{}".format(j)] = j
-
-            print(occs[i][j])
-            decoy_df.loc[i, "w_{}".format(j)] = occs[i][j]
-
-    return decoy_df
-
-
 
 if __name__ == "__main__":
     target = "3ca7"
@@ -194,8 +171,18 @@ if __name__ == "__main__":
     decoy_meta_dir = Path(Path.home(), "xray/decoys/data", target, job_name)
     decoy_meta_dir.mkdir(exist_ok=True, parents=True)
 
+    n_cif = 1
+    n_state = 4
+    fields = ["pdb"]
+
+    for i in range(n_cif):
+        fields.append("xray_{}".format(i))
+        fields.append("r_free_{}".format(i))
+        fields.append("rmsd_avg_{}".format(i))
+        for j in range(n_state):
+            fields.append("weight_{}_{}".format(i, j))
+
     for job_id in range(10):
-        decoy_dfs = list()
         decoy_id = 0
         decoy_name = str(job_id)
 
@@ -212,6 +199,7 @@ if __name__ == "__main__":
         # We should read the log_df here so that it isn't done for every RMSD range.
         log_dfs = get_all_log_dfs(log_files=log_files)
 
+        sample_dfs = list()
         for i in range(len(rmsd_ranges)):
             print(rmsd_ranges[i])
             # Get and save the dataframe containing all the decoy entries (each decoy entry containing 1 or more random pdb files and an equal number of weights).
@@ -221,45 +209,10 @@ if __name__ == "__main__":
                 equil=1,
                 rmsd_range=rmsd_ranges[i]
             )
-            print(len(sample_df))
 
-            # pdb_files can be empty if there are no pdbs in the RMSD range. This should be fixed such that if there are some structures but < n_decoys*n_struct, then the decoy_df is still created.
-            # if len(sample_df) < n_decoys:
-            #     continue
+            sample_df = sample_df[fields]
+            sample_dfs.append(sample_df)
 
-            # n_state_decoys = get_n_states(sample_df["pdb"].tolist()[0])
-            # if n_state_decoys > 1:
-            #     native_pdb_file = Path(Path.home(), "xray/dev/17_synthetic_native/data/pdbs/{}_state_ref_ordered/{}.pdb".format(n_state_decoys, job_id))
-            # else:
-            #     native_pdb_file = Path(Path.home(), "xray/dev/17_synthetic_native/data/pdbs/{}_state_ref/{}.pdb".format(n_state_decoys, job_id))
-
-            # native_occs = get_occs(
-            #     pdb_file=native_pdb_file
-            # )
-            # print(native_occs)
-            # occs = sample_occs(
-            #     n_decoys=n_decoys,
-            #     n_state=n_state_decoys,
-            #     occ_means=native_occs,
-            #     rmsd_range=rmsd_ranges[i]
-            # )
-
-            # print(occs)
-            pdb_files = sample_df["pdb"].tolist()
-            real_occs = get_occs_from_pdb_files(pdb_files=pdb_files)
-
-            decoy_df = create_decoy_dataset_from_pdb_files(
-                pdb_files=pdb_files,
-                occs=real_occs,
-                decoy_pdb_dir=decoy_pdb_dir,
-                n_decoys=n_decoys,
-                n_state=4,
-                decoy_ids=list(range(decoy_id,decoy_id+n_decoys))
-            )
-            decoy_dfs.append(decoy_df)
-
-            decoy_id += n_decoys
-
-        decoy_df = pd.concat(decoy_dfs)
+        decoy_df = pd.concat(sample_dfs)
         decoy_df.reset_index(drop=True, inplace=True)
         decoy_df.to_csv(decoy_meta_file)

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-JOB_NAME="100_natives_4x"
+JOB_NAME="112_synth_2_xray_weights"
 SAMPLE_BENCH_DIR="/wynton/home/sali/mhancock/xray/sample_bench/data/3ca7/$JOB_NAME"
 
 mkdir -p "$SAMPLE_BENCH_DIR"
@@ -13,10 +13,10 @@ do
 
     FIELD="xray_0"
     FILE="$SAMPLE_BENCH_DIR/xray_volume_bench_$JOB_ID.csv"
-    BONUS_FIELDS="rmsd_avg,pdb"
+    BONUS_FIELDS="rmsd_avg_0,pdb"
     python sample_volume_bench.py --job_dir "$JOB_DIR" --ref_pdb_file "$REF_PDB_FILE" --field "$FIELD" --bonus_fields  "$BONUS_FIELDS" --file "$FILE"
 
-    FIELD="rmsd_avg"
+    FIELD="rmsd_avg_0"
     FILE="$SAMPLE_BENCH_DIR/rmsd_volume_bench_$JOB_ID.csv"
     BONUS_FIELDS=""
     python sample_volume_bench.py --job_dir "$JOB_DIR" --ref_pdb_file "$REF_PDB_FILE" --field "$FIELD" --bonus_fields  "$BONUS_FIELDS" --file "$FILE"

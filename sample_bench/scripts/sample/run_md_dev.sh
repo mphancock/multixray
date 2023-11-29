@@ -15,14 +15,14 @@ mkdir "$TMP_OUT_DIR"
 mkdir "$OUT_DIR"
 
 
-CIF_FILES="/wynton/home/sali/mhancock/xray/dev/19_synthetic_native_2/data/cifs/4_state/0.cif,/wynton/home/sali/mhancock/xray/dev/19_synthetic_native_2/data/cifs/4_state_2/0.cif"
+CIF_FILES="/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/2_state_0/0.cif"
 W_XRAY=1.0
 START_PDB_FILE="/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_refine.pdb"
-N_STATE=4
-REF_PDB_FILE="/wynton/home/sali/mhancock/xray/dev/19_synthetic_native_2/data/pdbs/4_state/0.pdb,/wynton/home/sali/mhancock/xray/dev/19_synthetic_native_2/data/pdbs/4_state_2/0.pdb"
-SA="{step1000,T300,dofA,pdb1,w1,res0}"
+N_STATE=2
+REF_PDB_FILE="/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/pdbs/2_state_0/0.pdb"
+SA="{step1000,T300,dofA,pdb1,w0,res0};{step1000,T1000,dofS,pdb0,w0,res-1};{step1000,T1000,dofS,pdb0,w0,res3}"
 LOG_FILE="$OUT_DIR/log.csv"
-INIT_WEIGHTS="ref"
+INIT_WEIGHTS="rand"
 
 cd "$TMPDIR"
 cp ~/xray/sample_bench/scripts/sample/run_md_multi.py .

@@ -86,12 +86,12 @@ def get_f_model_from_cif(
 
 
 if __name__ == "__main__":
-    pdb_dir = Path(Path.home(), "xray/dev/19_synthetic_native_2/data/pdbs/4_state_2")
+    pdb_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/2_state_1")
     pdb_files = list(pdb_dir.glob("*.pdb"))
 
     for pdb_file in pdb_files:
         print(pdb_file)
-        model_cif_file = Path(Path.home(), "xray/dev/19_synthetic_native_2/data/cifs/{}/{}.cif".format(pdb_dir.name, pdb_file.stem))
+        model_cif_file = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/cifs/{}/{}.cif".format(pdb_dir.name, pdb_file.stem))
 
         f_obs_array = get_f_model(
             pdb_file=pdb_file,

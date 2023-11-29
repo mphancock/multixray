@@ -12,11 +12,11 @@ if __name__ == "__main__":
     param_dict = dict()
 
     # param_dict["decoy_file"] = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/87_native_4x/0/output_375/pdbs/572.pdb")
-    param_dict["decoy_file"] = Path("/wynton/home/sali/mhancock/xray/dev/19_synthetic_native_2/data/pdbs/4_state/5.pdb")
+    param_dict["decoy_file"] = Path("/wynton/home/sali/mhancock/xray/dev/19_synthetic_native_2/data/pdbs/2_state_1/1.pdb")
 
     param_dict["occs"] = None
-    param_dict["ref_file"] = Path("/wynton/home/sali/mhancock/xray/dev/19_synthetic_native_2/data/pdbs/4_state/5.pdb")
-    param_dict["cif_file"] = Path("/wynton/home/sali/mhancock/xray/tmp/5.cif")
+    param_dict["ref_file"] =  Path("/wynton/home/sali/mhancock/xray/dev/19_synthetic_native_2/data/pdbs/2_state_1/1.pdb")
+    param_dict["cif_file"] =  Path("/wynton/home/sali/mhancock/xray/dev/19_synthetic_native_2/data/cifs/2_state_1/1.cif")
     param_dict["flags_file"] = param_dict["cif_file"]
     # param_dict["adp_file"] = Path("/wynton/home/sali/mhancock/xray/dev/19_synthetic_native_2/data/adps/1_state/3ca7_refine_b_factor_refine_001.pdb")
 

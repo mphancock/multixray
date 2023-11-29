@@ -1,30 +1,37 @@
 from pathlib import Path
 import random
+import numpy as np
 
 import IMP
 import IMP.atom
 
+import sys
+sys.path.append(str(Path(Path.home(), "xray/src")))
+import weights
+
 
 if __name__ == "__main__":
-    pdb_dir = Path(Path.home(), "xray/dev/19_synthetic_native_2/data/pdbs/4_state")
-    new_pdb_dir = Path(Path.home(), "xray/dev/19_synthetic_native_2/data/pdbs/4_state_2")
+    pdb_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/2_state_0")
+    new_pdb_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/2_state_1")
 
     for pdb_file in pdb_dir.glob("*.pdb"):
         print(pdb_file)
         m = IMP.Model()
         hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
 
-        weights = list()
-        for i in range(len(hs)):
-            weights.append(random.random())
+        ws_cur = weights.get_weights_from_hs(hs)
+        ws_new = weights.get_weights(
+            floor=.05,
+            ws_cur=ws_cur,
+            sigma=.05
+        )
 
-        weights = [w/sum(weights) for w in weights]
+        print(ws_cur, ws_new)
 
-        for i in range(len(hs)):
-            h = hs[i]
-
-            pids = IMP.atom.Selection(h).get_selected_particle_indexes()
-            for pid in pids:
-                IMP.atom.Atom(m, pid).set_occupancy(weights[i])
+        weights.update_multi_state_model(
+            hs=hs,
+            m=m,
+            ws=ws_new
+        )
 
         IMP.atom.write_multimodel_pdb(hs, str(Path(new_pdb_dir, pdb_file.name)))

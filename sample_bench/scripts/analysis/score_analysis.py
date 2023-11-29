@@ -8,12 +8,27 @@ import get_stat_df
 
 
 if __name__ == "__main__":
-    job_name = "111_synth_2_xray"
+    job_name = "116_2_state_2_cif"
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7", job_name)
     analysis_dir = Path(Path.home(), "xray/sample_bench/data/3ca7", job_name)
     analysis_dir.mkdir(exist_ok=True)
     log_file = Path(analysis_dir, "score_analysis.csv".format(job_name))
-    n_jobs = 4
+    n_jobs = 10
+
+    n_cif = 2
+    field = "xray_0+xray_1"
+    bonus_fields = []
+    for i in range(1,n_cif):
+        field += "+xray_{}".format(i)
+        bonus_fields.append("xray_{}".format(i))
+
+    for i in range(n_cif):
+        bonus_fields.append("r_free_{}".format(i))
+
+    for i in range(n_cif):
+        bonus_fields.append("rmsd_avg_{}".format(i))
+
+    bonus_fields.append("pdb")
 
     log_df = pd.DataFrame(index=list(range(n_jobs)))
     for job_id in range(n_jobs):
@@ -24,34 +39,31 @@ if __name__ == "__main__":
 
         # Get the average min R free and min R free from all output logs for a given w_xray.
         # R_free_0 is the first R_free reported.
-        for field in ["xray_0+xray_1"]:
-            if field == "xray_0+xray_1":
-                bonus_fields = ["r_free_0", "r_free_1", "rmsd_avg_0", "rmsd_avg_1", "pdb"]
 
-            stat_df = get_stat_df.get_stat_df(
-                log_file_groups=[[log_file] for log_file in log_files],
-                main_field=field,
-                main_stat="min",
-                bonus_fields=bonus_fields,
-                N=10,
-                equil=1,
-                pdb_only=True,
-                rmsd_filter=10,
-                test=False
-            )
+        stat_df = get_stat_df.get_stat_df(
+            log_file_groups=[[log_file] for log_file in log_files],
+            main_field=field,
+            main_stat="min",
+            bonus_fields=bonus_fields,
+            N=10,
+            equil=1,
+            pdb_only=True,
+            rmsd_filter=10,
+            test=False
+        )
 
-            # stat_df.to_csv(Path(Path.home(), "xray/tmp/stat_df.csv"))
-            stat_df.dropna(inplace=True)
-            print(len(stat_df))
+        # stat_df.to_csv(Path(Path.home(), "xray/tmp/stat_df.csv"))
+        stat_df.dropna(inplace=True)
+        print(len(stat_df))
 
-            log_df.loc[job_id, "min_{}".format(field)] = stat_df["{}_min_0".format(field)].min()
-            log_df.loc[job_id, "avg_min_{}".format(field)] = stat_df["{}_min_0".format(field)].mean()
+        log_df.loc[job_id, "min_{}".format(field)] = stat_df["{}_min_0".format(field)].min()
+        # log_df.loc[job_id, "avg_min_{}".format(field)] = stat_df["{}_min_0".format(field)].mean()
 
-            stat_df["{}_min_0".format(field)] = pd.to_numeric(stat_df["{}_min_0".format(field)])
+        stat_df["{}_min_0".format(field)] = pd.to_numeric(stat_df["{}_min_0".format(field)])
 
-            field_min_entry = stat_df.loc[stat_df["{}_min_0".format(field)].idxmin()]
+        field_min_entry = stat_df.loc[stat_df["{}_min_0".format(field)].idxmin()]
 
-            for bonus_field in bonus_fields:
-                log_df.loc[job_id, "{}_min_0_{}".format(field, bonus_field)] = field_min_entry["{}_min_0_{}".format(field, bonus_field)]
+        for bonus_field in bonus_fields:
+            log_df.loc[job_id, "{}_min_0_{}".format(field, bonus_field)] = field_min_entry["{}_min_0_{}".format(field, bonus_field)]
 
     log_df.to_csv(log_file)
