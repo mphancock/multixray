@@ -28,6 +28,7 @@ import molecular_dynamics
 import params
 import weight_restraint
 import miller_ops
+import weights
 
 
 def get_n_state_from_pdb_file(pdb_file):
@@ -95,14 +96,13 @@ if __name__ == "__main__":
             w = IMP.isd.Weight(m, w_pid)
 
             if args.init_weights == "ref":
-                weights = update_weights_optimizer_state.get_weights_from_hs(all_ref_hs[i])
+                w_vals = weights.get_weights_from_hs(all_ref_hs[i])
             elif args.init_weights == "rand":
-                weights = [random.random() for i in range(n_states)]
-                weights = [w / sum(weights) for w in weights]
-
-                while any(weight < 0.05 for weight in weights):
-                    weights = [random.random() for _ in range(n_states)]
-                    weights = [w / sum(weights) for w in weights]
+                w_vals = weights.get_weights(
+                    floor=0.05,
+                    ws_cur=[1/n_states]*n_states,
+                    sigma=None
+                )
             elif args.init_weights == "uni":
                 weights = [1/n_states]*n_states
             else:
@@ -111,11 +111,11 @@ if __name__ == "__main__":
                 if len(init_weights) != n_states:
                     raise RuntimeError("Number of initial weights does not match number of states.")
 
-            w.set_weights(weights)
-            ws.append(w)
+            w.set_weights(w_vals)
+            w.set_weights_are_optimized(True)
+            print(w.get_weights())
 
-    for w in ws:
-        print(w.get_weights())
+            ws.append(w)
 
     # Get all particle ids.
     pids = list()
@@ -130,12 +130,6 @@ if __name__ == "__main__":
         for h in hs:
             for pid in IMP.atom.Selection(h).get_selected_particle_indexes():
                 IMP.atom.Atom(m, pid).set_temperature_factor(args.bfactor)
-
-
-
-    # # We need to manually set the occupancies of the structures here because pdb file occupancies are limited to 2 decimal places.
-    update_weights_optimizer_state.update_multi_state_model(hs, m, w)
-    w.set_weights_are_optimized(True)
 
     # Setup waters (if any).
     for h in hs:
@@ -192,6 +186,7 @@ if __name__ == "__main__":
 
     # List of the atom and weight restraints.
     r_xrays, wrs = list(), list()
+    o_states = list()
     if args.cif_files:
         cif_files = args.cif_files.split(",")
 
@@ -259,30 +254,19 @@ if __name__ == "__main__":
             r_xrays.append(r_xray)
             rs.append(rs_xray)
 
-            if use_weights:
-                f_obs = miller_ops.get_miller_array(
-                    f_obs_file=cif_file,
-                    label="_refln.F_meas_au"
-                )
-                f_obs_array = miller_ops.clean_miller_array(f_obs)
-                # Set flags.
-                status_array = miller_ops.get_miller_array(
-                    f_obs_file=cif_file,
-                    label="_refln.status"
-                )
-                flags_array = status_array.customized_copy(data=status_array.data()=="f")
-                f_obs, flags_array = f_obs_array.common_sets(other=flags_array)
-
-                wr = weight_restraint.WeightRestraint(
+            # Setup the weight optimizer state.
+            if use_weights and n_states > 1:
+                w_os = update_weights_optimizer_state.UpdateWeightsOptimizerState(
                     m=m,
                     hs=hs,
-                    pids=pids_xray,
                     w=w,
-                    f_obs=f_obs,
-                    flags=flags_array,
-                    scale=0.5
+                    r_xray=r_xray,
+                    n_proposals=10,
+                    radius=.05
                 )
-                wrs.append(wr)
+
+                w_os.set_period(100)
+                o_states.append(w_os)
 
     # Setup the center of mass optimizer state based on the first state of the starting structure.
     pids_ca_0 = list(IMP.atom.Selection(h_0s, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes())
@@ -391,18 +375,6 @@ if __name__ == "__main__":
         copy_tracker.set_period(10)
         all_trackers.append(copy_tracker)
 
-    # If the simulation becomes numerically unstable, reset the hs to the starting h_0s.
-    reset_tracker = reset.ResetTracker(
-        name="reset",
-        hs=hs,
-        w=w,
-        r_charmm=rset_charmm,
-        sa_sched=sa_sched,
-        h_0=h_0s[0],
-    )
-    reset_tracker.set_xray_only(False)
-    all_trackers.append(reset_tracker)
-
     log_ostate = log_statistics.LogStatistics(
         m=m,
         all_trackers=all_trackers,
@@ -414,7 +386,6 @@ if __name__ == "__main__":
         r.evaluate(calc_derivs=True)
     log_ostate.update()
 
-    o_states = list()
     o_states.append(log_ostate)
 
     for h in hs:
@@ -425,20 +396,6 @@ if __name__ == "__main__":
             com_0=com_0
         )
         o_states.append(com_os)
-
-    # Setup the weight optimizer state.
-    if use_weights and n_states > 1:
-        w_os = update_weights_optimizer_state.UpdateWeightsOptimizerState(
-            m=m,
-            hs=hs,
-            w=w,
-            r_xrays=r_xrays,
-            n_proposals=10,
-            radius=.05
-        )
-
-        w_os.set_period(100)
-        o_states.append(w_os)
 
     if args.steps:
         steps = args.steps
