@@ -52,12 +52,6 @@ class XtalRestraint(IMP.Restraint):
         self.r_work = 0
         self.r_all = 0
 
-        update_weights_optimizer_state.update_multi_state_model(
-            hs=self.hs,
-            m=self.get_model(),
-            w=self.w
-        )
-
     def set_d_min(
             self,
             d_min
