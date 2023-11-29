@@ -84,6 +84,7 @@ def molecular_dynamics(
     for tracker in trackers:
         if type(tracker) == reset.ResetTracker:
             tracker.set_md(md)
+            tracker.set_sv(s_v)
 
     # rs is a set of restraint sets
     if sa_sched:
@@ -179,6 +180,7 @@ def molecular_dynamics(
                 s_v.set_temperature(T)
                 md.set_temperature(T)
                 md.set_maximum_time_step(t_step)
+                md.set_velocity_cap(.005)
 
                 md.simulate(n_step_sa*t_step)
     else:
