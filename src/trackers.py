@@ -179,7 +179,11 @@ class fTracker(Tracker):
         try:
             return self.r.get_f()
         except AttributeError:
-            return self.r.evaluate(False)
+            return self.r.get_last_score()
+            # return last_score
+
+            # print("last_score: {}".format(self.r.get_last_score()))
+            # return self.r.evaluate(False)
 
 
 
