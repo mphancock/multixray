@@ -148,17 +148,24 @@ if __name__ == "__main__":
         for key_val in sa_step_str.split(","):
             for key in keys:
                 if key in key_val:
-                    if key in ["step", "T", "pdb", "w", "res"]:
-                        val_str = key_val[len(key):]
+                    val_str = key_val[len(key):]
+                    if key in ["step", "T", "pdb", "w"]:
                         val = int(val_str)
+                    elif key == "res":
+                        val = float(val_str)
                     else:
-                        val_str = key_val[len(key):]
                         if val_str == "A":
-                            val = pids
+                            pids_work = pids
                         elif val_str == "S":
-                            val = pids_side_chain
+                            pids_work = pids_side_chain
+                        elif val_str.isnumeric():
+                            pids_work = list()
+                            for h in hs:
+                                pids_work.extend(IMP.atom.Selection(h, residue_index=int(val_str)).get_selected_particle_indexes())
                         else:
                             raise RuntimeError()
+
+                        val = pids_work
 
                     sa_step[key] = val
 
