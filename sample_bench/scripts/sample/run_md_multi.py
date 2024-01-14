@@ -41,6 +41,7 @@ if __name__ == "__main__":
     parser.add_argument("--out_dir")
     parser.add_argument("--tmp_out_dir")
     parser.add_argument("--cif_files")
+    parser.add_argument("--update_k1", action="store_true")
     parser.add_argument("--w_xray", type=float)
     parser.add_argument("--dyn_w_xray", action="store_true")
     parser.add_argument("--start_pdb_file")
@@ -84,38 +85,40 @@ if __name__ == "__main__":
         all_ref_hs.append(ref_hs)
 
     ws = list()
+    n_weights = 1
     if args.cif_files:
-        n_cif = len(args.cif_files.split(","))
-        if len(all_ref_hs) != n_cif:
-            raise RuntimeError("Number of cif files ({}) does not match number of ref pdb files ({})".format(n_cif, len(all_ref_hs)))
+        n_weights = len(args.cif_files.split(","))
 
-        for i in range(n_cif):
-            # Setup the weights.
-            w_p = IMP.Particle(m, "weights")
-            w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
-            w = IMP.isd.Weight(m, w_pid)
+        if len(all_ref_hs) != n_weights:
+            raise RuntimeError("Number of cif files ({}) does not match number of ref pdb files ({})".format(n_weights, len(all_ref_hs)))
 
-            if args.init_weights == "ref":
-                w_vals = weights.get_weights_from_hs(all_ref_hs[i])
-            elif args.init_weights == "rand":
-                w_vals = weights.get_weights(
-                    floor=0.05,
-                    ws_cur=[1/n_states]*n_states,
-                    sigma=None
-                )
-            elif args.init_weights == "uni":
-                weights = [1/n_states]*n_states
-            else:
-                init_weights = args.init_weights.split(",")
-                init_weights = [float(w) for w in init_weights]
-                if len(init_weights) != n_states:
-                    raise RuntimeError("Number of initial weights does not match number of states.")
+    for i in range(n_weights):
+        # Setup the weights.
+        w_p = IMP.Particle(m, "weights")
+        w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
+        w = IMP.isd.Weight(m, w_pid)
 
-            w.set_weights(w_vals)
-            w.set_weights_are_optimized(True)
-            print(w.get_weights())
+        if args.init_weights == "ref":
+            w_vals = weights.get_weights_from_hs(all_ref_hs[i])
+        elif args.init_weights == "rand":
+            w_vals = weights.get_weights(
+                floor=0.05,
+                ws_cur=[1/n_states]*n_states,
+                sigma=None
+            )
+        elif args.init_weights == "uni":
+            weights = [1/n_states]*n_states
+        else:
+            init_weights = args.init_weights.split(",")
+            init_weights = [float(w) for w in init_weights]
+            if len(init_weights) != n_states:
+                raise RuntimeError("Number of initial weights does not match number of states.")
 
-            ws.append(w)
+        w.set_weights(w_vals)
+        w.set_weights_are_optimized(True)
+        print(w.get_weights())
+
+        ws.append(w)
 
     # Get all particle ids.
     pids = list()
@@ -252,6 +255,7 @@ if __name__ == "__main__":
                 f_obs=f_obs_array,
                 free_flags=flags_array,
                 w_xray=args.w_xray,
+                update_k1=args.update_k1,
                 u_aniso_file=args.u_aniso_file
             )
 
