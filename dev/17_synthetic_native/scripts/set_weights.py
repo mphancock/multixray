@@ -12,7 +12,7 @@ import weights
 
 if __name__ == "__main__":
     pdb_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/2_state_0")
-    new_pdb_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/2_state_1")
+    new_pdb_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs")
 
     for pdb_file in pdb_dir.glob("*.pdb"):
         print(pdb_file)
@@ -26,6 +26,7 @@ if __name__ == "__main__":
             sigma=.05
         )
 
+        ws_new = [1.00, 1.00]
         print(ws_cur, ws_new)
 
         weights.update_multi_state_model(

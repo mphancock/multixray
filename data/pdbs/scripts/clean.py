@@ -38,8 +38,8 @@ def normalize_coordinates(
 
 
 if __name__ == "__main__":
-    pdb_file = Path(Path.home(), "xray/data/pdbs/7mhf/7mhj.pdb")
-    save_pdb_file = Path(Path.home(), "xray/data/pdbs/7mhf/7mhj_heavy.pdb")
+    pdb_file = Path(Path.home(), "xray/data/pdbs/7mhf/7mhi.pdb")
+    save_pdb_file = Path(Path.home(), "xray/data/pdbs/7mhf/7mhi_clean.pdb")
 
     m = IMP.Model()
     # sel = IMP.atom.NonWaterPDBSelector()

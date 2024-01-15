@@ -1,0 +1,19 @@
+out_dir        /wynton/home/sali/mhancock/xray/dev/30_1_res_decoys/data/52/output_0
+tmp_out_dir    None
+cif_files      None
+w_xray         None
+dyn_w_xray     False
+start_pdb_file /wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/pdbs/2_state_0/0.pdb
+u_aniso_file   None
+n_state        2
+init_weights   uni
+ref_pdb_files  /wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/pdbs/2_state_0/0.pdb
+sa             {step1000,T300,dof52,pdb0,w0,res-1}
+steps          1000
+bfactor        15
+dropout        False
+d_min          None
+rand_noise     False
+main_chain     False
+
+

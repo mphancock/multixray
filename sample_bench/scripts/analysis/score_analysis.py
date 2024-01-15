@@ -8,15 +8,15 @@ import get_stat_df
 
 
 if __name__ == "__main__":
-    job_name = "116_2_state_2_cif"
+    job_name = "152_native_1_cif"
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7", job_name)
     analysis_dir = Path(Path.home(), "xray/sample_bench/data/3ca7", job_name)
     analysis_dir.mkdir(exist_ok=True)
     log_file = Path(analysis_dir, "score_analysis.csv".format(job_name))
     n_jobs = 10
 
-    n_cif = 2
-    field = "xray_0+xray_1"
+    n_cif = 1
+    field = "xray_0"
     bonus_fields = []
     for i in range(1,n_cif):
         field += "+xray_{}".format(i)

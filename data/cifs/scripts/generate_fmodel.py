@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import numpy as np
 
 import mmtbx.f_model
 import cctbx.crystal
@@ -16,7 +17,8 @@ def get_f_model(
         pdb_file,
         uc_dim,
         sg_symbol,
-        res
+        res,
+        ws=None
 ):
     crystal_symmetry = cctbx.xray.crystal.symmetry(
         unit_cell=uc_dim,
@@ -26,6 +28,16 @@ def get_f_model(
     xray_structure = iotbx.pdb.input(str(pdb_file)).xray_structure_simple(
         crystal_symmetry=crystal_symmetry
     )
+
+    if ws:
+        n_scatt = xray_structure.scatterers().size()
+        n_scatt_per_state = int(n_scatt/len(ws))
+
+        for i in range(len(ws)):
+            for j in range(n_scatt_per_state):
+                xray_structure.scatterers()[i*n_scatt_per_state+j].occupancy = ws[i]
+
+    # xray_structure.show_scatterers()
 
     # miller_set = cctbx.miller.build_set(
     #   crystal_symmetry=crystal_symmetry,
@@ -85,13 +97,74 @@ def get_f_model_from_cif(
     return f_model
 
 
+def get_status_array(
+        flags_array
+):
+    status = flex.std_string()
+
+    for i in range(flags_array.size()):
+        if flags_array.data()[i]:
+            status.append("f")
+        else:
+            status.append("o")
+
+    status_array = flags_array.customized_copy(data=status)
+
+    return status_array
+
+
+def write_cif(
+    f_obs,
+    status_array,
+    cif_file
+):
+    cif_model = iotbx.cif.model.cif()
+
+    cif_block = iotbx.cif.miller_arrays_as_cif_block(
+        array=f_obs,
+        # array_type="meas",
+        column_names=['_refln.F_meas_au','_refln.F_meas_sigma_au'],
+        miller_index_prefix="_refln",
+        format="mmcif"
+    )
+    cif_block.add_miller_array(
+        array=status_array,
+        column_name="_refln.status"
+    )
+
+    # print(type(cif_block.cif_block))
+    cif_model["Global"] = cif_block.cif_block
+
+    with open(str(cif_file), "w") as f:
+        print(cif_model, file=f)
+
+
+def randomize_amplitude(
+        f_obs
+):
+    for i in range(f_obs.size()):
+        amp = f_obs.data()[i]
+
+        mean = amp
+        std = amp*.05
+        f_obs.data()[i] = np.random.normal(
+            loc=mean,
+            scale=std
+        )
+
+    return f_obs
+
+
 if __name__ == "__main__":
-    pdb_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/2_state_1")
+    pdb_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/2_state_0")
+    cif_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/cifs/2_state_0_noise")
+
     pdb_files = list(pdb_dir.glob("*.pdb"))
 
-    for pdb_file in pdb_files:
+    for pdb_file in [Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/2_state_0/5.pdb")]:
+    # for pdb_file in pdb_files:
         print(pdb_file)
-        model_cif_file = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/cifs/{}/{}.cif".format(pdb_dir.name, pdb_file.stem))
+        model_cif_file = Path(cif_dir, "{}.cif".format(pdb_file.stem))
 
         f_obs_array = get_f_model(
             pdb_file=pdb_file,
@@ -100,21 +173,26 @@ if __name__ == "__main__":
             res=1
         )
 
+        f_obs_array = randomize_amplitude(
+            f_obs=f_obs_array
+        )
+
         flags_array = f_obs_array.generate_r_free_flags(
             fraction=.1
         )
 
-        status = flex.std_string()
+        status_array = get_status_array(
+            flags_array=flags_array
+        )
 
-        for i in range(flags_array.size()):
-            if flags_array.data()[i]:
-                status.append("f")
-            else:
-                status.append("o")
-
-        status_array = flags_array.customized_copy(data=status)
         print(status_array.data())
         print(flags_array.data())
+
+        write_cif(
+            f_obs=f_obs_array,
+            status_array=status_array,
+            cif_file=model_cif_file
+        )
 
         # for i in range(flags_array.size()):
         #     if flags_array.data()[i]:
@@ -137,22 +215,4 @@ if __name__ == "__main__":
         # # flags_array = status_array.customized_copy(data=status_array.data()=="f")
         # # f_obs_array, flags_array = f_model.common_sets(other=flags_array)
 
-        cif_model = iotbx.cif.model.cif()
 
-        cif_block = iotbx.cif.miller_arrays_as_cif_block(
-            array=f_obs_array,
-            # array_type="meas",
-            column_names=['_refln.F_meas_au','_refln.F_meas_sigma_au'],
-            miller_index_prefix="_refln",
-            format="mmcif"
-        )
-        cif_block.add_miller_array(
-            array=status_array,
-            column_name="_refln.status"
-        )
-
-        # print(type(cif_block.cif_block))
-        cif_model["Global"] = cif_block.cif_block
-
-        with open(str(model_cif_file), "w") as f:
-            print(cif_model, file=f)

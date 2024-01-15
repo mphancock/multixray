@@ -1,8 +1,0 @@
-,min_xray,avg_min_xray,xray_0_min_0_r_free_0,xray_0_min_0_rmsd_avg,xray_0_min_0_pdb
-0,2.7619184861464285,2.8384034487328886,0.0489070698911371,0.0434111747725163,/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/86_native_1x/0/output_24/pdbs/198.pdb
-1,2.8402142794962257,2.9224253268295364,0.051289879224578,0.0497991630794036,/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/86_native_1x/1/output_92/pdbs/198.pdb
-2,2.7988061088353438,2.8974637277057393,0.050219348953951,0.0403722417585629,/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/86_native_1x/2/output_27/pdbs/198.pdb
-3,2.78423098668155,3.439493744361376,0.0498761541456906,0.047693571329594,/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/86_native_1x/3/output_17/pdbs/187.pdb
-4,2.6862729232276505,2.7505330537136548,0.0477715237282776,0.043228799706752,/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/86_native_1x/4/output_87/pdbs/200.pdb
-5,2.695303766981608,2.758440320993103,0.0464898023921126,0.0438979536820256,/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/86_native_1x/5/output_21/pdbs/176.pdb
-6,2.6913386302473867,2.7466587141934697,0.0441147011558401,0.0421495350095873,/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/86_native_1x/6/output_27/pdbs/200.pdb

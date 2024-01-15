@@ -1,0 +1,9 @@
+pdb_dir        /wynton/home/sali/mhancock/xray/dev/30_1_res_decoys/data/52/output_0/pdbs
+hs             ["/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/pdbs/2_state_0/0.pdb: 1" , "/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/pdbs/2_state_0/0.pdb: 2" ]
+r_sets         ["RestraintSet 0"]
+t_step         2
+n_step         1000
+sa_sched       [{'step': 1000, 'T': 300, 'dof': [39, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 494, 496, 497, 498, 499, 500, 501, 502, 503, 504, 505, 506], 'pdb': 0, 'w': 0, 'res': -1}]
+o_states       ["LogStatistics0", "CenterOfMassOptimizerState0", "CenterOfMassOptimizerState1"]
+
+

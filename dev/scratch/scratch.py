@@ -12,13 +12,15 @@ if __name__ == "__main__":
 
     m = IMP.Model()
 
+    hs = IMP.atom.read_multimodel_pdb(str(Path(Path.home(), "xray/tmp/2155.pdb")), m, IMP.atom.AllPDBSelector())
+
+    occs = [0.8698016060269730, 0.13019839397302700]
+
     for i in range(2):
-        h = IMP.atom.read_pdb(str(Path(Path.home(), "xray/data/pdbs/7mhf/7mhf_refine.pdb")), m)
+        h = hs[i]
 
-        hs.append(h)
-        ms.append(m)
+        for pid in IMP.atom.Selection(h).get_selected_particle_indexes():
+            at = IMP.atom.Atom(m, pid)
+            at.set_occupancy(occs[i])
 
-    pids_1 = IMP.atom.Selection(hs[0]).get_selected_particle_indexes()
-    pids_2 = IMP.atom.Selection(hs[1]).get_selected_particle_indexes()
-
-    print(pids_1[0] == pids_2[0])
+    IMP.atom.write_multimodel_pdb(hs, str(Path(Path.home(), "xray/tmp/2155_tmp.pdb")))

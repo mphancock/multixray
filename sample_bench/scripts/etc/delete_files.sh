@@ -1,9 +1,11 @@
 #!/bin/bash
 
 
-EXP_DIR=/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/87_native_4x
-for JOB_DIR in $(ls -d  $EXP_DIR/*)
+SYS_DIR=/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf
+# for JOB_DIR in $(ls -d  $EXP_DIR/*)
+for EXP_NAME in 55_7mhf_1 56_7mhf_2 57_7mhf_4 58_7mhf_8 59_7mhj_1 60_7mhj_2 61_7mhj_4 62_7mhj_8 63_overfit
 do
+    JOB_DIR="$SYS_DIR/$EXP_NAME"
     echo $JOB_DIR
     nohup rm -r $JOB_DIR &
 

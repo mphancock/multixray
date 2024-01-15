@@ -32,7 +32,7 @@ def get_all_group_mins(
     all_group_mins_df = pd.DataFrame(index=list(range(1000)), columns=fields)
 
     # Get only the size n group subset.
-    for i in range(2000):
+    for i in range(1000):
         group_df = log_min_df.sample(n=n)
         min_entry = group_df.loc[group_df["{}_min_0".format(score_field)] == group_df["{}_min_0".format(score_field)].min()]
         all_group_mins_df.loc[i, score_field] = min_entry["{}_min_0".format(score_field)].values[0]
