@@ -149,6 +149,7 @@ def molecular_dynamics(
 
                     for r_set_xray in r_set_xrays:
                         r_xray = r_set_xray.get_restraint(0)
+                        print("Setting d_min: {}".format(res))
                         r_xray.set_d_min(
                             d_min=res
                         )
