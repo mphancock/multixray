@@ -16,6 +16,7 @@ import cctbx_score
 import charmm
 import miller_ops
 import params
+import weights
 
 
 """
@@ -69,9 +70,7 @@ def pool_score(
     w = IMP.isd.Weight(m, w_pid)
 
     if not occs:
-        occs = list()
-        for h in h_decoys:
-            occs.append(IMP.atom.Atom(h.get_model(), IMP.atom.Selection(h).get_selected_particle_indexes()[0]).get_occupancy())
+        occs = weights.get_weights_from_hs(h_decoys)
     w.set_weights(occs)
 
     for score_f in score_fs:
@@ -96,6 +95,19 @@ def pool_score(
             flags = status_array.customized_copy(data=status_array.data()=="f")
             f_obs, flags = f_obs.common_sets(other=flags)
 
+            res = params["res"]
+            if res:
+                f_obs = miller_ops.filter_f_obs_resolution(
+                    f_obs=f_obs,
+                    d_max=None,
+                    d_min=res
+                )
+                flags = miller_ops.filter_f_obs_resolution(
+                    f_obs=flags,
+                    d_max=None,
+                    d_min=res
+                )
+
             pids = list()
             for h in h_decoys:
                 pids.extend(IMP.atom.Selection(h).get_selected_particle_indexes())
@@ -107,7 +119,8 @@ def pool_score(
                 f_obs=f_obs,
                 r_free_flags=flags,
                 target=score_f,
-                u_aniso_file=adp_file
+                u_aniso_file=adp_file,
+                update_k1=params["scale_k1"]
             )
             score = results_dict["score"]
             scores_dict["r_free"] = results_dict["r_free"]
