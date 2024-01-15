@@ -8,7 +8,6 @@ import IMP.atom
 import mmtbx.f_model
 import cctbx.crystal
 import cctbx.xray
-import iotbx
 
 sys.path.append("/home/matthew/xtal_python/src")
 import xray_struct
@@ -22,6 +21,7 @@ def get_score(
         f_obs,
         r_free_flags,
         target,
+        update_k1,
         u_aniso_file
 ):
     crystal_symmetry = f_obs.crystal_symmetry()
@@ -32,6 +32,8 @@ def get_score(
         crystal_symmetry=crystal_symmetry,
         u_aniso_file=u_aniso_file
     )
+
+    # print(xray_structure.show_scatterers())
 
     xray_structure.scatterers().flags_set_grads(
         state=False
@@ -51,7 +53,9 @@ def get_score(
         r_free_flags=r_free_flags,
         target_name=target_name
     )
-    f_model_manager.update_all_scales()
+    f_model_manager.update_all_scales(apply_scale_k1_to_f_obs=update_k1)
+
+    # f_model_manager.show()
 
     r_work = f_model_manager.r_work()
     r_free = f_model_manager.r_free()
@@ -60,10 +64,10 @@ def get_score(
     fmodels = mmtbx.fmodels(fmodel_xray=f_model_manager)
     fmodels.update_xray_structure(
         xray_structure=xray_structure,
-        update_f_calc=True)
+        update_f_calc=True
+    )
 
-    fmodels_target_and_gradients = fmodels.target_and_gradients(
-        compute_gradients=True)
+    fmodels_target_and_gradients = fmodels.target_and_gradients(compute_gradients=True)
     score = fmodels_target_and_gradients.target()
     grads = fmodels_target_and_gradients.gradients()
 
