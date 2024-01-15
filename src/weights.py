@@ -19,6 +19,13 @@ def update_multi_state_model(
             IMP.atom.Atom(m, pid).set_occupancy(occ)
 
 
+def get_weights_from_pdb_file(pdb_file):
+    m = IMP.Model()
+    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+
+    return get_weights_from_hs(hs)
+
+
 def get_weights_from_hs(hs):
     weights = list()
     for h in hs:
