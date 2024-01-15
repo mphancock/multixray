@@ -1,9 +1,8 @@
 from pathlib import Path
 import sys
 import argparse
-import shutil
-import random
 import numpy as np
+import pandas as pd
 
 import IMP
 import IMP.atom
@@ -52,10 +51,7 @@ if __name__ == "__main__":
     parser.add_argument("--sa")
     parser.add_argument("--steps", type=int)
     parser.add_argument("--bfactor", type=int)
-    parser.add_argument("--dropout", action="store_true")
     parser.add_argument("--d_min", type=float)
-    parser.add_argument("--rand_noise", action="store_true")
-    parser.add_argument("--main_chain", action="store_true")
     args = parser.parse_args()
 
     params.write_params(vars(args), Path(args.out_dir, "params.txt"))
@@ -78,11 +74,34 @@ if __name__ == "__main__":
     # There are multiple ref pdb files because there should be one for each Xray dataset.
     ref_pdb_files = [Path(ref_pdb_file) for ref_pdb_file in args.ref_pdb_files.split(",")]
     all_ref_ms, all_ref_hs = list(), list()
-    for ref_pdb_file in ref_pdb_files:
-        ref_m = IMP.Model()
-        ref_hs = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), ref_m, IMP.atom.AllPDBSelector())
-        all_ref_ms.append(ref_m)
-        all_ref_hs.append(ref_hs)
+
+    if ref_pdb_files[0].suffix == ".csv":
+        cif_name = Path(args.cif_files.split(",")[0]).stem
+        ref_df = pd.read_csv(ref_pdb_files[0], index_col=0)
+        pdb_file = ref_df.loc[int(cif_name), "pdb"]
+
+        for i in range(len(args.cif_files.split(","))):
+            ref_m = IMP.Model()
+            ref_hs = IMP.atom.read_multimodel_pdb(str(pdb_file), ref_m, IMP.atom.AllPDBSelector())
+
+            ws = list()
+            for j in range(int(args.n_state)):
+                ws.append(ref_df.loc[int(cif_name), "weight_{}_{}".format(i, j)])
+
+            weights.update_multi_state_model(
+                hs=ref_hs,
+                m=ref_m,
+                ws=ws
+            )
+
+            all_ref_ms.append(ref_m)
+            all_ref_hs.append(ref_hs)
+    else:
+        for ref_pdb_file in ref_pdb_files:
+            ref_m = IMP.Model()
+            ref_hs = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), ref_m, IMP.atom.AllPDBSelector())
+            all_ref_ms.append(ref_m)
+            all_ref_hs.append(ref_hs)
 
     ws = list()
     n_weights = 1
@@ -199,11 +218,7 @@ if __name__ == "__main__":
     o_states = list()
     if args.cif_files:
         cif_files = args.cif_files.split(",")
-
-        if args.main_chain:
-            pids_xray = pids_main_chain
-        else:
-            pids_xray = pids
+        pids_xray = pids
 
         # cif file here is a string.
         for i in range(len(cif_files)):
@@ -231,21 +246,6 @@ if __name__ == "__main__":
                 flags_array = status_array.customized_copy(data=status_array.data()=="f")
             f_obs_array, flags_array = f_obs_array.common_sets(other=flags_array)
 
-            if args.rand_noise:
-                # Add noise to the work reflections.
-                for i in range(len(f_obs_array.data())):
-                    f_ob = f_obs_array.data()[i]
-                    f_ob_err = np.random.normal(loc=f_ob, scale=f_ob*.05)
-                    f_obs_array.data()[i] = f_ob_err
-
-            # Dropout some work reflections.
-            if args.dropout:
-                # Define your probabilities
-                probabilities = [0.8, 0.2]
-                mask = np.random.choice([True, False], size=len(f_obs_array.data()), p=probabilities)
-                f_obs_array = f_obs_array.select(flex.bool(mask))
-
-            f_obs_array, flags_array = f_obs_array.common_sets(other=flags_array)
             print("N_OBS: ", len(f_obs_array.data()), len(flags_array.data()))
 
             r_xray = xray_restraint.XtalRestraint(
