@@ -91,8 +91,12 @@ Returns
 
 """
 def get_coord_avg_dict(
-        hs
+        hs,
+        w
 ):
+    if w and w.get_number_of_weights() != len(hs):
+        raise RuntimeError("The length of the weights list is not equal to the number of structures: {} and {}".format(w.get_number_of_weights(), len(hs)))
+
     avg_dict = dict()
     norm_dict = dict()
 
@@ -107,20 +111,29 @@ def get_coord_avg_dict(
         if n_pid != len(pids_0):
             raise RuntimeError("Structures are not of equal size {} and {}.".format(n_pid, len(pids_0)))
 
-    for h in hs:
+    # for h in hs:
+    for i in range(len(hs)):
+        h = hs[i]
         m = h.get_model()
 
         pids = IMP.atom.Selection(h).get_selected_particle_indexes()
 
-        for i in range(len(pids_0)):
+        for j in range(len(pids_0)):
             # pid_0 is the reference pid from the first structure that is used to index the dictionary.
-            pid_0 = pids_0[i]
-            pid = pids[i]
+            pid_0 = pids_0[j]
+            pid = pids[j]
 
             at = IMP.atom.Atom(m, pid)
             d = IMP.core.XYZ(m, pid)
-            avg_dict[pid_0] = avg_dict[pid_0] + d.get_coordinates()*at.get_occupancy()
-            norm_dict[pid_0] = norm_dict[pid_0] + at.get_occupancy()
+
+            # If a weight is provided use it, otherwise use the occupancy of the atom.
+            if w:
+                occ = w.get_weight(i)
+            else:
+                occ = at.get_occupancy()
+
+            avg_dict[pid_0] = avg_dict[pid_0] + d.get_coordinates()*occ
+            norm_dict[pid_0] = norm_dict[pid_0] + occ
 
     # Normalize the averages.
     for pid_0 in pids_0:

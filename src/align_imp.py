@@ -32,14 +32,18 @@ Returns
 def compute_rmsd_between_average(
         h_0s,
         h_1s,
+        w_0,
+        w_1,
         ca_only=False
 ):
     avg_dict_1 = average_structure.get_coord_avg_dict(
-        hs=h_0s
+        hs=h_0s,
+        w=w_0
     )
 
     avg_dict_2 = average_structure.get_coord_avg_dict(
-        hs=h_1s
+        hs=h_1s,
+        w=w_1
     )
 
     if len(avg_dict_1.keys()) != len(avg_dict_2.keys()):
