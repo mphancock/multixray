@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 import time
+import pickle
 
 import IMP
 import IMP.atom
@@ -21,8 +22,10 @@ def get_score(
         f_obs,
         r_free_flags,
         target,
-        update_k1,
-        u_aniso_file
+        ab_file=None,
+        update_scale=True,
+        update_k1=False,
+        u_aniso_file=None
 ):
     crystal_symmetry = f_obs.crystal_symmetry()
     xray_structure = xray_struct.get_xray_structure(
@@ -53,7 +56,17 @@ def get_score(
         r_free_flags=r_free_flags,
         target_name=target_name
     )
-    f_model_manager.update_all_scales(apply_scale_k1_to_f_obs=update_k1)
+
+    if update_scale:
+        f_model_manager.update_all_scales(
+            apply_scale_k1_to_f_obs=update_k1,
+            remove_outliers=False
+        )
+
+    if ab_file:
+        f = open(ab_file, 'rb')
+        alpha_beta = pickle.load(f)
+        f_model_manager.alpha_beta_cache = alpha_beta
 
     # f_model_manager.show()
 

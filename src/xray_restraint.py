@@ -19,6 +19,7 @@ class XtalRestraint(IMP.Restraint):
             f_obs,
             free_flags,
             w_xray,
+            update_scale,
             update_k1,
             u_aniso_file
     ):
@@ -30,6 +31,7 @@ class XtalRestraint(IMP.Restraint):
 
         self.f_obs = f_obs
         self.free_flags = free_flags
+        self.update_scale = update_scale
         self.update_k1 = update_k1
         self.u_aniso_file = u_aniso_file
 
@@ -112,6 +114,7 @@ class XtalRestraint(IMP.Restraint):
             f_obs=self.f_obs_filt,
             r_free_flags=self.flags_filt,
             target=self.target,
+            update_scale=self.update_scale,
             update_k1=self.update_k1,
             u_aniso_file=self.u_aniso_file
         )
