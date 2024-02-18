@@ -24,11 +24,7 @@ class LogStatistics(IMP.OptimizerState):
 
         columns = list()
         for tracker in self.all_trackers:
-            if tracker.get_n() > 1:
-                for i in range(tracker.get_n()):
-                    columns.append(tracker.get_name()+"_"+str(i))
-            else:
-                columns.append(tracker.get_name())
+            columns.extend(tracker.get_labels())
 
         self.log_df = pd.DataFrame(columns=columns)
         self.print_header()
@@ -76,12 +72,8 @@ class LogStatistics(IMP.OptimizerState):
     def do_update(self, call):
         entries = list()
         for tracker in self.all_trackers:
-            result = tracker.evaluate()
-            if tracker.get_n() > 1:
-                for i in range(tracker.get_n()):
-                    entries.append(result[i])
-            else:
-                entries.append(result)
+            # print(entry_list)
+            entries.extend(tracker.evaluate())
 
         self.log_df.loc[len(self.log_df)] = entries
         self.print_last_entry()
