@@ -41,11 +41,6 @@ def molecular_dynamics(
         sa_sched,
         o_states
 ):
-    params.write_params(
-        param_dict=locals(),
-        param_file=Path(pdb_dir.parents[0], "params_md.txt")
-    )
-
     m = hs[0].get_model()
 
     pids = list()
@@ -124,8 +119,6 @@ def molecular_dynamics(
         step_tracker = log_ostate.get_tracker("step")
         while step_tracker.get_step() < n_step:
             for sa_step in sa_sched:
-                print(sa_step)
-
                 n_step_sa = sa_step["step"]
                 T = sa_step["T"]
                 pids_dof = sa_step["dof"]
