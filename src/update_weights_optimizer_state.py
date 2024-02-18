@@ -38,36 +38,37 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
         self.on = on
 
     def do_update(self, call):
-        w_origs = self.w.get_weights()
-        w_origs_score = self.r_xray.get_f()
+        cur_occs = self.w.get_weights()
+        cur_score = self.r_xray.get_f()
 
-        all_w_tmps = [w_origs]
+        all_tmp_occs = [cur_occs]
         for i in range(self.n_proposals):
-            w_tmps = weights.get_weights(
+            tmp_occs = weights.get_weights(
                 floor=.05,
-                ws_cur=w_origs,
+                n_state=len(cur_occs),
+                occs_cur=cur_occs,
                 sigma=.05
             )
-            all_w_tmps.append(w_tmps)
+            all_tmp_occs.append(tmp_occs)
 
         # Check the score for all proposed weights.
-        best_ws = w_origs
-        best_score = w_origs_score
-        for w_tmps in all_w_tmps:
+        best_occs = cur_occs
+        best_score = cur_score
+        for tmp_occs in all_tmp_occs:
             print(self.get_name(), " evaluation")
-            self.w.set_weights(w_tmps)
+            self.w.set_weights(tmp_occs)
 
             # Don't need to compute derivatives.
             self.r_xray.evaluate(False)
-            w_tmps_score = self.r_xray.get_f()
+            tmp_score = self.r_xray.get_f()
 
-            if w_tmps_score < best_score:
-                best_ws = w_tmps
-                best_score = w_tmps_score
+            if tmp_score < best_score:
+                best_occs = tmp_occs
+                best_score = tmp_score
 
-            print(w_tmps, w_tmps_score, best_ws, best_score)
+            print(tmp_occs, tmp_score, best_occs, best_score)
 
-        self.w.set_weights(best_ws)
+        self.w.set_weights(best_occs)
 
 
 # class OptimizeWeightsOptimizerState(IMP.OptimizerState):
