@@ -55,7 +55,7 @@ class PDBWriterTracker(trackers.Tracker):
     def do_evaluate(self):
         cur_pdb_file = Path(self.pdb_dir, "{}.pdb".format(self.cur_pdb_id))
 
-        print(cur_pdb_file)
+        # print(cur_pdb_file)
         IMP.atom.write_multimodel_pdb(self.hs, str(cur_pdb_file))
         self.cur_pdb_id = self.cur_pdb_id+1
 
@@ -77,7 +77,7 @@ class PDBWriterTracker(trackers.Tracker):
 
         self.step = self.step+1
 
-        return final_pdb_file
+        return [final_pdb_file]
 
 
 class PDBCopyTracker(trackers.Tracker):
@@ -115,4 +115,4 @@ class PDBCopyTracker(trackers.Tracker):
 
         self.step = self.step+1
 
-        return copied
+        return [copied]
