@@ -24,6 +24,11 @@ class Tracker:
         self.xray_only = False
         self.period = 1
 
+        if n > 1:
+            self.labels = ["{}_{}".format(name, i) for i in range(self.n)]
+        else:
+            self.labels = [name]
+
     def get_name(self):
         return self.name
 
@@ -41,6 +46,9 @@ class Tracker:
 
     def get_period(self):
         return self.period
+
+    def get_labels(self):
+        return self.labels
 
     def set_name(
             self,
@@ -78,6 +86,12 @@ class Tracker:
     ):
         self.period = period
 
+    def set_labels(
+            self,
+            labels
+    ):
+        self.labels = labels
+
 
 class XYZTracker(Tracker):
     def __init__(
@@ -97,7 +111,7 @@ class XYZTracker(Tracker):
     def evaluate(
             self
     ):
-        return tuple(self.xyz.get_coordinates())
+        return list(self.xyz.get_coordinates())
 
 
 class dXYZTracker(Tracker):
@@ -118,7 +132,7 @@ class dXYZTracker(Tracker):
     def evaluate(
             self
     ):
-        return tuple(self.xyz.get_derivatives())
+        return list(self.xyz.get_derivatives())
 
 
 class RMSDTracker(Tracker):
@@ -156,7 +170,7 @@ class RMSDTracker(Tracker):
             ca_only=self.ca_only
         )
 
-        return float(rmsd)
+        return [float(rmsd)]
 
 
 class fTracker(Tracker):
@@ -183,47 +197,37 @@ class fTracker(Tracker):
 
         # Try to see if the restraint has a get_f call that stores the score.
         try:
-            return self.r.get_f()
+            last_score = self.r.get_f()
         except AttributeError:
-            return self.r.get_last_score()
-            # return last_score
+            last_score = self.r.get_last_score()
 
-            # print("last_score: {}".format(self.r.get_last_score()))
-            # return self.r.evaluate(False)
+        return [last_score]
 
 
-
-# Stat must be one of the following: r_free, r_work, r_all.
 class RFactorTracker(Tracker):
     def __init__(
             self,
             name,
-            r_xray,
-            stat
+            r_xray
     ):
         Tracker.__init__(
             self,
             name=name,
             m=r_xray.get_model(),
-            n=1
+            n=2
         )
         self.r_xray = r_xray
-        self.stat = stat
+        self.set_xray_only(True)
 
     def evaluate(
             self
     ):
         if not self.get_on():
-            return np.nan
-
-        if self.stat == "r_free":
-            return self.r_xray.get_r_free()
-        elif self.stat == "r_work":
-            return self.r_xray.get_r_work()
-        elif self.stat == "r_all":
-            return self.r_xray.get_r_all()
+            r_free, r_work = np.nan, np.nan
         else:
-            raise RuntimeError("Incorrect stat type. Must be one of the following: r_free, r_work, r_all.")
+            r_free, r_work = self.r_xray.get_r_free(), self.r_xray.get_r_work()
+
+        return [r_free, r_work]
 
 
 class dfdXYZTracker(Tracker):
@@ -354,10 +358,7 @@ class WeightTracker(Tracker):
         self.w = w
 
     def evaluate(self):
-        if self.w.get_number_of_weights() > 1:
-            return list(self.w.get_weights())
-        else:
-            return self.w.get_weights()[0]
+        return list(self.w.get_weights())
 
 class TimeTracker(Tracker):
     def __init__(
@@ -380,7 +381,7 @@ class TimeTracker(Tracker):
             self.t_0 = time.time()
 
         t = time.time() - self.t_0
-        return t
+        return [t]
 
 
 class StepTracker(Tracker):
@@ -400,7 +401,6 @@ class StepTracker(Tracker):
     def get_step(
             self
     ):
-        print(self.step)
         return self.step
 
     def evaluate(
@@ -408,7 +408,7 @@ class StepTracker(Tracker):
     ):
         step = self.step
         self.step = self.step + 1
-        return step
+        return [step]
 
 
 class DFMagRatioTracker(Tracker):
