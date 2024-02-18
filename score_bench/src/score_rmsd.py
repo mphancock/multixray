@@ -40,7 +40,6 @@ def pool_score(
         params
 ):
     decoy_file=params["decoy_file"]
-    occs=params["occs"]
     ref_file=params["ref_file"]
     adp_file=params["adp_file"]
     cif_file=params["cif_file"]
@@ -61,17 +60,13 @@ def pool_score(
         str(decoy_file),
         m_decoy
     )
-
     n_states = len(h_decoys)
 
     m = h_decoys[0].get_model()
     w_p = IMP.Particle(m, "weights")
     w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
     w = IMP.isd.Weight(m, w_pid)
-
-    if not occs:
-        occs = weights.get_weights_from_hs(h_decoys)
-    w.set_weights(occs)
+    w.set_weights(params["decoy_w"])
 
     for score_f in score_fs:
         if score_f in ["ff", "bnd", "ang", "dih", "imp", "eps", "nbd"]:
@@ -120,6 +115,8 @@ def pool_score(
                 r_free_flags=flags,
                 target=score_f,
                 u_aniso_file=adp_file,
+                ab_file=params["ab_file"],
+                update_scale=params["scale"],
                 update_k1=params["scale_k1"]
             )
             score = results_dict["score"]
@@ -129,6 +126,12 @@ def pool_score(
         elif score_f in ["rmsd_avg", "rmsd_ord", "rmsd_dom", "avg_delta_w"]:
             m_ref = IMP.Model()
             h_refs = IMP.atom.read_multimodel_pdb(str(ref_file), m_ref, IMP.atom.AllPDBSelector())
+
+            ref_n_state = len(h_refs)
+            w_ref_p = IMP.Particle(m_ref, "weights")
+            w_ref_pid = IMP.isd.Weight.setup_particle(w_ref_p, IMP.algebra.VectorKD([1]*ref_n_state))
+            w_ref = IMP.isd.Weight(m_ref, w_ref_pid)
+            w_ref.set_weights(params["ref_w"])
 
             if score_f == "rmsd_avg":
                 f = align_imp.compute_rmsd_between_average
@@ -141,6 +144,8 @@ def pool_score(
             score = f(
                     h_0s=h_decoys,
                     h_1s=h_refs,
+                    w_0=w,
+                    w_1=w_ref,
                     ca_only=True
                 )
         elif score_f == "dom_weight":

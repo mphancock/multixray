@@ -42,7 +42,14 @@ def pool_get_stat_info_df(
     else:
         fields = [field]
 
-    bonus_fields = params_dict["bonus_fields"]
+    # Check the bonus field for +.
+    bonus_fields = list()
+    for bonus_field in params_dict["bonus_fields"]:
+        if "+" in bonus_field:
+            bonus_fields.extend(bonus_field.split("+"))
+        else:
+            bonus_fields.append(bonus_field)
+
     stat = params_dict["stat"]
     N = params_dict["N"]
     pdb_only = params_dict["pdb_only"]
@@ -76,19 +83,24 @@ def pool_get_stat_info_df(
             log_sel_df = log_df.iloc[equil:]
 
         if rmsd_filter is not None:
-            log_sel_df = log_sel_df[log_sel_df["rmsd_avg_0"] <= rmsd_filter]
+            log_sel_df = log_sel_df[log_sel_df["rmsd_0"] <= rmsd_filter]
 
         log_dfs.append(log_sel_df)
 
     columns = [field]
-    columns.extend(bonus_fields)
+    columns.extend(params_dict["bonus_fields"])
     stat_info_df = pd.DataFrame(columns=columns)
 
     if len(log_dfs) > 0:
         merge_log_df = pd.concat(log_dfs)
 
+        # Merge back + fields and bonus fields.
         if len(fields) > 1:
             merge_log_df[field] = merge_log_df[fields].sum(axis=1)
+
+        for bonus_field in params_dict["bonus_fields"]:
+            if "+" in bonus_field:
+                merge_log_df[bonus_field] = merge_log_df[bonus_field.split("+")].sum(axis=1)
 
         if len(merge_log_df) > (equil+N):
             # Check that all the fields, bonus fields, and stats are valid.
@@ -260,3 +272,19 @@ def get_stat_df(
         pool_obj.close()
 
     return log_stat_df
+
+
+if __name__ == "__main__":
+    stat_df = get_stat_df(
+        log_file_groups=[[Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/109_natives_2_cif/0/output_0/log.csv")]],
+        main_field="xray_0+xray_1",
+        main_stat="min",
+        bonus_fields=["rmsd_avg_0+rmsd_avg_1", "pdb"],
+        pdb_only=True,
+        equil=1
+    )
+
+    print(stat_df.columns)
+    print(stat_df.iloc[0, 0])
+    print(stat_df.iloc[0, 1])
+    print(stat_df.iloc[0, 2])

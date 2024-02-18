@@ -8,26 +8,27 @@ import get_stat_df
 
 
 if __name__ == "__main__":
-    job_name = "152_native_1_cif"
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7", job_name)
-    analysis_dir = Path(Path.home(), "xray/sample_bench/data/3ca7", job_name)
+    job_name = "116_2_condition_wxray"
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", job_name)
+    analysis_dir = Path(Path.home(), "xray/sample_bench/data/7mhf", job_name)
     analysis_dir.mkdir(exist_ok=True)
     log_file = Path(analysis_dir, "score_analysis.csv".format(job_name))
-    n_jobs = 10
+    n_jobs = 8
 
-    n_cif = 1
+    n_cond = 2
     field = "xray_0"
     bonus_fields = []
-    for i in range(1,n_cif):
+    for i in range(1,n_cond):
         field += "+xray_{}".format(i)
         bonus_fields.append("xray_{}".format(i))
 
-    for i in range(n_cif):
+    for i in range(n_cond):
         bonus_fields.append("r_free_{}".format(i))
 
-    for i in range(n_cif):
-        bonus_fields.append("rmsd_avg_{}".format(i))
+    for i in range(n_cond):
+        bonus_fields.append("rmsd_{}".format(i))
 
+    bonus_fields.append("ff")
     bonus_fields.append("pdb")
 
     log_df = pd.DataFrame(index=list(range(n_jobs)))

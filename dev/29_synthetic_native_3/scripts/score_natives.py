@@ -8,63 +8,65 @@ import score_rmsd
 
 
 if __name__ == "__main__":
-    pdb_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs")
-    cif_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/cifs/1")
-    pdb_files = list(pdb_dir.glob("*.pdb"))
-    w_set = 1
+    n_cond = 2
+    n_state = 2
 
-    native_file = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/scores/natives.csv")
+    native_file = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/scores/7mhf_30.csv")
     native_df = pd.read_csv(native_file, index_col=0)
 
-    pool_params = list()
-    for i in range(len(pdb_files)):
-        pdb_file = pdb_files[i]
-        w_0 = native_df.loc[int(pdb_file.stem), "weight_{}_0".format(w_set)]
-        w_1 = native_df.loc[int(pdb_file.stem), "weight_{}_1".format(w_set)]
+    for cond in list(range(n_cond)):
+        cif_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/cifs/7mhf_30/{}".format(cond))
 
-        cif_file = Path(cif_dir, "{}.cif".format(pdb_file.stem))
+        pool_params = list()
+        for i in range(len(native_df)):
+            pdb_file = native_df.loc[i, "pdb"]
 
-        param_dict = dict()
-        param_dict["decoy_file"] = pdb_file
-        param_dict["occs"] = (w_0, w_1)
-        param_dict["ref_file"] = pdb_file
-        param_dict["cif_file"] = cif_file
-        param_dict["flags_file"] = cif_file
-        param_dict["res"] = 2
-        param_dict["score_fs"] = ["ml", "rmsd_avg", "ff"]
-        param_dict["adp_file"] = None
-        param_dict["scale_k1"] = False
+            occs = list()
+            for state in list(range(n_state)):
+                occs.append(native_df.loc[i, "weight_{}_{}".format(state, cond)])
 
-        pool_params.append(param_dict)
+            cif_file = Path(cif_dir, "{}.cif".format(i))
 
-    # for pool_param in pool_params:
-    #     print(pool_param)
-    #     score_rmsd.pool_score(pool_param)
+            param_dict = dict()
+            param_dict["decoy_file"] = pdb_file
+            param_dict["decoy_w"] = occs
+            param_dict["ref_file"] = pdb_file
+            param_dict["ref_w"] = occs
+            param_dict["cif_file"] = cif_file
+            param_dict["flags_file"] = cif_file
+            param_dict["res"] = 2
+            param_dict["score_fs"] = ["ml", "rmsd_avg", "ff"]
+            param_dict["adp_file"] = None
+            param_dict["ab_file"] = None
+            param_dict["scale"] = True
+            param_dict["scale_k1"] = True
 
-    print(multiprocessing.cpu_count())
-    pool_obj = multiprocessing.Pool(
-        multiprocessing.cpu_count()
-    )
+            pool_params.append(param_dict)
 
-    pool_results = pool_obj.map(
-        score_rmsd.pool_score,
-        pool_params
-    )
+        # for pool_param in pool_params:
+        #     print(pool_param)
+        #     score_rmsd.pool_score(pool_param)
 
-    # i = 0
-    for score_dict in pool_results:
-        print(score_dict)
+        print(multiprocessing.cpu_count())
+        pool_obj = multiprocessing.Pool(
+            multiprocessing.cpu_count()
+        )
 
-        pdb_id = int(Path(score_dict["pdb_file"]).stem)
+        pool_results = pool_obj.map(
+            score_rmsd.pool_score,
+            pool_params
+        )
 
-        native_df.loc[pdb_id, "xray_{}".format(w_set)] = score_dict["ml"]
-        native_df.loc[pdb_id, "rmsd_{}".format(w_set)] = score_dict["rmsd_avg"]
-        native_df.loc[pdb_id, "ff"] = score_dict["ff"]
+        i = 0
+        for score_dict in pool_results:
+            print(score_dict)
+            native_df.loc[i, "xray_{}".format(cond)] = score_dict["ml"]
+            native_df.loc[i, "r_free_{}".format(cond)] = score_dict["r_free"]
+            native_df.loc[i, "rmsd_avg_{}".format(cond)] = score_dict["rmsd_avg"]
+            native_df.loc[i, "ff"] = score_dict["ff"]
 
-    print(native_df.head())
+            i = i+1
 
-    #     i = i+1
+        pool_obj.close()
 
     native_df.to_csv(str(native_file)+".tmp")
-
-    pool_obj.close()

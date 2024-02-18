@@ -12,23 +12,31 @@ import weights
 
 
 if __name__ == "__main__":
-    natives_file = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/scores/natives.csv")
+    # natives_file = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/scores/7mhf_orig.csv")
+    natives_file = Path(Path.home(), "xray/score_bench/data/7mhf/121_native_decoys/rand1000.csv")
     natives_df = pd.read_csv(natives_file, index_col=0)
 
+    n_occs = 2
+    n_state = 2
+    floor = .05
+
     for i in range(len(natives_df)):
-        pdb_file = natives_df.loc[i, "pdb"]
-        ws = natives_df.loc[i, "weight_0_0"], natives_df.loc[i, "weight_0_1"]
+        occs_cur = None
 
-        ws_new = weights.get_weights(
-            floor=.05,
-            ws_cur=ws,
-            sigma=.05
-        )
+        for j in range(n_occs):
+            # pdb_file = natives_df.loc[i, "pdb"]
+            # occs_cur = natives_df.loc[i, "weight_0_0"], natives_df.loc[i, "weight_0_1"]
 
-        print(pdb_file, ws, ws_new)
+            occs_new = weights.get_weights(
+                floor=floor,
+                n_state=n_state,
+                occs_cur=occs_cur,
+                sigma=.05
+            )
+            occs_cur = occs_new
 
-        natives_df.loc[i, "weight_1_0"] = ws_new[0]
-        natives_df.loc[i, "weight_1_1"] = ws_new[1]
+            for k in range(n_state):
+                natives_df.loc[i, "weight_{}_{}".format(j, k)] = occs_new[k]
 
     natives_file_tmp = Path(str(natives_file)+".tmp")
     natives_df.to_csv(natives_file_tmp)

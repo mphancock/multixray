@@ -3,16 +3,11 @@ from pathlib import Path
 
 if __name__ == "__main__":
     cxc_file = Path(Path.home(), "Documents/xray/dev/20_images/view_sn.cxc")
-
     f = open(cxc_file, "w")
 
-    for pdb_dir in ["1_state_ref", "2_state_ref", "4_state_ref"]:
-        for pdb_id in range(40):
-            f.write("open /Users/matthew/Documents/xray/dev/17_synthetic_native/data/pdbs/{}/{}.pdb\n".format(pdb_dir, pdb_id))
-            f.write("open /Users/matthew/Documents/xray/dev/20_images/view.cxc\n")
-            f.write("lighting soft\n")
-            f.write("graphics silhouettes true\n")
-            f.write("hide cartoons\n")
-            f.write("show atoms\n")
-            f.write("save /Users/matthew/Documents/xray_ms/sn/{}_{}.png\n".format(pdb_dir, pdb_id))
-            f.write("close #1\n")
+    pdb_dir = Path(Path.home(), "Documents/xray/dev/29_synthetic_native_3/data/pdbs/7mhf_30")
+    for pdb_id in range(10):
+        f.write("open {}/{}.pdb\n".format(pdb_dir, pdb_id))
+        f.write("open /Users/matthew/Documents/xray/dev/20_images/view_mpro.cxc\n")
+        f.write("save /Users/matthew/Documents/xray_ms/figure_3/7mhf_30/{}.png\n".format(pdb_id))
+        f.write("close #1\n")

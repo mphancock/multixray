@@ -28,26 +28,26 @@ import params
 import weight_restraint
 import miller_ops
 import weights
+import utility
 
-
-def get_n_state_from_pdb_file(pdb_file):
-    m = IMP.Model()
-    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
-    return len(hs)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--out_dir")
     parser.add_argument("--tmp_out_dir")
     parser.add_argument("--cif_files")
-    parser.add_argument("--update_k1", action="store_true")
+    parser.add_argument("--no_k1", action="store_true")
+    parser.add_argument("--no_scale", action="store_true")
     parser.add_argument("--w_xray", type=float)
     parser.add_argument("--dyn_w_xray", action="store_true")
     parser.add_argument("--start_pdb_file")
     parser.add_argument("--u_aniso_file")
-    parser.add_argument("--n_state")
+    parser.add_argument("--n_state", type=int)
     parser.add_argument("--init_weights")
-    parser.add_argument("--ref_pdb_files")
+    parser.add_argument("--n_cond", type=int)
+    parser.add_argument("--ref_pdb_file")
+    parser.add_argument("--ref_id", required=False, type=int)
+    parser.add_argument("--ref_occs")
     parser.add_argument("--sa")
     parser.add_argument("--steps", type=int)
     parser.add_argument("--bfactor", type=int)
@@ -58,86 +58,76 @@ if __name__ == "__main__":
 
     ### REPRESENTATION
     pdb_file = Path(args.start_pdb_file)
-    n_states = int(args.n_state)
-    pdb_file_n_state = get_n_state_from_pdb_file(pdb_file)
+    n_state = args.n_state
+    n_cond = args.n_cond
+    pdb_file_n_state = utility.get_n_state_from_pdb_file(pdb_file)
 
     m, m_0 = IMP.Model(), IMP.Model()
     if pdb_file_n_state == 1:
         hs, h_0s = list(), list()
-        for i in range(n_states):
+        for i in range(n_state):
             hs.append(IMP.atom.read_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector()))
             h_0s.append(IMP.atom.read_pdb(str(pdb_file), m_0, IMP.atom.AllPDBSelector()))
     else:
         hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
         h_0s = IMP.atom.read_multimodel_pdb(str(pdb_file), m_0, IMP.atom.AllPDBSelector())
 
-    # There are multiple ref pdb files because there should be one for each Xray dataset.
-    ref_pdb_files = [Path(ref_pdb_file) for ref_pdb_file in args.ref_pdb_files.split(",")]
-    all_ref_ms, all_ref_hs = list(), list()
-
-    if ref_pdb_files[0].suffix == ".csv":
-        cif_name = Path(args.cif_files.split(",")[0]).stem
-        ref_df = pd.read_csv(ref_pdb_files[0], index_col=0)
-        pdb_file = ref_df.loc[int(cif_name), "pdb"]
-
-        for i in range(len(args.cif_files.split(","))):
-            ref_m = IMP.Model()
-            ref_hs = IMP.atom.read_multimodel_pdb(str(pdb_file), ref_m, IMP.atom.AllPDBSelector())
-
-            ws = list()
-            for j in range(int(args.n_state)):
-                ws.append(ref_df.loc[int(cif_name), "weight_{}_{}".format(i, j)])
-
-            weights.update_multi_state_model(
-                hs=ref_hs,
-                m=ref_m,
-                ws=ws
-            )
-
-            all_ref_ms.append(ref_m)
-            all_ref_hs.append(ref_hs)
+    # Setup ref_occs.
+    # n_ref_state does not have to equal n_state but ref_n_cond has to match n_cond.
+    if Path(args.ref_pdb_file).suffix == ".csv":
+        ref_df = pd.read_csv(args.ref_pdb_file, index_col=0)
+        ref_pdb_file = Path(ref_df.loc[args.ref_id, "pdb"])
     else:
-        for ref_pdb_file in ref_pdb_files:
-            ref_m = IMP.Model()
-            ref_hs = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), ref_m, IMP.atom.AllPDBSelector())
-            all_ref_ms.append(ref_m)
-            all_ref_hs.append(ref_hs)
+        ref_pdb_file = Path(args.ref_pdb_file)
 
-    ws = list()
-    n_weights = 1
-    if args.cif_files:
-        n_weights = len(args.cif_files.split(","))
+    ref_n_state = utility.get_n_state_from_pdb_file(ref_pdb_file)
+    ref_occs = np.ndarray([ref_n_state, n_cond])
 
-        if len(all_ref_hs) != n_weights:
-            raise RuntimeError("Number of cif files ({}) does not match number of ref pdb files ({})".format(n_weights, len(all_ref_hs)))
+    for cond in range(n_cond):
+        for state in range(ref_n_state):
+            if Path(args.ref_pdb_file).suffix == ".csv":
+                occ = ref_df.loc[args.ref_id, "w_{}_{}".format(state, cond)]
+            else:
+                occ = args.ref_occs.split(";")[cond].split(",")[state]
 
-    for i in range(n_weights):
-        # Setup the weights.
-        w_p = IMP.Particle(m, "weights")
-        w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
-        w = IMP.isd.Weight(m, w_pid)
+            ref_occs[state, cond] = occ
+    print("ref_occs: ", ref_occs)
 
-        if args.init_weights == "ref":
-            w_vals = weights.get_weights_from_hs(all_ref_hs[i])
-        elif args.init_weights == "rand":
-            w_vals = weights.get_weights(
-                floor=0.05,
-                ws_cur=[1/n_states]*n_states,
-                sigma=None
-            )
+    ref_m = IMP.Model()
+    ref_hs = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), ref_m, IMP.atom.AllPDBSelector())
+
+    # Setup occs.
+    occs = np.ndarray([n_state, n_cond])
+    for cond in range(n_cond):
+        if args.init_weights == "rand":
+            occs[:, cond] = weights.get_weights(floor=0.05, n_state=n_state)
         elif args.init_weights == "uni":
-            weights = [1/n_states]*n_states
+            occs[:, cond] = [1/n_state]*n_state
         else:
-            init_weights = args.init_weights.split(",")
-            init_weights = [float(w) for w in init_weights]
-            if len(init_weights) != n_states:
-                raise RuntimeError("Number of initial weights does not match number of states.")
+            occs[:, cond] = args.ref_occs.split(";")[cond].split(",")
 
-        w.set_weights(w_vals)
+    print("occs", occs)
+
+    # Setup the weights, indexed by condition.
+    ref_ws, ws = list(), list()
+    for ws_tmp, occs_tmp, n_state_tmp, m_tmp in [(ref_ws, ref_occs, ref_n_state, ref_m), (ws, occs, n_state, m)]:
+        for cond in range(n_cond):
+            w_p = IMP.Particle(m_tmp, "weights")
+            w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_state_tmp))
+            w = IMP.isd.Weight(m_tmp, w_pid)
+            w.set_weights(occs_tmp[:,cond])
+            ws_tmp.append(w)
+
+    for w in ws:
         w.set_weights_are_optimized(True)
+
+    print("ref_ws:")
+    for w in ref_ws:
         print(w.get_weights())
 
-        ws.append(w)
+    print("ws:")
+    for w in ws:
+        print(w.get_weights())
 
     # Get all particle ids.
     pids = list()
@@ -160,6 +150,7 @@ if __name__ == "__main__":
             IMP.atom.CHARMMAtom.setup_particle(m, pid, "O")
 
     ## SAMPLE
+    # Setup simulated annealing schedule.
     sa_sched_str = args.sa.split(";")
     sa_sched_str = [sa_step_str[1:-1] for sa_step_str in sa_sched_str]
 
@@ -210,7 +201,7 @@ if __name__ == "__main__":
             eps=False
         )
         rset_charmm.add_restraints(charmm_rs)
-    rset_charmm.set_weight(1/n_states)
+    rset_charmm.set_weight(1/n_state)
     rs.append(rset_charmm)
 
     # List of the atom and weight restraints.
@@ -248,6 +239,9 @@ if __name__ == "__main__":
 
             print("N_OBS: ", len(f_obs_array.data()), len(flags_array.data()))
 
+            scale = False if args.no_scale else True
+            k1 = False if args.no_k1 else True
+
             r_xray = xray_restraint.XtalRestraint(
                 hs=hs,
                 pids=pids_xray,
@@ -255,7 +249,8 @@ if __name__ == "__main__":
                 f_obs=f_obs_array,
                 free_flags=flags_array,
                 w_xray=args.w_xray,
-                update_k1=args.update_k1,
+                update_scale=scale,
+                update_k1=k1,
                 u_aniso_file=args.u_aniso_file
             )
 
@@ -266,7 +261,7 @@ if __name__ == "__main__":
             rs.append(rs_xray)
 
             # Setup the weight optimizer state.
-            if use_weights and n_states > 1:
+            if use_weights and n_state > 1:
                 w_os = update_weights_optimizer_state.UpdateWeightsOptimizerState(
                     m=m,
                     hs=hs,
@@ -291,21 +286,18 @@ if __name__ == "__main__":
         name="step",
         m=m
     )
-    step_tracker.set_xray_only(False)
     all_trackers.append(step_tracker)
 
     time_tracker = trackers.TimeTracker(
         name="time",
         m=m
     )
-    time_tracker.set_xray_only(False)
     all_trackers.append(time_tracker)
 
     ff_tracker = trackers.fTracker(
         name="ff",
         r=rset_charmm
     )
-    ff_tracker.set_xray_only(False)
     all_trackers.append(ff_tracker)
 
     # Add the trackers for each xtal restraint.
@@ -317,41 +309,32 @@ if __name__ == "__main__":
         xray_tracker.set_xray_only(True)
         all_trackers.append(xray_tracker)
 
-        r_work_tracker = trackers.RFactorTracker(
-            name="r_work_{}".format(i),
-            r_xray=r_xrays[i],
-            stat="r_work"
+        r_factor_tracker = trackers.RFactorTracker(
+            name="r_factor_{}".format(i),
+            r_xray=r_xrays[i]
         )
-        r_work_tracker.set_xray_only(True)
-        all_trackers.append(r_work_tracker)
+        r_factor_tracker.set_labels(["r_free_{}".format(i), "r_work_{}".format(i)])
+        all_trackers.append(r_factor_tracker)
 
-        r_free_tracker = trackers.RFactorTracker(
-            name="r_free_{}".format(i),
-            r_xray=r_xrays[i],
-            stat="r_free"
-        )
-        r_free_tracker.set_xray_only(True)
-        all_trackers.append(r_free_tracker)
-
-    for i in range(len(all_ref_hs)):
-        ref_hs = all_ref_hs[i]
+    for i in range(n_cond):
         rmsd_all_tracker = trackers.RMSDTracker(
-            name="rmsd_avg_{}".format(i),
+            name="rmsd_{}".format(i),
             hs=hs,
+            w=ws[i],
             ref_hs=ref_hs,
+            ref_w=ref_ws[i],
             rmsd_func=align_imp.compute_rmsd_between_average,
             ca_only=True
         )
-        rmsd_all_tracker.set_xray_only(False)
         all_trackers.append(rmsd_all_tracker)
 
-    for i in range(len(ws)):
+    for i in range(n_cond):
         weight_tracker = trackers.WeightTracker(
-            name="weight_{}".format(i),
+            name="w_{}".format(i),
             m=m,
             w=ws[i]
         )
-        weight_tracker.set_xray_only(False)
+        weight_tracker.set_labels(["w_{}_{}".format(j, i) for j in range(n_state)])
         all_trackers.append(weight_tracker)
 
     # pdb writer trackers.
@@ -370,7 +353,6 @@ if __name__ == "__main__":
         pdb_dir=tmp_pdb_dir,
         log_pdb_dir=pdb_dir
     )
-    pdb_tracker.set_xray_only(False)
     pdb_tracker.set_period(10)
     all_trackers.append(pdb_tracker)
 

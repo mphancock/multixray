@@ -15,19 +15,9 @@ mkdir "$TMP_OUT_DIR"
 mkdir "$OUT_DIR"
 
 
-CIF_FILES="/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/0/0.cif,/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/1/0.cif"
-W_XRAY=1
-START_PDB_FILE="/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_refine.pdb"
-N_STATE=2
-REF_PDB_FILE="/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/pdbs/2_state_0/5.pdb"
-SA="{step99999,T300,dofA,pdb1,w1,res2}"
-LOG_FILE="$OUT_DIR/log.csv"
-INIT_WEIGHTS="ref"
-
 cd "$TMPDIR"
 cp ~/xray/sample_bench/scripts/sample/run_md_multi.py .
-python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --cif_files $CIF_FILES --w_xray $W_XRAY --dyn_w_xray --start_pdb_file $START_PDB_FILE --n_state $N_STATE --init_weights "$INIT_WEIGHTS" --ref_pdb_file "/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/scores/natives.csv" --sa "$SA" --bfactor 15
-# python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --start_pdb_file $START_PDB_FILE --n_state 2 --init_weights "rand" --ref_pdb_file "/wynton/home/sali/mhancock/xray/data/pdbs/3ca7/3ca7_refine.pdb" --sa "{step1000,T1000,dofA,pdb1,w0,res0}" --bfactor 15 --steps 1000
 
+python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --cif_files /wynton/home/sali/mhancock/xray/data/cifs/7mhf/7mhi.cif --dyn_w_xray --w_xray 0.5 --start_pdb_file /wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhi_ref.pdb --n_state 2 --init_weights rand --n_cond 1 --ref_pdb_file /wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhi_ref.pdb --ref_occs 1 --sa "{step99999,T300,dofA,pdb1,w1,res0}" --bfactor 15 --steps 1000
 
 cd "$HOME/xray/sample_bench/scripts/sample"

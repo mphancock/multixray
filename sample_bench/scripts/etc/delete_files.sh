@@ -1,9 +1,9 @@
 #!/bin/bash
 
 
-SYS_DIR=/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf
+SYS_DIR=/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7
 # for JOB_DIR in $(ls -d  $EXP_DIR/*)
-for EXP_NAME in 55_7mhf_1 56_7mhf_2 57_7mhf_4 58_7mhf_8 59_7mhj_1 60_7mhj_2 61_7mhj_4 62_7mhj_8 63_overfit
+for EXP_NAME in 115_2_state 116_2_state_2_cif 117_2_state_no_weight 118_2_state_2_cif_no_weight 119_2_state_2_cif_w_1 120_2_state_2_cif_w_2 121_2_state_2_cif_w_3 122_52 123_52_2_cif 124_S_2_cif 125_2_cif_no_weights 126_test
 do
     JOB_DIR="$SYS_DIR/$EXP_NAME"
     echo $JOB_DIR

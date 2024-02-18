@@ -18,8 +18,16 @@ import generate_fmodel
 if __name__ == "__main__":
     score_dir = Path(Path.home(), "xray/dev/32_score")
 
-    pdb_file = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/pdbs/2_state_0/0.pdb")
-    f_obs_file = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/2_state_0_noise/0.cif")
+    pdb_file = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/pdbs/7mhf/0.pdb")
+    occs = [0.83409474335851, 0.16590525664149]
+    # pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/54_7mhf_decoys_100/4545474/output_3701/pdbs/49.pdb")
+    # occs = [0.5099659036431840, 0.4900340963568160]
+    # pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/54_7mhf_decoys_100/4545474/output_4676/pdbs/1.pdb")
+    # occs = [0.4885097353792970, 0.511490264620703]
+    # pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/54_7mhf_decoys_100/4545474/output_4564/pdbs/23.pdb")
+    # occs = [0.7395988883650760, 0.260401111634924]
+
+    f_obs_file = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/7mhf/0/0.cif")
 
     # pdb_file = Path(score_dir, "data/decoy.pdb")
     # f_obs_file = Path(score_dir, "data/0.cif")
@@ -65,6 +73,13 @@ if __name__ == "__main__":
 
     xray_structure = model.get_xray_structure()
 
+
+    n_scatt = int(xray_structure.scatterers().size())
+    print(type(n_scatt))
+    for i in range(n_scatt//2):
+        xray_structure.scatterers()[i].occupancy = occs[0]
+        xray_structure.scatterers()[i+n_scatt//2].occupancy = occs[1]
+
     xray_structure.scatterers().flags_set_grads(
         state=False
     )
@@ -82,7 +97,7 @@ if __name__ == "__main__":
         target_name="ml",
         max_number_of_bins=1
     )
-    f_model_manager.update_all_scales(apply_scale_k1_to_f_obs=False)
+    f_model_manager.update_all_scales(apply_scale_k1_to_f_obs=False,remove_outliers=False)
 
     f_obs = f_model_manager.f_obs()
     # print(len(f_obs.indices()), len(f_obs.data()))
@@ -107,29 +122,37 @@ if __name__ == "__main__":
 
     # f = open('alpha_beta', 'rb')
     # alpha_beta = pickle.load(f)
+
+    # beta = alpha_beta[1]
+    # for i in range(len(beta.data())):
+    #     beta.data()[i] = beta.data()[i] * 1000
+
     # f_model_manager.alpha_beta_cache = alpha_beta
 
-    alpha_beta = f_model_manager.alpha_beta()
-    print(alpha_beta[0].data()[0], alpha_beta[1].data()[0])
 
-    # f = open('alpha_beta', 'ab')
-    # b = pickle.dump(alpha_beta, f)
-    # f.close()
+    alpha_beta = f_model_manager.alpha_beta()
+    print(f_model_manager.alpha_beta()[0].size(), f_model_manager.f_obs().size())
+    print(alpha_beta[0].data()[0], alpha_beta[1].data()[0])
+    print(alpha_beta[0].data()[-1], alpha_beta[1].data()[-1])
+
+    f = open('/wynton/home/sali/mhancock/xray/dev/32_score/alpha_beta', 'ab')
+    b = pickle.dump(alpha_beta, f)
+    f.close()
 
     r_work = f_model_manager.r_work()
     r_free = f_model_manager.r_free()
     r_all = f_model_manager.r_all()
 
     fmodels = mmtbx.fmodels(fmodel_xray=f_model_manager)
-    fmodels.update_xray_structure(
-        xray_structure=xray_structure,
-        update_f_calc=True
-    )
+    # fmodels.update_xray_structure(
+    #     xray_structure=xray_structure,
+    #     update_f_calc=True
+    # )
 
     fmodels_target_and_gradients = fmodels.target_and_gradients(compute_gradients=True)
     score = fmodels_target_and_gradients.target()
     grads = fmodels_target_and_gradients.gradients()
 
-    print(xray_structure.scatterers()[0].occupancy, xray_structure.scatterers()[-1].occupancy)
+    # print(xray_structure.scatterers()[0].occupancy, xray_structure.scatterers()[-1].occupancy)
     print(r_free, r_work)
     print("likelihood:", score)

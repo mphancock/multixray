@@ -135,7 +135,7 @@ def write_merge_pdb_file(
 
 
 if __name__ == "__main__":
-    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/129_wxray/2/output_885/pdbs")
+    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/test/output_0/pdbs")
     pdb_files = list(pdb_dir.glob("*.pdb"))
 
     # pdb_meta_file = Path(Path.home(), "xray/sample_bench/data/7mhf/62_7mhj_8/sample_min_xray_0.csv")
@@ -151,5 +151,5 @@ if __name__ == "__main__":
         occs=None,
         n=-1,
         order=True,
-        state=-1
+        state=1
     )

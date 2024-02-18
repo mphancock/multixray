@@ -123,17 +123,11 @@ def get_sample_volume_df(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--job_dir")
-    parser.add_argument("--ref_pdb_file")
     parser.add_argument("--field")
     parser.add_argument("--bonus_fields")
     parser.add_argument("--file")
     args = parser.parse_args()
     print(vars(args))
-    # print(args.job_dir)
-    # print(args.ref_pdb_file)
-    # print(args.field)
-    # print(args.bonus_fields)
-    # print(args.file)
 
     job_dir = Path(args.job_dir)
     out_dirs = list(job_dir.glob("output*"))

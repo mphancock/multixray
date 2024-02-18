@@ -26,14 +26,8 @@ def get_random_sample_df(
         pdb_log_df = log_df[log_df['pdb'].notna()]
 
         # remove the first structure.
-        pdb_log_df = pdb_log_df.iloc[1:]
-
-        if equil:
-            pdb_log_df = pdb_log_df.iloc[int(equil*len(pdb_log_df)):]
-
-        if rmsd_range:
-            pdb_log_df = pdb_log_df[(pdb_log_df['rmsd_avg_0'] >= rmsd_range[0]) & (pdb_log_df['rmsd_avg_0'] <= rmsd_range[1])]
-
+        pdb_log_df = pdb_log_df.iloc[equil:]
+        pdb_log_df = pdb_log_df[(pdb_log_df['rmsd_0'] >= rmsd_range[0]) & (pdb_log_df['rmsd_0'] <= rmsd_range[1])]
         pdb_log_dfs.append(pdb_log_df)
 
     merge_log_df = pd.concat(pdb_log_dfs)
@@ -96,94 +90,56 @@ def get_all_log_dfs(
 
 
 if __name__ == "__main__":
-    target = "3ca7"
-    job_name = "152_native_1_cif"
+    target = "7mhf"
+    job_name = "122_native_decoys_1_state"
 
-    n_decoys = 1000
-    rmsd_ranges = list()
+    rmsd_ranges = [[0,.5],[.5,1]]
+    # rmsd_ranges.append([0,0.25])
+    # rmsd_ranges.append([.25,.5])
+    # rmsd_ranges.append([.5,1.0])
 
-    rmsd_ranges.append([0,1])
-    # rmsd_ranges.append([.5,1])
+    # n_decoys = list()
+    n_decoys = [900,100]
+    # n_decoys.append(500)
+    # n_decoys.append(400)
+    # n_decoys.append(100)
+
     job_dir = Path(Path.home(), "xray/score_bench/data", target, job_name)
     job_dir.mkdir(exist_ok=True)
 
-    n_cif = 1
-    n_state = 2
-    fields = ["pdb", "ff"]
 
-    # ###
-    # fields.append("rmsd_avg_0")
+    sample_job_dirs = list()
+    for i in range(10):
+        sample_job_dirs.append(Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/{}/{}".format(job_name, i)))
 
-    # decoy_meta_file = Path(job_dir, "rand1000.csv")
+    n_state = 1
+    n_cond = 1
+    decoy_meta_file = Path(job_dir, "rand1000.csv")
 
-    # sample_job_dirs = list()
-    # sample_job_dirs.append(Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/54_1000/4474326"))
-    # out_dirs = get_valid_output_dirs(job_dirs=sample_job_dirs)
-    # log_files = [Path(out_dir, "log.csv") for out_dir in out_dirs]
 
-    # # We should read the log_df here so that it isn't done for every RMSD range.
-    # log_dfs = get_all_log_dfs(log_files=log_files)
+    out_dirs = get_valid_output_dirs(job_dirs=sample_job_dirs)
+    log_files = [Path(out_dir, "log.csv") for out_dir in out_dirs]
 
-    # sample_dfs = list()
-    # for i in range(len(rmsd_ranges)):
-    #     print(rmsd_ranges[i])
-    #     # Get and save the dataframe containing all the decoy entries (each decoy entry containing 1 or more random pdb files and an equal number of weights).
-    #     sample_df = get_random_sample_df(
-    #         log_dfs=log_dfs,
-    #         N=n_decoys,
-    #         equil=0,
-    #         rmsd_range=rmsd_ranges[i]
-    #     )
+    # We should read the log_df here so that it isn't done for every RMSD range.
+    log_dfs = get_all_log_dfs(log_files=log_files)
 
-    #     sample_df = sample_df[fields]
-    #     sample_dfs.append(sample_df)
+    sample_dfs = list()
+    for i in range(len(rmsd_ranges)):
+        print(rmsd_ranges[i])
+        # Get and save the dataframe containing all the decoy entries (each decoy entry containing 1 or more random pdb files and an equal number of weights).
+        sample_df = get_random_sample_df(
+            log_dfs=log_dfs,
+            N=n_decoys[i],
+            equil=1,
+            rmsd_range=rmsd_ranges[i]
+        )
+        sample_dfs.append(sample_df)
 
-    # decoy_df = pd.concat(sample_dfs)
-    # decoy_df.reset_index(drop=True, inplace=True)
-    # decoy_df.to_csv(decoy_meta_file)
+    columns = ["pdb"]
+    for i in range(n_state):
+        columns.append("w_{}_".format(i))
 
-    ###
-
-    for i in range(n_cif):
-        fields.append("xray_{}".format(i))
-        fields.append("r_free_{}".format(i))
-        fields.append("rmsd_avg_{}".format(i))
-
-        if n_state > 1:
-            for j in range(n_state):
-                fields.append("weight_{}_{}".format(i, j))
-
-    for job_id in range(10):
-        decoy_id = 0
-        decoy_name = str(job_id)
-
-        decoy_pdb_dir = Path("/wynton/group/sali/mhancock/xray/decoys/data", target, job_name, decoy_name)
-        decoy_pdb_dir.mkdir(exist_ok=True, parents=True)
-
-        decoy_meta_file = Path(job_dir, "{}.csv".format(decoy_name))
-
-        sample_job_dirs = list()
-        sample_job_dirs.append(Path("/wynton/group/sali/mhancock/xray/sample_bench/out/3ca7/{}/{}".format(job_name, job_id)))
-        out_dirs = get_valid_output_dirs(job_dirs=sample_job_dirs)
-        log_files = [Path(out_dir, "log.csv") for out_dir in out_dirs]
-
-        # We should read the log_df here so that it isn't done for every RMSD range.
-        log_dfs = get_all_log_dfs(log_files=log_files)
-
-        sample_dfs = list()
-        for i in range(len(rmsd_ranges)):
-            print(rmsd_ranges[i])
-            # Get and save the dataframe containing all the decoy entries (each decoy entry containing 1 or more random pdb files and an equal number of weights).
-            sample_df = get_random_sample_df(
-                log_dfs=log_dfs,
-                N=n_decoys,
-                equil=.5,
-                rmsd_range=rmsd_ranges[i]
-            )
-
-            sample_df = sample_df[fields]
-            sample_dfs.append(sample_df)
-
-        decoy_df = pd.concat(sample_dfs)
-        decoy_df.reset_index(drop=True, inplace=True)
-        decoy_df.to_csv(decoy_meta_file)
+    decoy_df = pd.concat(sample_dfs)
+    decoy_df.drop(columns=["time", "step", "copy"], inplace=True)
+    decoy_df.reset_index(drop=True, inplace=True)
+    decoy_df.to_csv(decoy_meta_file)

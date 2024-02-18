@@ -15,7 +15,7 @@ import get_stat_df
 if __name__ == "__main__":
     target = "7mhf"
 
-    for exp_num, job_num in [("91_298_1_state_25", 3527588)]:
+    for exp_num, job_num in [("112_test_30", 4839702)]:
         pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out", target, "{}/{}".format(exp_num, job_num))
         print(pdb_dir)
         out_dirs = list(pdb_dir.glob("output_*"))
@@ -28,21 +28,19 @@ if __name__ == "__main__":
         n_cif = 1
 
         field = "xray_0"
-        bonus_fields = []
-        for i in range(1,n_cif):
-            field += "+xray_{}".format(i)
+        bonus_fields = ["pdb", "r_free_0"]
+        # for i in range(1,n_cif):
+        #     field += "+xray_{}".format(i)
 
-        if n_cif > 1:
-            for i in range(n_cif):
-                bonus_fields.append("xray_{}".format(i))
+        # if n_cif > 1:
+        #     for i in range(n_cif):
+        #         bonus_fields.append("xray_{}".format(i))
 
-        for i in range(n_cif):
-            bonus_fields.append("r_free_{}".format(i))
+        # for i in range(n_cif):
+        #     bonus_fields.append("r_free_{}".format(i))
 
-        for i in range(n_cif):
-            bonus_fields.append("rmsd_avg_{}".format(i))
-
-        bonus_fields.append("pdb")
+        # for i in range(n_cif):
+        #     bonus_fields.append("rmsd_avg_{}".format(i))
 
         # field = "r_free_0+r_free_1"
         # bonus_fields = ["r_free_0", "r_free_1"]

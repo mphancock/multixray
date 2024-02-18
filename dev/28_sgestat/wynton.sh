@@ -1,4 +1,4 @@
-# Check usage of /wynton/gruop/sali.
+# Check usage of /wynton/group/sali.
 beegfs-quota -h -p group -u mhancock
 
 # Check number of files/storage on /wynton/group.
