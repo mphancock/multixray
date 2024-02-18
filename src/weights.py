@@ -38,18 +38,22 @@ def get_weights_from_hs(hs):
 
 def get_weights(
     floor,
-    ws_cur,
+    n_state,
+    occs_cur=None,
     sigma=None
 
 ):
-    if sigma:
-        ws_tmp = np.random.normal(ws_cur, scale=sigma)
+    if occs_cur and len(occs_cur) != n_state:
+        raise RuntimeError("Length of occs_cur and n_state must be the same")
+
+    if occs_cur:
+        occs_tmp = np.random.normal(occs_cur, scale=sigma)
     else:
-        ws_tmp = [random.random() for _ in range(len(ws_cur))]
+        occs_tmp = [random.random() for _ in range(n_state)]
 
-    while any(w < floor for w in ws_tmp):
-        ws_tmp = [random.random() for _ in range(len(ws_cur))]
+    while any(w < floor for w in occs_tmp):
+        occs_tmp = [random.random() for _ in range(n_state)]
 
-    ws_new = [w / sum(ws_tmp) for w in ws_tmp]
+    ws_new = [w / sum(occs_tmp) for w in occs_tmp]
 
     return ws_new
