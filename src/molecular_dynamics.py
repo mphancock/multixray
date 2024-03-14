@@ -33,21 +33,23 @@ Parameters:
     o_states: a list of optimizer states to use for the simulation.
 """
 def molecular_dynamics(
-        pdb_dir,
-        hs,
+        # pdb_dir,
+        # hs,
+        msmc_m,
         r_sets,
         t_step,
         n_step,
         sa_sched,
         o_states
 ):
-    m = hs[0].get_model()
+    hs = msmc_m.get_hs()
+    m = msmc_m.get_m()
 
     pids = list()
     for h in hs:
         pids.extend(IMP.atom.Selection(h).get_selected_particle_indexes())
 
-    ps_0 = [m.get_particle(pid) for pid in sa_sched[0]["dof"]]
+    ps_0 = [m.get_particle(pid) for pid in msmc_m.get_all_pids()]
     T_0 = sa_sched[0]["T"]
 
     md = IMP.atom.MolecularDynamics(m)
@@ -121,10 +123,20 @@ def molecular_dynamics(
             for sa_step in sa_sched:
                 n_step_sa = sa_step["step"]
                 T = sa_step["T"]
-                pids_dof = sa_step["dof"]
+                dof = sa_step["dof"]
+                # pids_dof = sa_step["dof"]
                 pdb = sa_step["pdb"]
                 w = sa_step["w"]
                 res = sa_step["res"]
+
+                if dof == "A":
+                    pids_dof = msmc_m.get_all_pids()
+                elif dof == "S":
+                    pids_dof = msmc_m.get_all_side_pids()
+                # elif dof.isnumeric():
+                #     pids_dof =
+                else:
+                    raise ValueError("Invalid dof: {}".format(dof))
 
                 md.set_particles([m.get_particle(pid) for pid in pids_dof])
 

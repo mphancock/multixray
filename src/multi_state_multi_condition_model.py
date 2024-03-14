@@ -1,0 +1,117 @@
+import IMP
+import IMP.atom
+
+
+class MultiStateMultiConditionModel:
+    def __init__(
+            self,
+            m,
+            hs,
+            w_mat
+    ):
+        self.m = m
+        self.hs = hs
+        self.set_w_mat(w_mat)
+
+        self.n_state = len(self.hs)
+        self.n_cond = self.w_mat.shape[1]
+
+        if w_mat.shape[0] != self.n_state:
+            raise ValueError("Number of weights must be the same as the number of states")
+
+        self.pids_dict = dict()
+        self.prot_pids_dict = dict()
+        self.water_pids_dict = dict()
+        self.main_pids_dict = dict()
+        self.side_pids_dict = dict()
+        self.ca_pids_dict = dict()
+        water_at_type = IMP.atom.AtomType("HET: O  ")
+        for i in range(self.n_state):
+            h = hs[i]
+            self.pids_dict[i] = IMP.atom.Selection(h).get_selected_particle_indexes()
+            self.prot_pids_dict[i] = (IMP.atom.Selection(h) - IMP.atom.Selection(h, atom_type=water_at_type)).get_selected_particle_indexes()
+            self.water_pids_dict[i] = IMP.atom.Selection(h, atom_type=water_at_type).get_selected_particle_indexes()
+            self.main_pids_dict[i] = IMP.atom.Selection(h, atom_types=[IMP.atom.AT_CA, IMP.atom.AT_C, IMP.atom.AT_O, IMP.atom.AT_N]).get_selected_particle_indexes()
+            self.side_pids_dict[i] = list(set(self.prot_pids_dict[i]) - set(self.main_pids_dict[i]))
+            self.ca_pids_dict[i] = IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()
+
+        # Setup waters
+        for i in range(len(hs)):
+            for pid in self.water_pids_dict[i]:
+                IMP.atom.CHARMMAtom.setup_particle(m, pid, "O")
+
+        self.com = IMP.atom.CenterOfMass.setup_particle(
+            IMP.Particle(self.m),
+            self.get_all_ca_pids()
+        )
+
+    def get_m(self):
+        return self.m
+
+    def get_hs(self):
+        return self.hs
+
+    def get_w_mat(self):
+        return self.w_mat
+
+    def get_all_pids(self):
+        pids = list()
+        for i in range(self.n_state):
+            pids.extend(self.pids_dict[i])
+
+        return pids
+
+    def get_ca_pids(self, i):
+        return self.ca_pids_dict[i]
+
+    def get_all_ca_pids(self):
+        ca_pids = list()
+        for i in range(self.n_state):
+            ca_pids.extend(self.ca_pids_dict[i])
+
+        return ca_pids
+
+    def get_all_side_pids(self):
+        side_pids = list()
+        for i in range(self.n_state):
+            side_pids.extend(self.side_pids_dict[i])
+
+        return side_pids
+
+    def get_com(self):
+        return self.com
+
+    def set_w_mat(self, w_mat):
+        self.w_mat = w_mat
+        self.normalize_w_mat()
+
+    def set_occs_for_condition_i(self, occs, i):
+        self.w_mat[:,i] = occs
+        self.normalize_w_mat()
+
+    def normalize_w_mat(self):
+        column_sums = self.w_mat.sum(axis=0)
+        # print(self.w_mat, column_sums)
+
+        self.w_mat = self.w_mat / column_sums
+
+
+if __name__ == "__main__":
+    from pathlib import Path
+    import numpy as np
+
+    pdb_file = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/7mhf_30/0.pdb")
+    m = IMP.Model()
+    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+    w_mat = np.ndarray(shape=[2,2])
+    w_mat[0,0] = 1
+    w_mat[0,1] = 3
+    w_mat[1,0] = 2
+    w_mat[1,1] = 4
+    msmcm = MultiStateMultiConditionModel(m, hs, w_mat)
+    print(msmcm.get_w_mat())
+    print(msmcm.get_hs())
+    print(msmcm.get_m)
+
+
+

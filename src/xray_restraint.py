@@ -13,21 +13,22 @@ pids may only be a subset of the total pids (eg, only the pids in the main chain
 class XtalRestraint(IMP.Restraint):
     def __init__(
             self,
-            hs,
-            pids,
-            w,
+            msmc_m,
+            cond,
             f_obs,
             free_flags,
             w_xray,
             update_scale,
             update_k1,
-            u_aniso_file
+            u_aniso_file,
+            ref_com=None
     ):
-        IMP.Restraint.__init__(self, hs[0].get_model(), "XrayRestraint%1%")
-        self.hs = hs
+        IMP.Restraint.__init__(self, msmc_m.get_m(), "XrayRestraint%1%")
+        self.msmc_m = msmc_m
+        self.hs = msmc_m.get_hs()
         self.n_state = len(self.hs)
-        self.pids = pids
-        self.w = w
+        self.pids = msmc_m.get_all_pids()
+        self.cond = cond
 
         self.f_obs = f_obs
         self.free_flags = free_flags
@@ -46,10 +47,15 @@ class XtalRestraint(IMP.Restraint):
             w_xray=w_xray
         )
 
+        if ref_com:
+            self.delta = ref_com.get_coordinates() - msmc_m.get_com().get_coordinates()
+        else:
+            self.delta = None
+
         # Gradients and scores
         self.df_dxs = dict()
         self.w_grads = [0]*self.n_state
-        for pid in pids:
+        for pid in self.pids:
             self.df_dxs[pid] = IMP.algebra.Vector3D(0,0,0)
         self.score = 0
         self.r_free = 0
@@ -72,14 +78,17 @@ class XtalRestraint(IMP.Restraint):
             d_min=self.d_min
         )
 
+        # if ref_hs:
+
+
     def set_weight(
             self,
             w_xray
     ):
         self.w_xray = w_xray
 
-    def set_w(self, w):
-        self.w = w
+    def set_occs(self, occs):
+        self.occs = occs
 
     def get_weight(self):
         return self.w_xray
@@ -108,15 +117,16 @@ class XtalRestraint(IMP.Restraint):
     def do_add_score_and_derivatives(self, sa):
         # Get the derivatives.
         results_dict = cctbx_score.get_score(
-            hs=self.hs,
-            w=self.w,
+            hs=self.msmc_m.get_hs(),
+            occs=self.msmc_m.get_w_mat()[:,self.cond],
             pids=self.pids,
             f_obs=self.f_obs_filt,
             r_free_flags=self.flags_filt,
             target=self.target,
             update_scale=self.update_scale,
             update_k1=self.update_k1,
-            u_aniso_file=self.u_aniso_file
+            u_aniso_file=self.u_aniso_file,
+            delta=self.delta
         )
 
         score = results_dict["score"]

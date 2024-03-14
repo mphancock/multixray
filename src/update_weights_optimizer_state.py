@@ -11,18 +11,16 @@ import weights
 class UpdateWeightsOptimizerState(IMP.OptimizerState):
     def __init__(
             self,
-            m,
-            hs,
-            w,
-            r_xray,
+            msmc_m,
+            r_xrays,
             n_proposals,
             radius
     ):
-        IMP.OptimizerState.__init__(self, m, "UpdateWeightsOptimizerState%1%")
-        self.m = m
-        self.hs = hs
-        self.w = w
-        self.r_xray = r_xray
+        IMP.OptimizerState.__init__(self, msmc_m.get_m(), "UpdateWeightsOptimizerState%1%")
+        self.msmc_m = msmc_m
+        self.m = msmc_m.get_m()
+        self.hs = msmc_m.get_hs()
+        self.r_xrays = r_xrays
         self.n_proposals = n_proposals
         self.radius = radius
 
@@ -38,11 +36,22 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
         self.on = on
 
     def do_update(self, call):
-        cur_occs = self.w.get_weights()
-        cur_score = self.r_xray.get_f()
+        for i in range(len(self.r_xrays)):
+            cur_occs = self.msmc_m.get_w_mat()[:,i]
+
+            new_occs = self.get_new_occs(
+                cur_occs=cur_occs,
+                r_xray=self.r_xrays[i]
+            )
+
+            self.msmc_m.set_occs_for_condition_i(new_occs, i)
+
+
+    def get_new_occs(self, cur_occs, r_xray):
+        cur_score = r_xray.get_f()
 
         all_tmp_occs = [cur_occs]
-        for i in range(self.n_proposals):
+        for _ in range(self.n_proposals):
             tmp_occs = weights.get_weights(
                 floor=.05,
                 n_state=len(cur_occs),
@@ -56,11 +65,10 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
         best_score = cur_score
         for tmp_occs in all_tmp_occs:
             print(self.get_name(), " evaluation")
-            self.w.set_weights(tmp_occs)
 
             # Don't need to compute derivatives.
-            self.r_xray.evaluate(False)
-            tmp_score = self.r_xray.get_f()
+            r_xray.evaluate(False)
+            tmp_score = r_xray.get_f()
 
             if tmp_score < best_score:
                 best_occs = tmp_occs
@@ -68,7 +76,7 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
 
             print(tmp_occs, tmp_score, best_occs, best_score)
 
-        self.w.set_weights(best_occs)
+        return best_occs
 
 
 # class OptimizeWeightsOptimizerState(IMP.OptimizerState):
