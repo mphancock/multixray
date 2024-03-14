@@ -140,34 +140,38 @@ class RMSDTracker(Tracker):
             self,
             name,
             rmsd_func,
-            hs,
-            w,
-            ref_hs,
-            ref_w,
-            ca_only
+            hs_0,
+            hs_1,
+            pids_0,
+            pids_1,
+            occs_0,
+            occs_1
     ):
         Tracker.__init__(
             self,
             name=name,
-            m=hs[0].get_model(),
+            m=hs_0[0].get_model(),
             n=1
         )
-        self.hs = hs
-        self.hs_0 = ref_hs
-        self.w = w
-        self.ref_w = ref_w
+        self.hs_0 = hs_0
+        self.hs_1 = hs_1
+        self.pids_0 = pids_0
+        self.pids_1 = pids_1
+        self.occs_0 = occs_0
+        self.occs_1 = occs_1
         self.rmsd_func = rmsd_func
-        self.ca_only = ca_only
+
 
     def evaluate(
             self
     ):
         rmsd = self.rmsd_func(
-            h_0s=self.hs,
-            h_1s=self.hs_0,
-            w_0=self.w,
-            w_1=self.ref_w,
-            ca_only=self.ca_only
+            h_0s=self.hs_0,
+            h_1s=self.hs_1,
+            pids_0=self.pids_0,
+            pids_1=self.pids_1,
+            occs_0=self.occs_0,
+            occs_1=self.occs_1
         )
 
         return [float(rmsd)]

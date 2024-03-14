@@ -1,11 +1,11 @@
+from pathlib import Path
+import numpy as np
+
 import IMP
 import IMP.atom
 import IMP.core
 import IMP.algebra
-import math
-from pathlib import Path
-import numpy as np
-import sys
+import IMP.isd
 
 import average_structure
 
@@ -32,36 +32,39 @@ Returns
 def compute_rmsd_between_average(
         h_0s,
         h_1s,
-        w_0,
-        w_1,
-        ca_only=False
+        pids_0,
+        pids_1,
+        occs_0,
+        occs_1
 ):
     avg_dict_1 = average_structure.get_coord_avg_dict(
         hs=h_0s,
-        w=w_0
+        occs=occs_0
     )
 
     avg_dict_2 = average_structure.get_coord_avg_dict(
         hs=h_1s,
-        w=w_1
+        occs=occs_1
     )
 
-    if len(avg_dict_1.keys()) != len(avg_dict_2.keys()):
-        raise RuntimeError("Number of atoms in average structures not equal: {} and {}".format(len(avg_dict_1.keys()), len(avg_dict_2.keys())))
-
-    if ca_only:
-        pids = IMP.atom.Selection(h_0s[0], atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()
-    else:
-        pids = IMP.atom.Selection(h_0s[0]).get_selected_particle_indexes()
-
     rmsd = 0
-    for pid in pids:
-        xyz_1 = avg_dict_1[pid]
-        xyz_2 = avg_dict_2[pid]
+    for i in range(len(pids_0)):
+        pid_0 = pids_0[i]
+        pid_1 = pids_1[i]
+
+        name_0 = h_0s[0].get_model().get_particle_name(pid_0)
+        name_1 = h_1s[0].get_model().get_particle_name(pid_1)
+
+        if name_0 != name_1:
+            raise RuntimeError("Particle names not equal: {} and {}".format(name_0, name_1))
+
+        # print(h_0s[0].get_model().get_particle_name(pids_0[i]), h_1s[0].get_model().get_particle_name(pids_1[i]))
+        xyz_1 = avg_dict_1[pids_0[i]]
+        xyz_2 = avg_dict_2[pids_1[i]]
         mag = (xyz_1-xyz_2).get_magnitude()
         rmsd = rmsd+mag**2
 
-    rmsd = rmsd/len(pids)
+    rmsd = rmsd/len(pids_0)
     rmsd = np.sqrt(rmsd)
 
     return rmsd
@@ -289,16 +292,34 @@ def compute_avg_delta_weight(
 
 
 if __name__ == "__main__":
-    ref_pdb_file = Path(Path.home(), "xray/data/pdbs/3ca7/3ca7_refine.pdb")
-    m_ref = IMP.Model()
-    h_refs = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), m_ref, IMP.atom.AllPDBSelector())
+    pdb_selector = IMP.atom.NonAlternativePDBSelector()
 
-    # h_refs = single_h_to_hs(h=h_refs[0], n_state=2)
+    pdb_file = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/7mhf_30/0.pdb")
+    m = IMP.Model()
+    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, pdb_selector)
+    pids = IMP.atom.Selection(hs[0], atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()
+    occs = np.array([0.510587948937655,0.489412051062345])
 
-    for i in range(40):
-        pdb_file = Path(Path.home(), "xray/dev/17_synthetic_native/data/pdbs/2_state_ref/{}.pdb".format(i))
+    ref_pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/121_native_decoys/0/output_24/pdbs/7.pdb")
+    ref_m = IMP.Model()
+    ref_hs = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), ref_m, IMP.atom.AllPDBSelector())
+    ref_pids = IMP.atom.Selection(ref_hs[0], atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()
+    ref_occs = np.array([0.4098692178088230, 0.5901307821911770])
 
-        m = IMP.Model()
-        hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+    # ref_pdb_file = Path("/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhk.pdb")
+    # ref_m = IMP.Model()
+    # ref_hs = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), ref_m, pdb_selector)
+    # ref_pids = IMP.atom.Selection(ref_hs[0], atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()
+    # ref_occs = np.array([1])
 
-        print(compute_rmsd_ordered(hs, h_refs, ca_only=True))
+    # rmsd = compute_rmsd_between_average(
+    #     h_0s=hs,
+    #     h_1s=ref_hs,
+    #     pids_0=pids,
+    #     pids_1=ref_pids,
+    #     occs_0=occs,
+    #     occs_1=ref_occs
+    # )
+
+    print(len(pids), len(ref_pids))
+    print(rmsd)

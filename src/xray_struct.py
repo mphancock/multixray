@@ -45,10 +45,11 @@ Given an IMP model, the unit cell dimensions, and the space group; the function 
 """
 def get_xray_structure(
         hs,
-        w,
+        occs,
         pids,
         crystal_symmetry,
-        u_aniso_file=None
+        u_aniso_file=None,
+        delta=None
 ):
     m = hs[0].get_model()
 
@@ -73,6 +74,9 @@ def get_xray_structure(
             d = IMP.core.XYZR(m, pid)
             d.set_coordinates_are_optimized(True)
             coords_cart = (d.get_x(), d.get_y(), d.get_z())
+            if delta:
+                coords_cart = (coords_cart[0]+delta[0], coords_cart[1]+delta[1], coords_cart[2]+delta[2])
+
             coords_frac = unit_cell.fractionalize(coords_cart)
 
             element_table = IMP.atom.ElementTable()
@@ -80,7 +84,7 @@ def get_xray_structure(
             e = a.get_element()
             e_name = element_table.get_name(e)
 
-            occ = w.get_weight(i)
+            occ = occs[i]
             b_factor = a.get_temperature_factor()
 
             scatterer = cctbx.xray.scatterer(

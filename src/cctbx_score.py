@@ -17,7 +17,7 @@ import miller_ops
 
 def get_score(
         hs,
-        w,
+        occs,
         pids,
         f_obs,
         r_free_flags,
@@ -25,18 +25,18 @@ def get_score(
         ab_file=None,
         update_scale=True,
         update_k1=False,
-        u_aniso_file=None
+        u_aniso_file=None,
+        delta=None
 ):
     crystal_symmetry = f_obs.crystal_symmetry()
     xray_structure = xray_struct.get_xray_structure(
         hs=hs,
-        w=w,
+        occs=occs,
         pids=pids,
         crystal_symmetry=crystal_symmetry,
-        u_aniso_file=u_aniso_file
+        u_aniso_file=u_aniso_file,
+        delta=delta
     )
-
-    # print(xray_structure.show_scatterers())
 
     xray_structure.scatterers().flags_set_grads(
         state=False
@@ -73,6 +73,11 @@ def get_score(
     r_work = f_model_manager.r_work()
     r_free = f_model_manager.r_free()
     r_all = f_model_manager.r_all()
+
+    # xray_structure.show_scatterers()
+    # print(len(xray_structure.scatterers()))
+    # scatt = xray_structure.scatterers()[0]
+    # scatt.show()
 
     fmodels = mmtbx.fmodels(fmodel_xray=f_model_manager)
     fmodels.update_xray_structure(

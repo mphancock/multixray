@@ -92,10 +92,12 @@ Returns
 """
 def get_coord_avg_dict(
         hs,
-        w
+        occs
 ):
-    if w and w.get_number_of_weights() != len(hs):
-        raise RuntimeError("The length of the weights list is not equal to the number of structures: {} and {}".format(w.get_number_of_weights(), len(hs)))
+    occs = occs.tolist()
+
+    if occs and len(occs) != len(hs):
+        raise RuntimeError("The length of the weights list is not equal to the number of structures: {} and {}".format(len(occs), len(hs)))
 
     avg_dict = dict()
     norm_dict = dict()
@@ -127,13 +129,8 @@ def get_coord_avg_dict(
             d = IMP.core.XYZ(m, pid)
 
             # If a weight is provided use it, otherwise use the occupancy of the atom.
-            if w:
-                occ = w.get_weight(i)
-            else:
-                occ = at.get_occupancy()
-
-            avg_dict[pid_0] = avg_dict[pid_0] + d.get_coordinates()*occ
-            norm_dict[pid_0] = norm_dict[pid_0] + occ
+            avg_dict[pid_0] = avg_dict[pid_0] + d.get_coordinates()*occs[i]
+            norm_dict[pid_0] = norm_dict[pid_0] + occs[i]
 
     # Normalize the averages.
     for pid_0 in pids_0:

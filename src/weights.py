@@ -43,10 +43,10 @@ def get_weights(
     sigma=None
 
 ):
-    if occs_cur and len(occs_cur) != n_state:
+    if occs_cur is not None and occs_cur.shape[0] != n_state:
         raise RuntimeError("Length of occs_cur and n_state must be the same")
 
-    if occs_cur:
+    if occs_cur is not None:
         occs_tmp = np.random.normal(occs_cur, scale=sigma)
     else:
         occs_tmp = [random.random() for _ in range(n_state)]
