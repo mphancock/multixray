@@ -91,22 +91,13 @@ def get_all_log_dfs(
 
 if __name__ == "__main__":
     target = "7mhf"
-    job_name = "122_native_decoys_1_state"
+    job_name = "155_native_N4_decoys"
 
     rmsd_ranges = [[0,.5],[.5,1]]
-    # rmsd_ranges.append([0,0.25])
-    # rmsd_ranges.append([.25,.5])
-    # rmsd_ranges.append([.5,1.0])
-
-    # n_decoys = list()
     n_decoys = [900,100]
-    # n_decoys.append(500)
-    # n_decoys.append(400)
-    # n_decoys.append(100)
 
     job_dir = Path(Path.home(), "xray/score_bench/data", target, job_name)
     job_dir.mkdir(exist_ok=True)
-
 
     sample_job_dirs = list()
     for i in range(10):
