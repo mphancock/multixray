@@ -62,11 +62,11 @@ def pool_score(
     )
     n_states = len(h_decoys)
 
-    m = h_decoys[0].get_model()
-    w_p = IMP.Particle(m, "weights")
-    w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
-    w = IMP.isd.Weight(m, w_pid)
-    w.set_weights(params["decoy_w"])
+    # m = h_decoys[0].get_model()
+    # w_p = IMP.Particle(m, "weights")
+    # w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
+    # w = IMP.isd.Weight(m, w_pid)
+    # w.set_weights(params["decoy_w"])
 
     for score_f in score_fs:
         if score_f in ["ff", "bnd", "ang", "dih", "imp", "eps", "nbd"]:
@@ -109,7 +109,7 @@ def pool_score(
 
             results_dict = cctbx_score.get_score(
                 hs=h_decoys,
-                w=w,
+                occs=params["decoy_w"],
                 pids=pids,
                 f_obs=f_obs,
                 r_free_flags=flags,
@@ -117,7 +117,8 @@ def pool_score(
                 u_aniso_file=adp_file,
                 ab_file=params["ab_file"],
                 update_scale=params["scale"],
-                update_k1=params["scale_k1"]
+                update_k1=params["scale_k1"],
+                delta=None
             )
             score = results_dict["score"]
             scores_dict["r_free"] = results_dict["r_free"]
@@ -127,11 +128,11 @@ def pool_score(
             m_ref = IMP.Model()
             h_refs = IMP.atom.read_multimodel_pdb(str(ref_file), m_ref, IMP.atom.AllPDBSelector())
 
-            ref_n_state = len(h_refs)
-            w_ref_p = IMP.Particle(m_ref, "weights")
-            w_ref_pid = IMP.isd.Weight.setup_particle(w_ref_p, IMP.algebra.VectorKD([1]*ref_n_state))
-            w_ref = IMP.isd.Weight(m_ref, w_ref_pid)
-            w_ref.set_weights(params["ref_w"])
+            # ref_n_state = len(h_refs)
+            # w_ref_p = IMP.Particle(m_ref, "weights")
+            # w_ref_pid = IMP.isd.Weight.setup_particle(w_ref_p, IMP.algebra.VectorKD([1]*ref_n_state))
+            # w_ref = IMP.isd.Weight(m_ref, w_ref_pid)
+            # w_ref.set_weights(params["ref_w"])
 
             if score_f == "rmsd_avg":
                 f = align_imp.compute_rmsd_between_average
