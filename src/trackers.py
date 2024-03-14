@@ -364,6 +364,32 @@ class WeightTracker(Tracker):
     def evaluate(self):
         return list(self.w.get_weights())
 
+
+class WeightMatTracker(Tracker):
+    def __init__(
+            self,
+            name,
+            msmc_m
+    ):
+        Tracker.__init__(
+            self,
+            name=name,
+            m=msmc_m.get_m(),
+            n=msmc_m.get_w_mat().shape[0]*msmc_m.get_w_mat().shape[1]
+        )
+        self.msmc_m = msmc_m
+
+        labels = list()
+        for i in range(msmc_m.get_w_mat().shape[0]):
+            for j in range(msmc_m.get_w_mat().shape[1]):
+                labels.append("w_{}_{}".format(i, j))
+
+        self.set_labels(labels)
+
+    def evaluate(self):
+        return list(self.msmc_m.get_w_mat().flatten())
+
+
 class TimeTracker(Tracker):
     def __init__(
             self,
