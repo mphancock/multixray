@@ -8,12 +8,12 @@ class CenterOfMassOptimizerState(IMP.OptimizerState):
             self,
             m,
             pids,
-            com_0
+            ref_com
     ):
         IMP.OptimizerState.__init__(self, m, "CenterOfMassOptimizerState%1%")
         self.m = m
         self.pids = pids
-        self.com_0 = com_0
+        self.ref_com = ref_com
 
     def do_update(self, call):
         com = IMP.atom.CenterOfMass.setup_particle(
@@ -21,7 +21,7 @@ class CenterOfMassOptimizerState(IMP.OptimizerState):
             self.pids
         )
 
-        delta = self.com_0.get_coordinates() - com.get_coordinates()
+        delta = self.ref_com.get_coordinates() - com.get_coordinates()
         for pid in self.pids:
             xyz = IMP.core.XYZ(self.m, pid)
             coords_adjust = xyz.get_coordinates() + delta
