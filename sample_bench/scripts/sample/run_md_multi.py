@@ -37,10 +37,11 @@ if __name__ == "__main__":
     parser.add_argument("--out_dir")
     parser.add_argument("--tmp_out_dir")
     parser.add_argument("--cif_files")
+    parser.add_argument("--input_csv")
+    parser.add_argument("--job_id", type=int)
     parser.add_argument("--no_k1", action="store_true")
     parser.add_argument("--no_scale", action="store_true")
     parser.add_argument("--w_xray", type=float)
-    parser.add_argument("--dyn_w_xray", action="store_true")
     parser.add_argument("--start_pdb_file")
     parser.add_argument("--u_aniso_file")
     parser.add_argument("--n_state", type=int)
@@ -51,63 +52,77 @@ if __name__ == "__main__":
     parser.add_argument("--ref_occs")
     parser.add_argument("--sa")
     parser.add_argument("--steps", type=int)
-    parser.add_argument("--bfactor", type=int)
     parser.add_argument("--d_min", type=float)
     args = parser.parse_args()
 
     params.write_params(vars(args), Path(args.out_dir, "params.txt"))
 
-    ### REPRESENTATION
-    pdb_file = Path(args.start_pdb_file)
-    n_state = args.n_state
-    n_cond = args.n_cond
-    pdb_file_n_state = utility.get_n_state_from_pdb_file(pdb_file)
+    ## CIF_FILES
+    if args.input_csv:
+        cif_df = pd.read_csv(Path(args.input_csv), index_col=0)
+        cif_files = [Path(cif_file) for cif_file in cif_df.loc[args.job_id, "cifs"].split(",")]
+        ref_pdb_files = [Path(ref_file) for ref_file in cif_df.loc[args.job_id, "refs"].split(",")]
 
-    pdb_sel = IMP.atom.NonAlternativePDBSelector()
-    m = IMP.Model()
-    if pdb_file_n_state == 1:
-        hs = list()
-        for i in range(n_state):
-            hs.append(IMP.atom.read_pdb(str(pdb_file), m, pdb_sel))
-    else:
-        hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, pdb_sel)
+        n_cond = len(cif_files)
+        ref_n_state = utility.get_n_state_from_pdb_file(ref_pdb_files[0])
+        ref_w_mat = np.ndarray(shape=[ref_n_state, n_cond])
 
-    # Setup ref_occs.
-    # n_ref_state does not have to equal n_state but ref_n_cond has to match n_cond.
-    if Path(args.ref_pdb_files).suffix == ".csv":
-        ref_df = pd.read_csv(args.ref_pdb_files, index_col=0)
-        ref_pdb_files = [Path(ref_df.loc[args.ref_id, "pdb"])]*n_state
-    else:
-        ref_pdb_files = [Path(ref_pdb_file) for ref_pdb_file in args.ref_pdb_files.split(",")]
-
-    ref_n_state = utility.get_n_state_from_pdb_file(ref_pdb_files[0])
-    ref_occs = np.ndarray([ref_n_state, n_cond])
+        for cond in range(n_cond):
+            for state in range(ref_n_state):
+                ref_w_mat[state, cond] = cif_df.loc[args.job_id, "ref_occs"].split(";")[cond].split(",")[state]
 
     # Setup ref models.
+    pdb_sel = IMP.atom.NonAlternativePDBSelector()
     ref_msmc_ms = list()
     for cond in range(n_cond):
-        ref_m = IMP.Model()
-        ref_hs = IMP.atom.read_multimodel_pdb(str(ref_pdb_files[cond]), ref_m, pdb_sel)
-
-        ref_occs = list()
-        for state in range(ref_n_state):
-            if Path(args.ref_pdb_files).suffix == ".csv":
-                occ = ref_df.loc[args.ref_id, "w_{}_{}".format(state, cond)]
-            else:
-                occ = args.ref_occs.split(";")[cond].split(",")[state]
-
-            ref_occs.append(occ)
-
-        ref_w_mat = np.ndarray(shape=[ref_n_state, n_cond])
-        ref_w_mat[:, 0] = ref_occs
-
         ref_msmc_m = multi_state_multi_condition_model.MultiStateMultiConditionModel(
-            m=ref_m,
-            hs=ref_hs,
+            pdb_file=ref_pdb_files[cond],
             w_mat=ref_w_mat
         )
 
         ref_msmc_ms.append(ref_msmc_m)
+
+    ### REPRESENTATION
+    pdb_file = Path(args.start_pdb_file)
+    n_state = args.n_state
+    pdb_file_n_state = utility.get_n_state_from_pdb_file(pdb_file)
+
+    # # Setup ref_occs.
+    # # n_ref_state does not have to equal n_state but ref_n_cond has to match n_cond.
+    # if Path(args.ref_pdb_files).suffix == ".csv":
+    #     ref_df = pd.read_csv(args.ref_pdb_files, index_col=0)
+    #     ref_pdb_files = [Path(ref_df.loc[args.ref_id, "pdb"])]*n_state
+    # else:
+    #     ref_pdb_files = [Path(ref_pdb_file) for ref_pdb_file in args.ref_pdb_files.split(",")]
+
+    # ref_n_state = utility.get_n_state_from_pdb_file(ref_pdb_files[0])
+    # ref_occs = np.ndarray([ref_n_state, n_cond])
+
+    # Setup ref models.
+    # ref_msmc_ms = list()
+    # for cond in range(n_cond):
+    #     ref_m = IMP.Model()
+    #     ref_hs = IMP.atom.read_multimodel_pdb(str(ref_pdb_files[cond]), ref_m, pdb_sel)
+
+    #     ref_occs = list()
+    #     for state in range(ref_n_state):
+    #         if Path(args.ref_pdb_files).suffix == ".csv":
+    #             occ = ref_df.loc[args.ref_id, "w_{}_{}".format(state, cond)]
+    #         else:
+    #             occ = args.ref_occs.split(";")[cond].split(",")[state]
+
+    #         ref_occs.append(occ)
+
+    #     ref_w_mat = np.ndarray(shape=[ref_n_state, n_cond])
+    #     ref_w_mat[:, 0] = ref_occs
+
+    #     ref_msmc_m = multi_state_multi_condition_model.MultiStateMultiConditionModel(
+    #         m=ref_m,
+    #         hs=ref_hs,
+    #         w_mat=ref_w_mat
+    #     )
+
+    #     ref_msmc_ms.append(ref_msmc_m)
 
     # Setup the multi state multi condition model
     occs = np.ndarray([n_state, n_cond])
@@ -121,15 +136,8 @@ if __name__ == "__main__":
 
     print("occs", occs)
 
-    # Setup bfactors.
-    if args.bfactor:
-        for h in hs:
-            for pid in IMP.atom.Selection(h).get_selected_particle_indexes():
-                IMP.atom.Atom(m, pid).set_temperature_factor(args.bfactor)
-
     msmc_m = multi_state_multi_condition_model.MultiStateMultiConditionModel(
-        m=m,
-        hs=hs,
+        pdb_file=pdb_file,
         w_mat=occs
     )
 
@@ -163,6 +171,7 @@ if __name__ == "__main__":
             use_weights = True
 
     ### SCORING
+    m, hs = msmc_m.get_m(), msmc_m.get_hs()
     rs = list()
     rset_charmm = IMP.RestraintSet(m, 1.0)
     for h in hs:
@@ -178,9 +187,7 @@ if __name__ == "__main__":
     # List of the atom and weight restraints.
     r_xrays, wrs = list(), list()
     o_states = list()
-    if args.cif_files:
-        cif_files = args.cif_files.split(",")
-
+    if cif_files:
         # cif file here is a string.
         for i in range(len(cif_files)):
             cif_file = cif_files[i]
@@ -219,7 +226,7 @@ if __name__ == "__main__":
                 cond=i,
                 f_obs=f_obs_array,
                 free_flags=flags_array,
-                w_xray=args.w_xray,
+                w_xray=args.w_xray/len(cif_files),
                 update_scale=scale,
                 update_k1=k1,
                 u_aniso_file=args.u_aniso_file,
@@ -327,7 +334,7 @@ if __name__ == "__main__":
             dest_dir=pdb_dir
         )
         copy_tracker.set_xray_only(False)
-        copy_tracker.set_period(10)
+        copy_tracker.set_period(100)
         all_trackers.append(copy_tracker)
 
     log_ostate = log_statistics.LogStatistics(

@@ -1,23 +1,47 @@
+import sys
+from pathlib import Path
+
 import IMP
 import IMP.atom
+
+sys.path.append(str(Path(Path.home(), "xray/src")))
+import utility
 
 
 class MultiStateMultiConditionModel:
     def __init__(
             self,
-            m,
-            hs,
+            pdb_file,
             w_mat
     ):
-        self.m = m
-        self.hs = hs
+        self.m = IMP.Model()
         self.set_w_mat(w_mat)
+        self.n_state = self.w_mat.shape[0]
 
-        self.n_state = len(self.hs)
+        pdb_file_n_state = utility.get_n_state_from_pdb_file(pdb_file)
+
+        self.hs = list()
+
+        sel = IMP.atom.NonAlternativePDBSelector()
+
+        if pdb_file_n_state == 1 and self.n_state > 1:
+            for i in range(self.n_state):
+                self.hs.append(IMP.atom.read_pdb(str(pdb_file), self.m, sel))
+        elif pdb_file_n_state == self.n_state:
+            self.hs.extend(IMP.atom.read_multimodel_pdb(str(pdb_file), self.m, sel))
+        else:
+            raise RuntimeError("Number of states in pdb file does not match the number of states in the model.")
+
+        # Set b factors
+        for h in self.hs:
+            for pid in IMP.atom.Selection(h).get_selected_particle_indexes():
+                IMP.atom.Atom(self.m, pid).set_temperature_factor(15)
+
+
         self.n_cond = self.w_mat.shape[1]
 
-        if w_mat.shape[0] != self.n_state:
-            raise ValueError("Number of weights must be the same as the number of states")
+        # if self.w_mat.shape[0] != self.n_state:
+        #     raise ValueError("Number of weights must be the same as the number of states")
 
         self.pids_dict = dict()
         self.prot_pids_dict = dict()
@@ -26,8 +50,10 @@ class MultiStateMultiConditionModel:
         self.side_pids_dict = dict()
         self.ca_pids_dict = dict()
         water_at_type = IMP.atom.AtomType("HET: O  ")
+
+        print(self.n_state, len(self.hs))
         for i in range(self.n_state):
-            h = hs[i]
+            h = self.hs[i]
             self.pids_dict[i] = IMP.atom.Selection(h).get_selected_particle_indexes()
             self.prot_pids_dict[i] = (IMP.atom.Selection(h) - IMP.atom.Selection(h, atom_type=water_at_type)).get_selected_particle_indexes()
             self.water_pids_dict[i] = IMP.atom.Selection(h, atom_type=water_at_type).get_selected_particle_indexes()
@@ -36,9 +62,9 @@ class MultiStateMultiConditionModel:
             self.ca_pids_dict[i] = IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()
 
         # Setup waters
-        for i in range(len(hs)):
+        for i in range(len(self.hs)):
             for pid in self.water_pids_dict[i]:
-                IMP.atom.CHARMMAtom.setup_particle(m, pid, "O")
+                IMP.atom.CHARMMAtom.setup_particle(self.m, pid, "O")
 
         self.com = IMP.atom.CenterOfMass.setup_particle(
             IMP.Particle(self.m),
@@ -80,6 +106,9 @@ class MultiStateMultiConditionModel:
 
     def get_com(self):
         return self.com
+
+    def get_occs_for_condition_i(self, i):
+        return self.w_mat[:,i]
 
     def set_w_mat(self, w_mat):
         self.w_mat = w_mat
