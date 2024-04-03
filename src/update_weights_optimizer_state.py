@@ -41,13 +41,18 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
 
             new_occs = self.get_new_occs(
                 cur_occs=cur_occs,
-                r_xray=self.r_xrays[i]
+                cond=i
             )
 
             self.msmc_m.set_occs_for_condition_i(new_occs, i)
 
 
-    def get_new_occs(self, cur_occs, r_xray):
+    def get_new_occs(
+        self,
+        cur_occs,
+        cond
+    ):
+        r_xray = self.r_xrays[cond]
         cur_score = r_xray.get_f()
 
         all_tmp_occs = [cur_occs]
@@ -65,6 +70,9 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
         best_score = cur_score
         for tmp_occs in all_tmp_occs:
             print(self.get_name(), " evaluation")
+
+            # Update the weights.
+            self.msmc_m.set_occs_for_condition_i(tmp_occs, cond)
 
             # Don't need to compute derivatives.
             r_xray.evaluate(False)
