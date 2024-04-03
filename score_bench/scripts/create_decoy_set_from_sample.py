@@ -18,7 +18,8 @@ def get_random_sample_df(
     log_dfs,
     N,
     equil,
-    rmsd_range
+    rmsd_range,
+    rmsd_id
 ):
     pdb_log_dfs = list()
 
@@ -27,7 +28,7 @@ def get_random_sample_df(
 
         # remove the first structure.
         pdb_log_df = pdb_log_df.iloc[equil:]
-        pdb_log_df = pdb_log_df[(pdb_log_df['rmsd_0'] >= rmsd_range[0]) & (pdb_log_df['rmsd_0'] <= rmsd_range[1])]
+        pdb_log_df = pdb_log_df[(pdb_log_df['rmsd_{}'.format(rmsd_id)] >= rmsd_range[0]) & (pdb_log_df['rmsd_{}'.format(rmsd_id)] <= rmsd_range[1])]
         pdb_log_dfs.append(pdb_log_df)
 
     merge_log_df = pd.concat(pdb_log_dfs)
@@ -93,8 +94,9 @@ if __name__ == "__main__":
     target = "7mhf"
     job_name = "155_native_N4_decoys"
 
-    rmsd_ranges = [[0,.5],[.5,1]]
-    n_decoys = [900,100]
+    rmsd_ranges = [[0,0.25],[.25,0.5],[0,0.25],[.25,0.5]]
+    rmsd_ids = [0,0,1,1]
+    n_decoys = [250, 250, 250, 250]
 
     job_dir = Path(Path.home(), "xray/score_bench/data", target, job_name)
     job_dir.mkdir(exist_ok=True)
@@ -103,8 +105,8 @@ if __name__ == "__main__":
     for i in range(10):
         sample_job_dirs.append(Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/{}/{}".format(job_name, i)))
 
-    n_state = 1
-    n_cond = 1
+    n_state = 4
+    n_cond = 2
     decoy_meta_file = Path(job_dir, "rand1000.csv")
 
 
@@ -122,7 +124,8 @@ if __name__ == "__main__":
             log_dfs=log_dfs,
             N=n_decoys[i],
             equil=1,
-            rmsd_range=rmsd_ranges[i]
+            rmsd_range=rmsd_ranges[i],
+            rmsd_id=rmsd_ids[i]
         )
         sample_dfs.append(sample_df)
 

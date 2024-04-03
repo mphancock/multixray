@@ -73,8 +73,14 @@ def pool_get_stat_info_df(
         check_cols.extend(fields)
 
         # Check if all columns in check_cols exist in the DataFrame. This guaruntees that merge_log_df will contain all of the necessary columns.
-        if not set(check_cols).issubset(log_df.columns):
-            print("Skipped corrupt log file (missing columns): {}".format(log_file))
+        df_contains_fields = True
+        for col in check_cols:
+            if col not in log_df.columns:
+                df_contains_fields = False
+                print("Skipped {} missing fields: {}".format(log_file, col))
+                break
+
+        if not df_contains_fields:
             continue
 
         if pdb_only:
@@ -276,15 +282,17 @@ def get_stat_df(
 
 if __name__ == "__main__":
     stat_df = get_stat_df(
-        log_file_groups=[[Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/109_natives_2_cif/0/output_0/log.csv")]],
-        main_field="xray_0+xray_1",
+        log_file_groups=[[Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/158_N8_J3/640510/output_9/log.csv")]],
+        main_field="xray_0+xray_1+xray_2",
         main_stat="min",
-        bonus_fields=["rmsd_avg_0+rmsd_avg_1", "pdb"],
+        bonus_fields=["pdb", "ff"],
         pdb_only=True,
         equil=1
     )
 
-    print(stat_df.columns)
-    print(stat_df.iloc[0, 0])
-    print(stat_df.iloc[0, 1])
-    print(stat_df.iloc[0, 2])
+    print(stat_df.head())
+
+    # print(stat_df.columns)
+    # print(stat_df.iloc[0, 0])
+    # print(stat_df.iloc[0, 1])
+    # print(stat_df.iloc[0, 2])

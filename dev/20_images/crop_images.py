@@ -23,8 +23,8 @@ def find_non_whitespace_pixels(image):
 
 
 if __name__ == "__main__":
-    image_dir = Path(Path.home(), "Documents/xray_ms/figure_3/7mhf_30")
-    crop_image_dir = Path(Path.home(), "Documents/xray_ms/figure_3/{}_0".format(image_dir.name))
+    image_dir = Path(Path.home(), "Documents/xray_ms/figure_3/sample_bench")
+    crop_image_dir = Path(Path.home(), "Documents/xray_ms/figure_3/{}_crop".format(image_dir.name))
     crop_image_dir.mkdir(exist_ok=True)
 
     for image_file in image_dir.glob("*.png"):

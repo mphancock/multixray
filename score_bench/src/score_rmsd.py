@@ -17,6 +17,7 @@ import charmm
 import miller_ops
 import params
 import weights
+from multi_state_multi_condition_model_2 import MultiStateMultiConditionModel
 
 
 """
@@ -40,7 +41,9 @@ def pool_score(
         params
 ):
     decoy_file=params["decoy_file"]
+    decoy_occs = params["decoy_occs"]
     ref_file=params["ref_file"]
+    ref_occs=params["ref_occs"]
     adp_file=params["adp_file"]
     cif_file=params["cif_file"]
     score_fs=params["score_fs"]
@@ -54,19 +57,13 @@ def pool_score(
 
     scores_dict["pdb_file"] = str(decoy_file)
 
-    # Read in the models.
-    m_decoy = IMP.Model()
-    h_decoys = IMP.atom.read_multimodel_pdb(
-        str(decoy_file),
-        m_decoy
+    decoy_w_mat = np.ndarray(shape=[len(decoy_occs), 1])
+    decoy_w_mat[:,0] = decoy_occs
+    decoy_msmc_m = MultiStateMultiConditionModel(
+        pdb_file=decoy_file,
+        w_mat=decoy_w_mat
     )
-    n_states = len(h_decoys)
-
-    # m = h_decoys[0].get_model()
-    # w_p = IMP.Particle(m, "weights")
-    # w_pid = IMP.isd.Weight.setup_particle(w_p, IMP.algebra.VectorKD([1]*n_states))
-    # w = IMP.isd.Weight(m, w_pid)
-    # w.set_weights(params["decoy_w"])
+    h_decoys = decoy_msmc_m.get_hs()
 
     for score_f in score_fs:
         if score_f in ["ff", "bnd", "ang", "dih", "imp", "eps", "nbd"]:
@@ -109,7 +106,7 @@ def pool_score(
 
             results_dict = cctbx_score.get_score(
                 hs=h_decoys,
-                occs=params["decoy_w"],
+                occs=decoy_msmc_m.get_occs_for_condition_i(0),
                 pids=pids,
                 f_obs=f_obs,
                 r_free_flags=flags,
@@ -125,14 +122,12 @@ def pool_score(
             scores_dict["r_work"] = results_dict["r_work"]
             scores_dict["r_all"] = results_dict["r_all"]
         elif score_f in ["rmsd_avg", "rmsd_ord", "rmsd_dom", "avg_delta_w"]:
-            m_ref = IMP.Model()
-            h_refs = IMP.atom.read_multimodel_pdb(str(ref_file), m_ref, IMP.atom.AllPDBSelector())
-
-            # ref_n_state = len(h_refs)
-            # w_ref_p = IMP.Particle(m_ref, "weights")
-            # w_ref_pid = IMP.isd.Weight.setup_particle(w_ref_p, IMP.algebra.VectorKD([1]*ref_n_state))
-            # w_ref = IMP.isd.Weight(m_ref, w_ref_pid)
-            # w_ref.set_weights(params["ref_w"])
+            ref_w_mat = np.ndarray(shape=[len(ref_occs), 1])
+            ref_w_mat[:,0] = ref_occs
+            ref_msmc_m = MultiStateMultiConditionModel(
+                pdb_file=ref_file,
+                w_mat=ref_w_mat
+            )
 
             if score_f == "rmsd_avg":
                 f = align_imp.compute_rmsd_between_average
@@ -144,10 +139,11 @@ def pool_score(
                 f = align_imp.compute_avg_delta_weight
             score = f(
                     h_0s=h_decoys,
-                    h_1s=h_refs,
-                    w_0=w,
-                    w_1=w_ref,
-                    ca_only=True
+                    h_1s=ref_msmc_m.get_hs(),
+                    pids_0=decoy_msmc_m.get_ca_pids(0),
+                    pids_1=ref_msmc_m.get_ca_pids(0),
+                    occs_0=decoy_msmc_m.get_occs_for_condition_i(0),
+                    occs_1=ref_msmc_m.get_occs_for_condition_i(0),
                 )
         elif score_f == "dom_weight":
             hs_ordered = align_imp.get_ordered_hs(h_0s=h_decoys)

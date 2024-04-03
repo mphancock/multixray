@@ -53,9 +53,9 @@ if __name__ == "__main__":
 
                 param_dict = dict()
                 param_dict["decoy_file"] = pdb_file
-                param_dict["decoy_w"] = occs
+                param_dict["decoy_occs"] = occs
                 param_dict["ref_file"] = Path(native_df.loc[i, "pdb"])
-                param_dict["ref_w"] = ref_occs
+                param_dict["ref_occs"] = ref_occs
                 param_dict["cif_file"] = cif_file
                 param_dict["flags_file"] = cif_file
                 param_dict["res"] = 2
@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
             # for pool_param in pool_params:
             #     print(pool_param)
-            #     score_rmsd.pool_score(pool_param)
+            #     print(score_rmsd.pool_score(pool_param))
 
             print(multiprocessing.cpu_count())
             pool_obj = multiprocessing.Pool(

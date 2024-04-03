@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 import pandas as pd
 import numpy as np
+import argparse
 
 sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
 import get_stat_df
@@ -9,12 +10,12 @@ import get_stat_df
 
 def get_score_analysis_df(
         exp_dir,
-        n_jobs,
+        job_ids,
         field,
         bonus_fields
 ):
-    log_df = pd.DataFrame(index=list(range(n_jobs)))
-    for job_id in range(n_jobs):
+    log_df = pd.DataFrame(index=job_ids)
+    for job_id in job_ids:
         job_dir = Path(exp_dir, str(job_id))
         print(job_dir)
         out_dirs = list(job_dir.glob("output_*"))
@@ -53,39 +54,49 @@ def get_score_analysis_df(
 
 
 if __name__ == "__main__":
-    n_jobs = 10
-    # n_cond = 1
-    # job_name = "123_natives_2_state"
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("--n_cond", type=int)
+    # parser.add_argument("--job_name")
+    # args = parser.parse_args()
 
-    # params = [("123_natives_2_state", 1), ("125_natives_1_state", 1), ("141_native_4_state_1_cond", 1), ("151_native_N8_J1", 1)]
-    # params = [("124_natives_2_cond", 2), ("142_native_4_state_2_cond", 2), ("145_native_1_state_2_cond", 2), ("152_native_N8_J2", 2)]
-    for job_name, n_cond in [("141_native_4_state_1_cond", 1)]:
-        for stat_type in ["rmsd", "xray"]:
+    # params = [("165_J1_i", 1), ("164_J2_ik", 2), ("162_J3_ijk", 3), ("163_J4_fijk", 4)]
+    # n_cond = args.n_cond
+    # job_name = args.job_name
+
+
+    for job_name, n_cond in [("143_native_1_state_2_cond_wxray", 2)]:
+        fields = list()
+        # fields = ["r_free_{}".format(i) for i in range(n_cond)]
+        field = ""
+        for i in range(n_cond):
+            field = field + "xray_{}".format(i)
+            if i < n_cond-1:
+                field = field + "+"
+        fields.append(field)
+
+        bonus_fields = ["pdb", "ff"]
+
+        for i in  range(n_cond):
+            bonus_fields.append("xray_{}".format(i))
+            bonus_fields.append("r_free_{}".format(i))
+            bonus_fields.append("rmsd_{}".format(i))
+
+        for field in fields:
+            bonus_fields_tmp = bonus_fields.copy()
+            if field in bonus_fields_tmp:
+                bonus_fields_tmp.remove(field)
+
             exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", job_name)
             analysis_dir = Path(Path.home(), "xray/sample_bench/data/7mhf", job_name)
             analysis_dir.mkdir(exist_ok=True)
 
-            bonus_fields = ["pdb", "ff"]
-            field = ""
-            for i in range(n_cond):
-                field = field + stat_type + "_{}".format(i)
-                if i < n_cond-1:
-                    field = field + "+"
-
-                bonus_fields.append("xray_{}".format(i))
-                bonus_fields.append("r_free_{}".format(i))
-                bonus_fields.append("rmsd_{}".format(i))
-
-            ## BUG FIX: Requesting the field as a bonus field causes issues with get_stat_df.
-            if field in bonus_fields:
-                bonus_fields.remove(field)
-
+            print(field, bonus_fields_tmp)
             log_df = get_score_analysis_df(
                 exp_dir=exp_dir,
-                n_jobs=n_jobs,
+                job_ids=list(range(8)),
                 field=field,
-                bonus_fields=bonus_fields
+                bonus_fields=bonus_fields_tmp
             )
 
-            log_file = Path(analysis_dir, "score_analysis_{}.csv".format(field))
+            log_file = Path(analysis_dir, "score_{}.csv".format(field))
             log_df.to_csv(log_file)

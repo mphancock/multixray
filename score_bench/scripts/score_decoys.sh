@@ -11,11 +11,11 @@
 
 eval "$(conda shell.bash hook)"
 module load CBI conda-stage
-conda activate imp_219_cctbx
+conda activate imp_220_cctbx
 
 
 I=$((SGE_TASK_ID-1))
-python ~/xray/score_bench/scripts/score_decoys.py --i "$I" --n_cond 2 --job 122_native_decoys_1_state
+python ~/xray/score_bench/scripts/score_decoys.py --i "$I" --n_cond 2 --job 155_native_N4_decoys
 
 [[ -n "$TMPDIR" ]] && qstat -j "$JOB_ID"
 

@@ -8,7 +8,7 @@ import time
 import sys
 
 sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
-import get_stat_df
+from get_stat_df import get_stat_df
 
 
 """
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     else:
         bonus_fields = args.bonus_fields.split(",")
 
-    score_stat_df = get_stat_df.get_stat_df(
+    stat_df = get_stat_df(
         log_file_groups=[[log_file] for log_file in log_files],
         main_field=args.field,
         main_stat="min",
@@ -155,8 +155,11 @@ if __name__ == "__main__":
     )
 
     # Drop any rows with NaN values.
-    score_stat_df = score_stat_df.dropna()
+    stat_df = stat_df.dropna()
     # score_stat_df.to_csv(Path(sample_bench_dir, "stat_df_{}.csv".format(args.field)))
+
+    if "rmsd_0+rmsd_1" in stat_df.columns:
+        stat_df["rmsd_0+rmsd_1"] =  stat_df["rmsd_0+rmsd_1"]/2
 
     sample_bench_bonus_fields = bonus_fields.copy()
     if "pdb" in sample_bench_bonus_fields:
@@ -165,9 +168,9 @@ if __name__ == "__main__":
     # Next, create m random groups of n log files to compute the mean and standard deviation of the minimum field values of the log files in the group. m and n are both set to the number of total log files.
     sample_volume_df = get_sample_volume_df(
         log_files=log_files,
-        log_min_df=score_stat_df,
+        log_min_df=stat_df,
         score_field=args.field,
         extra_fields=sample_bench_bonus_fields,
-        max_n=len(score_stat_df)
+        max_n=len(stat_df)
     )
     sample_volume_df.to_csv(Path(args.file))

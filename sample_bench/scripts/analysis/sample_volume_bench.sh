@@ -5,36 +5,47 @@
 #$ -l h_rt=00:20:00
 #$ -l mem_free=1G
 #$ -l scratch=1G
-#$ -N vol_bench
+#$ -N volume
 #$ -pe smp 8
 #$ -t 1-1
 #$ -l hostname='qb3-id*'
 
 #!/bin/bash
 module load CBI conda-stage
-conda activate imp_219_cctbx
+conda activate imp_220_cctbx
 
-JOB_NAME="124_natives_2_cond"
-SYSTEM="7mhf"
-SAMPLE_BENCH_DIR="/wynton/home/sali/mhancock/xray/sample_bench/data/$SYSTEM/$JOB_NAME"
+JOB_NAME="152_native_N8_J2"
+N_COND=2
 
+SAMPLE_BENCH_DIR="/wynton/home/sali/mhancock/xray/sample_bench/data/7mhf/$JOB_NAME"
 mkdir -p "$SAMPLE_BENCH_DIR"
 
+
 for JOB_ID in {0..9}
+# for JOB_ID in 0
 do
-    JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/$SYSTEM/$JOB_NAME/$JOB_ID"
+    JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/$JOB_NAME/$JOB_ID"
 
-    # FIELD="xray_0"
-    # BONUS_FIELDS="rmsd_0"
-    FIELD="xray_0+xray_1"
-    BONUS_FIELDS="rmsd_0+rmsd_1,pdb"
+    if [ $N_COND -eq 1 ]; then
+        FIELD="xray_0"
+        BONUS_FIELDS="rmsd_0"
+    else
+        FIELD="xray_0+xray_1"
+        BONUS_FIELDS="rmsd_0+rmsd_1,pdb"
+    fi
 
-    FILE="$SAMPLE_BENCH_DIR/xray_volume_bench_$JOB_ID.csv"
+    echo $FIELD
+    FILE="$SAMPLE_BENCH_DIR"/volume_"$FIELD"_"$JOB_ID".csv
     python sample_volume_bench.py --job_dir "$JOB_DIR" --field "$FIELD" --bonus_fields  "$BONUS_FIELDS" --file "$FILE"
 
-    # FIELD="rmsd_0"
-    FIELD="rmsd_0+rmsd_1"
-    FILE="$SAMPLE_BENCH_DIR/rmsd_volume_bench_$JOB_ID.csv"
+    if [ $N_COND -eq 1 ]; then
+        FIELD="rmsd_0"
+    else
+        FIELD="rmsd_0+rmsd_1"
+    fi
     BONUS_FIELDS="pdb"
+
+    echo $FIELD
+    FILE="$SAMPLE_BENCH_DIR"/volume_"$FIELD"_"$JOB_ID".csv
     python sample_volume_bench.py --job_dir "$JOB_DIR" --field "$FIELD" --bonus_fields "$BONUS_FIELDS" --file "$FILE"
 done
