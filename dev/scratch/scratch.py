@@ -1,26 +1,25 @@
 from pathlib import Path
 import shutil
 import math
+import pandas as pd
 
 import IMP
 import IMP.atom
 
 
 if __name__ == "__main__":
-    ms = list()
-    hs = list()
+    summary_df = pd.read_csv(Path(Path.home(), "xray/sample_bench/data/7mhf/166_N1/summary.csv"))
 
-    m = IMP.Model()
+    print(summary_df.head())
 
-    hs = IMP.atom.read_multimodel_pdb(str(Path(Path.home(), "xray/tmp/2155.pdb")), m, IMP.atom.AllPDBSelector())
+    for i in range(len(summary_df)):
+        pdb_file = Path(summary_df.iloc[i]["pdb"])
+        N = summary_df.iloc[i]["N"]
+        J = summary_df.iloc[i]["J"]
+        cif_name = Path(summary_df.iloc[i]["cif_name"])
 
-    occs = [0.8698016060269730, 0.13019839397302700]
+        new_pdb_file = Path(Path.home(), "xray/sample_bench/data/7mhf/166_N1/summary/{}_N{}_J{}.pdb".format(cif_name.stem, N, J))
 
-    for i in range(2):
-        h = hs[i]
+        print(pdb_file, new_pdb_file)
+        shutil.copy(pdb_file, new_pdb_file)
 
-        for pid in IMP.atom.Selection(h).get_selected_particle_indexes():
-            at = IMP.atom.Atom(m, pid)
-            at.set_occupancy(occs[i])
-
-    IMP.atom.write_multimodel_pdb(hs, str(Path(Path.home(), "xray/tmp/2155_tmp.pdb")))

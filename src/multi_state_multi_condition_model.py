@@ -18,7 +18,10 @@ class MultiStateMultiConditionModel:
         self.set_w_mat(w_mat)
         self.n_state = self.w_mat.shape[0]
 
-        pdb_file_n_state = utility.get_n_state_from_pdb_file(pdb_file)
+        try:
+            pdb_file_n_state = utility.get_n_state_from_pdb_file(pdb_file)
+        except RuntimeError as e:
+            raise e
 
         self.hs = list()
 
@@ -51,7 +54,7 @@ class MultiStateMultiConditionModel:
         self.ca_pids_dict = dict()
         water_at_type = IMP.atom.AtomType("HET: O  ")
 
-        print(self.n_state, len(self.hs))
+        # print(self.n_state, len(self.hs))
         for i in range(self.n_state):
             h = self.hs[i]
             self.pids_dict[i] = IMP.atom.Selection(h).get_selected_particle_indexes()

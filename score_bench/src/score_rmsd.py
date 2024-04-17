@@ -17,7 +17,7 @@ import charmm
 import miller_ops
 import params
 import weights
-from multi_state_multi_condition_model_2 import MultiStateMultiConditionModel
+from multi_state_multi_condition_model import MultiStateMultiConditionModel
 
 
 """
@@ -59,11 +59,16 @@ def pool_score(
 
     decoy_w_mat = np.ndarray(shape=[len(decoy_occs), 1])
     decoy_w_mat[:,0] = decoy_occs
-    decoy_msmc_m = MultiStateMultiConditionModel(
-        pdb_file=decoy_file,
-        w_mat=decoy_w_mat
-    )
-    h_decoys = decoy_msmc_m.get_hs()
+
+    try:
+        decoy_msmc_m = MultiStateMultiConditionModel(
+            pdb_file=decoy_file,
+            w_mat=decoy_w_mat
+        )
+        h_decoys = decoy_msmc_m.get_hs()
+    except RuntimeError as e:
+        print(e)
+        return None
 
     for score_f in score_fs:
         if score_f in ["ff", "bnd", "ang", "dih", "imp", "eps", "nbd"]:

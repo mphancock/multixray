@@ -86,6 +86,7 @@ def pool_get_stat_info_df(
             stat_df = stat_df[columns]
         else:
             print("Not enough entries to compute stat: {}".format(log_files))
+            stat_df = merge_log_df
     else:
         print("No valid log dfs")
         stat_df = merge_log_df
@@ -145,6 +146,8 @@ def get_stat_df(
 
     merge_stat_df = pd.concat(subset_stat_dfs)
     stat_df = merge_stat_df.nsmallest(N, field)
+
+    stat_df = stat_df.reset_index()
 
     return stat_df
 

@@ -11,8 +11,8 @@ if __name__ == "__main__":
 
     param_dict = dict()
 
-    param_dict["decoy_file"] = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/169_N8/55/output_349/pdbs/277.pdb")
-    param_dict["decoy_occs"] = [0.1707090564501260, 0.2154425789446470,	0.135708096184682, 0.0539801939285565, 0.1220519934501550, 0.1262063697376800, 0.0563696183735114, 0.1195320929306410]
+    param_dict["decoy_file"] = Path("/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhm_0.pdb")
+    param_dict["decoy_occs"] = [1]
     param_dict["ref_file"] = Path("/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhi.pdb")
     param_dict["ref_occs"] = [1]
     param_dict["cif_file"] = Path("/wynton/home/sali/mhancock/xray/data/cifs/7mhf/7mhi.cif")
