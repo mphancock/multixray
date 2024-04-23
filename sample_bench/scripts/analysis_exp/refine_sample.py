@@ -34,9 +34,6 @@ if __name__ == "__main__":
 
     print(len(sample_df))
 
-    # print(len(stat_df))
-    # stat_df.to_csv(Path(Path.home(), "xray/dev/36_refine_sample/data/stat_df.csv"))
-
     analysis_dir = Path(Path.home(), "xray/sample_bench/data/7mhf", exp_name)
 
     ref_df = sample_df.copy()

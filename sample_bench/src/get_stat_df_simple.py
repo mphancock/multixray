@@ -55,10 +55,10 @@ def pool_get_stat_info_df(
         if invalid:
             continue
 
+        log_df = log_df.iloc[equil:]
+
         if pdb_only:
             log_df = log_df[~log_df['pdb'].isna()]
-
-        log_df = log_df.iloc[equil:]
 
         if max_rmsd:
             log_df = log_df[log_df["rmsd_0"] <= max_rmsd]
@@ -90,6 +90,10 @@ def pool_get_stat_info_df(
     else:
         print("No valid log dfs")
         stat_df = merge_log_df
+
+    all_fields = [field]
+    all_fields.extend(bonus_fields)
+    stat_df = stat_df[all_fields]
 
     return stat_df
 

@@ -169,11 +169,8 @@ class XtalRestraint(IMP.Restraint):
             self.df_mag_ratio = df_mag_ratio
 
             for pid in self.pids:
-                w_xray = self.w_xray * df_mag_ratio
-
                 d = IMP.core.XYZR(self.get_model(), pid)
-
-                dxray_dx_scaled = w_xray * self.df_dxs[pid]
+                dxray_dx_scaled = self.w_xray * df_mag_ratio * self.df_dxs[pid]
 
                 d.add_to_derivatives(dxray_dx_scaled, sa.get_derivative_accumulator())
 

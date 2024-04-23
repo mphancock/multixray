@@ -39,9 +39,7 @@ if __name__ == "__main__":
             print("skipping {}".format(pdb_file))
             continue
 
-        n_state = 8
-        # n_state = get_n_state_from_pdb_file(pdb_file)
-
+        n_state = pdb_df.loc[i, "N"]
         cif_name = pdb_df.loc[i, "cif_name"]
         cif_file = Path(Path.home(), "xray/data/cifs/7mhf/{}.cif".format(cif_name))
 

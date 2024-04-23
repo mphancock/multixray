@@ -3,6 +3,7 @@ import sys
 import argparse
 import numpy as np
 import pandas as pd
+import random
 
 import IMP
 import IMP.atom
@@ -41,7 +42,8 @@ if __name__ == "__main__":
     parser.add_argument("--job_id", type=int)
     parser.add_argument("--no_k1", action="store_true")
     parser.add_argument("--no_scale", action="store_true")
-    parser.add_argument("--w_xray", type=float)
+    parser.add_argument("--w_xray")
+    parser.add_argument("--w_xray_multiplier", type=float, required=False)
     parser.add_argument("--start_pdb_file")
     parser.add_argument("--u_aniso_file")
     parser.add_argument("--n_state", type=int)
@@ -83,46 +85,13 @@ if __name__ == "__main__":
         ref_msmc_ms.append(ref_msmc_m)
 
     ### REPRESENTATION
-    pdb_file = Path(args.start_pdb_file)
+    if args.start_pdb_file:
+        pdb_file = Path(args.start_pdb_file)
+    else:
+        pdb_file = random.choice(ref_pdb_files)
+
     n_state = args.n_state
     pdb_file_n_state = utility.get_n_state_from_pdb_file(pdb_file)
-
-    # # Setup ref_occs.
-    # # n_ref_state does not have to equal n_state but ref_n_cond has to match n_cond.
-    # if Path(args.ref_pdb_files).suffix == ".csv":
-    #     ref_df = pd.read_csv(args.ref_pdb_files, index_col=0)
-    #     ref_pdb_files = [Path(ref_df.loc[args.ref_id, "pdb"])]*n_state
-    # else:
-    #     ref_pdb_files = [Path(ref_pdb_file) for ref_pdb_file in args.ref_pdb_files.split(",")]
-
-    # ref_n_state = utility.get_n_state_from_pdb_file(ref_pdb_files[0])
-    # ref_occs = np.ndarray([ref_n_state, n_cond])
-
-    # Setup ref models.
-    # ref_msmc_ms = list()
-    # for cond in range(n_cond):
-    #     ref_m = IMP.Model()
-    #     ref_hs = IMP.atom.read_multimodel_pdb(str(ref_pdb_files[cond]), ref_m, pdb_sel)
-
-    #     ref_occs = list()
-    #     for state in range(ref_n_state):
-    #         if Path(args.ref_pdb_files).suffix == ".csv":
-    #             occ = ref_df.loc[args.ref_id, "w_{}_{}".format(state, cond)]
-    #         else:
-    #             occ = args.ref_occs.split(";")[cond].split(",")[state]
-
-    #         ref_occs.append(occ)
-
-    #     ref_w_mat = np.ndarray(shape=[ref_n_state, n_cond])
-    #     ref_w_mat[:, 0] = ref_occs
-
-    #     ref_msmc_m = multi_state_multi_condition_model.MultiStateMultiConditionModel(
-    #         m=ref_m,
-    #         hs=ref_hs,
-    #         w_mat=ref_w_mat
-    #     )
-
-    #     ref_msmc_ms.append(ref_msmc_m)
 
     # Setup the multi state multi condition model
     occs = np.ndarray([n_state, n_cond])
@@ -169,6 +138,18 @@ if __name__ == "__main__":
     for sa_step in sa_sched:
         if sa_step["w"]:
             use_weights = True
+
+    ### W_XRAY
+    if ".csv" in str(args.w_xray):
+        w_xray_df = pd.read_csv(Path(args.w_xray), index_col=0)
+        w_xray = w_xray_df.loc[(w_xray_df["N"] == n_state) & (w_xray_df["job_id"] == args.job_id), "w_xray"].values[0]
+    else:
+        w_xray = float(args.w_xray)
+
+    if args.w_xray_multiplier:
+        w_xray *= args.w_xray_multiplier
+
+    print("w_xray", w_xray)
 
     ### SCORING
     m, hs = msmc_m.get_m(), msmc_m.get_hs()
@@ -226,7 +207,7 @@ if __name__ == "__main__":
                 cond=i,
                 f_obs=f_obs_array,
                 free_flags=flags_array,
-                w_xray=args.w_xray,
+                w_xray=w_xray,
                 # w_xray=args.w_xray/len(cif_files),
                 update_scale=scale,
                 update_k1=k1,
@@ -273,24 +254,26 @@ if __name__ == "__main__":
 
     # Add the trackers for each xtal restraint.
     for i in range(len(r_xrays)):
+        cif_name = cif_files[i].stem
         xray_tracker = trackers.fTracker(
-            name="xray_{}".format(i),
+            name="xray_{}".format(cif_name),
             r=r_xrays[i]
         )
         xray_tracker.set_xray_only(True)
         all_trackers.append(xray_tracker)
 
         r_factor_tracker = trackers.RFactorTracker(
-            name="r_factor_{}".format(i),
-            r_xray=r_xrays[i]
+            name="r_factor_{}".format(cif_name),
+            r_xray=r_xrays[i],
+            labels=["r_free_{}".format(cif_name), "r_work_{}".format(cif_name)]
         )
-        r_factor_tracker.set_labels(["r_free_{}".format(i), "r_work_{}".format(i)])
         all_trackers.append(r_factor_tracker)
 
     for i in range(n_cond):
+        cif_name = cif_files[i].stem
         ref_msmc_m = ref_msmc_ms[i]
         rmsd_all_tracker = trackers.RMSDTracker(
-            name="rmsd_{}".format(i),
+            name="rmsd_{}".format(cif_name),
             rmsd_func=align_imp.compute_rmsd_between_average,
             hs_0=msmc_m.get_hs(),
             hs_1=ref_msmc_m.get_hs(),
@@ -301,9 +284,15 @@ if __name__ == "__main__":
         )
         all_trackers.append(rmsd_all_tracker)
 
+    weight_labels = list()
+    for state in range(n_state):
+        for cond in range(n_cond):
+            weight_labels.append("w_{}_{}".format(state, cif_files[cond].stem))
+
     weight_tracker = trackers.WeightMatTracker(
         name="w",
-        msmc_m=msmc_m
+        msmc_m=msmc_m,
+        labels=weight_labels
     )
     all_trackers.append(weight_tracker)
 

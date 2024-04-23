@@ -16,7 +16,6 @@ class MultiStateMultiConditionModel:
     ):
         self.m = IMP.Model()
         self.set_w_mat(w_mat)
-        self.n_state = self.w_mat.shape[0]
 
         try:
             pdb_file_n_state = utility.get_n_state_from_pdb_file(pdb_file)
@@ -25,7 +24,10 @@ class MultiStateMultiConditionModel:
 
         self.hs = list()
 
-        sel = IMP.atom.NonAlternativePDBSelector()
+        pdb_selectors = [IMP.atom.ChainPDBSelector(["A"]), IMP.atom.NonWaterNonHydrogenPDBSelector(), IMP.atom.NonAlternativePDBSelector(), IMP.atom.ATOMPDBSelector()]
+        sel = pdb_selectors[0]
+        for i in range(1, len(pdb_selectors)):
+            sel = IMP.atom.AndPDBSelector(sel, pdb_selectors[i])
 
         if pdb_file_n_state == 1 and self.n_state > 1:
             for i in range(self.n_state):
@@ -33,18 +35,12 @@ class MultiStateMultiConditionModel:
         elif pdb_file_n_state == self.n_state:
             self.hs.extend(IMP.atom.read_multimodel_pdb(str(pdb_file), self.m, sel))
         else:
-            raise RuntimeError("Number of states in pdb file does not match the number of states in the model.")
+            raise RuntimeError("Number of states in pdb file ({}) does not match the number of states in the model ({}).".format(pdb_file_n_state, self.n_state))
 
         # Set b factors
         for h in self.hs:
             for pid in IMP.atom.Selection(h).get_selected_particle_indexes():
                 IMP.atom.Atom(self.m, pid).set_temperature_factor(15)
-
-
-        self.n_cond = self.w_mat.shape[1]
-
-        # if self.w_mat.shape[0] != self.n_state:
-        #     raise ValueError("Number of weights must be the same as the number of states")
 
         self.pids_dict = dict()
         self.prot_pids_dict = dict()
@@ -117,14 +113,15 @@ class MultiStateMultiConditionModel:
         self.w_mat = w_mat
         self.normalize_w_mat()
 
+        self.n_state = self.w_mat.shape[0]
+        self.n_cond = self.w_mat.shape[1]
+
     def set_occs_for_condition_i(self, occs, i):
         self.w_mat[:,i] = occs
         self.normalize_w_mat()
 
     def normalize_w_mat(self):
         column_sums = self.w_mat.sum(axis=0)
-        # print(self.w_mat, column_sums)
-
         self.w_mat = self.w_mat / column_sums
 
 

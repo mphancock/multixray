@@ -15,7 +15,8 @@ class Tracker:
             self,
             name,
             m,
-            n
+            n,
+            labels=None
     ):
         self.name = name
         self.m = m
@@ -24,10 +25,16 @@ class Tracker:
         self.xray_only = False
         self.period = 1
 
-        if n > 1:
-            self.labels = ["{}_{}".format(name, i) for i in range(self.n)]
+        if labels:
+            self.labels = labels
         else:
-            self.labels = [name]
+            if self.n > 1:
+                self.labels = ["{}_{}".format(name, i) for i in range(self.n)]
+            else:
+                self.labels = [name]
+
+        if len(self.labels) != self.n:
+            raise ValueError("Number of labels ({}) does not match the number of weights in the weight matrix ({})".format(len(labels), n_weights))
 
     def get_name(self):
         return self.name
@@ -212,13 +219,15 @@ class RFactorTracker(Tracker):
     def __init__(
             self,
             name,
-            r_xray
+            r_xray,
+            labels
     ):
         Tracker.__init__(
             self,
             name=name,
             m=r_xray.get_model(),
-            n=2
+            n=2,
+            labels=labels
         )
         self.r_xray = r_xray
         self.set_xray_only(True)
@@ -369,20 +378,19 @@ class WeightMatTracker(Tracker):
     def __init__(
             self,
             name,
-            msmc_m
+            msmc_m,
+            labels
     ):
         Tracker.__init__(
             self,
             name=name,
             m=msmc_m.get_m(),
-            n=msmc_m.get_w_mat().shape[0]*msmc_m.get_w_mat().shape[1]
+            n=msmc_m.get_w_mat().shape[0]*msmc_m.get_w_mat().shape[1],
+            labels=labels
         )
         self.msmc_m = msmc_m
 
-        labels = list()
-        for i in range(msmc_m.get_w_mat().shape[0]):
-            for j in range(msmc_m.get_w_mat().shape[1]):
-                labels.append("w_{}_{}".format(i, j))
+        n_weights = msmc_m.get_w_mat().shape[0] * msmc_m.get_w_mat().shape[1]
 
         self.set_labels(labels)
 
