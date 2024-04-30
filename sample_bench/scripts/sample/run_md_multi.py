@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
         for cond in range(n_cond):
             for state in range(ref_n_state):
-                ref_w_mat[state, cond] = cif_df.loc[args.job_id, "ref_occs"].split(";")[cond].split(",")[state]
+                ref_w_mat[state, cond] = cif_df.loc[args.job_id, "w_{}_{}".format(state, cond)]
 
     # Setup ref models.
     pdb_sel = IMP.atom.NonAlternativePDBSelector()
@@ -142,6 +142,8 @@ if __name__ == "__main__":
     ### W_XRAY
     if ".csv" in str(args.w_xray):
         w_xray_df = pd.read_csv(Path(args.w_xray), index_col=0)
+        w_xray_df["job_id"] = w_xray_df["job_id"].astype(int)
+        w_xray_df["N"] = w_xray_df["N"].astype(int)
         w_xray = w_xray_df.loc[(w_xray_df["N"] == n_state) & (w_xray_df["job_id"] == args.job_id), "w_xray"].values[0]
     else:
         w_xray = float(args.w_xray)
@@ -179,19 +181,12 @@ if __name__ == "__main__":
             )
             f_obs_array = miller_ops.clean_miller_array(f_obs_array)
 
-            rand_flags = False
-            if rand_flags:
-                flags_array = f_obs_array.generate_r_free_flags(
-                    fraction=0.05,
-                    max_free=len(f_obs_array.data())
-                )
-            else:
-                # Set flags from file.
-                status_array = miller_ops.get_miller_array(
-                    f_obs_file=cif_file,
-                    label="_refln.status"
-                )
-                flags_array = status_array.customized_copy(data=status_array.data()=="f")
+            # Set flags from file.
+            status_array = miller_ops.get_miller_array(
+                f_obs_file=cif_file,
+                label="_refln.status"
+            )
+            flags_array = status_array.customized_copy(data=status_array.data()=="f")
             f_obs_array, flags_array = f_obs_array.common_sets(other=flags_array)
 
             print("N_OBS: ", len(f_obs_array.data()), len(flags_array.data()))
