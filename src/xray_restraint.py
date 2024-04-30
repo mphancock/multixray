@@ -47,10 +47,7 @@ class XtalRestraint(IMP.Restraint):
             w_xray=w_xray
         )
 
-        if ref_com:
-            self.delta = ref_com.get_coordinates() - msmc_m.get_com().get_coordinates()
-        else:
-            self.delta = None
+        self.ref_com = ref_com
 
         # Gradients and scores
         self.df_dxs = dict()
@@ -115,6 +112,14 @@ class XtalRestraint(IMP.Restraint):
         return self.r_all
 
     def do_add_score_and_derivatives(self, sa):
+        # Get the reference COM.
+        if self.ref_com:
+            self.delta = self.ref_com.get_coordinates() - self.msmc_m.get_com().get_coordinates()
+            # print("REF COM: ", self.ref_com.get_coordinates())
+        else:
+            self.delta = None
+        # print("DELTA: ", self.delta)
+
         # Get the derivatives.
         results_dict = cctbx_score.get_score(
             hs=self.msmc_m.get_hs(),
