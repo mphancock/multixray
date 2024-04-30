@@ -92,42 +92,6 @@ def charmm_restraints(
     return rs
 
 
-def ca_distance_restraints(
-        m,
-        h,
-        k
-):
-    rs = list()
-
-    stiffness = 2
-
-    pids = list()
-
-    cas = IMP.atom.Selection(
-        hierarchy=h,
-        atom_type=IMP.atom.AT_C
-    )
-    ns = IMP.atom.Selection(
-        hierarchy=h,
-        atom_type=IMP.atom.AT_N
-    )
-
-    pids.extend(cas.get_selected_particle_indexes())
-    pids.extend(ns.get_selected_particle_indexes())
-
-    print(len(cas.get_selected_particle_indexes()))
-
-    for pid in pids:
-        xyz = IMP.core.XYZR(m, pid).get_coordinates()
-        p = m.get_particle(pid)
-        ub = IMP.core.Harmonic(0, k)
-        ss = IMP.core.DistanceToSingletonScore(ub, xyz)
-        r = IMP.core.SingletonRestraint(m, ss, p)
-        rs.append(r)
-
-    return rs
-
-
 def get_ff_score(
         hs,
         term
@@ -138,7 +102,7 @@ def get_ff_score(
     for i in range(len(hs)):
         h = hs[i]
         # w = align_imp.get_pdb_weight(h)
-        w = 1 / len(hs)
+        # w = 1 / len(hs)
 
         ff_scores = dict()
         ff_scores["ff"] = 0
@@ -159,7 +123,8 @@ def get_ff_score(
 
         score = ff_scores[term]
 
-        score_tot = score_tot + score*w
+        score_tot = score_tot + score
+        # score_tot = score_tot + score*w
 
     return score_tot
 
