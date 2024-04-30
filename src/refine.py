@@ -15,15 +15,12 @@ import pdb_writer
 from utility import pool_read_pdb
 
 
-"""
-I read and refine in a single function to reduce memory usage versus loading all hierarchies/models at once.
-"""
-def read_pdb_and_refine(
+def read_pdb_and_refine_to_max_ff(
     pool_params
 ):
     pdb_file = pool_params["pdb_file"]
     out_pdb_file = pool_params["out_pdb_file"]
-    n_step = pool_params["n_step"]
+    max_ff = pool_params["max_ff"]
     log_file = pool_params["log_file"]
 
     if pdb_file.exists():
@@ -32,30 +29,24 @@ def read_pdb_and_refine(
     else:
         return RuntimeError("{} file does not exist.".format(pdb_file))
 
-    refine_hs(hs=hs, n_step=n_step, log_file=log_file)
-    IMP.atom.write_multimodel_pdb(hs, str(out_pdb_file))
+    refine_hs_to_max_ff(hs=hs, max_ff=max_ff, log_file=log_file)
+
+    if out_pdb_file:
+        IMP.atom.write_multimodel_pdb(hs, str(out_pdb_file))
 
     return out_pdb_file
 
 
-def pool_refine(
-    pool_param
+def refine_hs_to_max_ff(
+    hs,
+    max_ff,
+    log_file
 ):
-    hs = pool_param["hs"]
-    n_step = pool_param["n_step"]
-    log_file = pool_param["log_file"]
-
-    return refine_hs(hs=hs, n_step=n_step, log_file=log_file)
-
-
-def refine_hs(
-        hs,
-        n_step,
-        log_file
-):
-    m = hs[0].get_model()
     for i in range(len(hs)):
+        print(i)
         h = hs[i]
+        m = h.get_model()
+
         pids = IMP.atom.Selection(h).get_selected_particle_indexes()
         # print(len(pids))
         for pid in pids:
@@ -74,45 +65,125 @@ def refine_hs(
         rset_charmm.set_weight(1)
         rs.append(rset_charmm)
 
-        all_trackers = list()
-        step_tracker = trackers.StepTracker(
-            name="step",
-            m=m
-        )
-        all_trackers.append(step_tracker)
+        keep_refining = True
 
-        time_tracker = trackers.TimeTracker(
-            name="time",
-            m=m
-        )
-        all_trackers.append(time_tracker)
-
-        ff_tracker = trackers.fTracker(
-            name="ff",
-            r=rset_charmm
-        )
-        all_trackers.append(ff_tracker)
-
-        o_states = list()
-
-        if log_file:
-            log_ostate = log_statistics.LogStatistics(
-                m=m,
-                all_trackers=all_trackers,
-                log_file=log_file,
-                log_freq=1000
+        while keep_refining:
+            ff_cur = rset_charmm.evaluate(False)
+            refine_h(
+                h=h,
+                rs=rs,
+                n_step=10,
+                log_file=log_file
             )
-            o_states.append(log_ostate)
 
-        sf = IMP.core.RestraintsScoringFunction(rs)
-        cg = IMP.core.ConjugateGradients(m)
-        cg.set_scoring_function(sf)
+            ff_new = rset_charmm.evaluate(False)
+            print(ff_new)
 
-        for o_state in o_states:
-            cg.add_optimizer_state(o_state)
+            if ff_new < max_ff:
+                keep_refining = False
+            elif abs(ff_cur - ff_new) < 100:
+                keep_refining = False
 
-        cg.optimize(n_step)
 
-    # print(IMP.core.XYZ(m, IMP.atom.Selection(hs[0]).get_selected_particle_indexes()[0]).get_x())
+"""
+I read and refine in a single function to reduce memory usage versus loading all hierarchies/models at once.
+"""
+def read_pdb_and_refine(
+    pool_params
+):
+    pdb_file = pool_params["pdb_file"]
+    out_pdb_file = pool_params["out_pdb_file"]
+    n_step = pool_params["n_step"]
+    max_ff = pool_params["max_ff"]
+    log_file = pool_params["log_file"]
+
+    if pdb_file.exists():
+        m = IMP.Model()
+        hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+    else:
+        return RuntimeError("{} file does not exist.".format(pdb_file))
+
+    if n_step:
+        refine_hs(hs=hs, n_step=n_step, log_file=log_file)
+
+    if out_pdb_file:
+        IMP.atom.write_multimodel_pdb(hs, str(out_pdb_file))
+
+    return out_pdb_file
+
+
+def pool_refine(
+    pool_param
+):
+    hs = pool_param["hs"]
+    n_step = pool_param["n_step"]
+    log_file = pool_param["log_file"]
+
+    return refine_hs(hs=hs, n_step=n_step, log_file=log_file)
+
+
+def refine_hs(
+    hs,
+    n_step,
+    log_file
+):
+    for i in range(len(hs)):
+        h = hs[i]
+
+        refine_h(
+            h=h,
+            n_step=n_step,
+            log_file=log_file
+        )
 
     return m, hs
+
+
+def refine_h(
+    h,
+    rs,
+    n_step,
+    log_file,
+):
+    m = h.get_model()
+
+    # all_trackers = list()
+    # step_tracker = trackers.StepTracker(
+    #     name="step",
+    #     m=m
+    # )
+    # all_trackers.append(step_tracker)
+
+    # time_tracker = trackers.TimeTracker(
+    #     name="time",
+    #     m=m
+    # )
+    # all_trackers.append(time_tracker)
+
+    # ff_tracker = trackers.fTracker(
+    #     name="ff",
+    #     r=rset_charmm
+    # )
+    # all_trackers.append(ff_tracker)
+
+    o_states = list()
+
+    if log_file:
+        log_ostate = log_statistics.LogStatistics(
+            m=m,
+            all_trackers=all_trackers,
+            log_file=log_file,
+            log_freq=1000
+        )
+        o_states.append(log_ostate)
+
+    sf = IMP.core.RestraintsScoringFunction(rs)
+    cg = IMP.core.ConjugateGradients(m)
+    cg.set_scoring_function(sf)
+
+    for o_state in o_states:
+        cg.add_optimizer_state(o_state)
+
+    cg.optimize(n_step)
+
+    # return rset_charmm.evaluate(False)
