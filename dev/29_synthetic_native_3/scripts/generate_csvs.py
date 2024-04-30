@@ -6,14 +6,14 @@ import shutil
 if __name__ == "__main__":
     cif_df = pd.DataFrame()
 
-    native_df = pd.read_csv(Path(Path.home(), "Documents/xray/dev/29_synthetic_native_3/data/scores/7mhf_30.csv"))
+    native_df = pd.read_csv(Path(Path.home(), "Documents/xray/dev/29_synthetic_native_3/data/scores/7mhf_20.csv"))
 
     cif_id = 0
     for i in range(10):
-        pdb_dir = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/pdbs/7mhf_30")
+        pdb_dir = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/pdbs/7mhf_20")
         pdb_file = Path(pdb_dir, "{}.pdb".format(i))
 
-        cif_dir = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/7mhf_30/{}".format(i))
+        cif_dir = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/7mhf_20/{}".format(i))
         # cif_dir.mkdir(parents=True, exist_ok=True)
 
         cif_0 = Path(cif_dir, "0.cif".format(i))
@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
             cif_id = cif_id + 1
 
-    cif_df.to_csv(Path(Path.home(), "Documents/xray/dev/29_synthetic_native_3/data/cifs/csvs/7mhf_30.csv"))
+    cif_df.to_csv(Path(Path.home(), "Documents/xray/dev/29_synthetic_native_3/data/cifs/csvs/7mhf_20.csv"))
 
 
 

@@ -12,8 +12,6 @@ from get_stat_df_simple import get_stat_df
 sys.path.append(str(Path(Path.home(), "xray/src")))
 # from refine import refine, pool_refine
 from utility import pool_read_pdb
-sys.path.append(str(Path(Path.home(), "xray/sample_bench/scripts/analysis")))
-from score_analysis_exp import field_id_mapper, map_std_field_to_field
 
 
 if __name__ == "__main__":
@@ -58,7 +56,7 @@ if __name__ == "__main__":
                 stat_df = get_stat_df(
                     log_files=log_files,
                     field=field,
-                    N=100,
+                    N=50,
                     bonus_fields=bonus_fields,
                     equil=50,
                     pdb_only=True,
@@ -74,6 +72,7 @@ if __name__ == "__main__":
                 job_cif_names = [Path(job_cif_file).stem for job_cif_file in job_cif_files]
                 job_cif_str = ",".join(job_cif_names)
                 stat_df["cifs"] = job_cif_str
+                stat_df.drop(columns=["index"], inplace=True)
 
                 stat_df.rename(columns={"r_free_{}".format(cif_name): "r_free"}, inplace=True)
 

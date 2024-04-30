@@ -18,8 +18,8 @@ import generate_fmodel
 if __name__ == "__main__":
     score_dir = Path(Path.home(), "xray/dev/32_score")
 
-    pdb_file = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/pdbs/7mhf/0.pdb")
-    occs = [0.83409474335851, 0.16590525664149]
+    pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/183_test/788442/output_17/pdbs/123.pdb")
+    occs = [0.5429301174113870, 0.4570698825886140]
     # pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/54_7mhf_decoys_100/4545474/output_3701/pdbs/49.pdb")
     # occs = [0.5099659036431840, 0.4900340963568160]
     # pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/54_7mhf_decoys_100/4545474/output_4676/pdbs/1.pdb")
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     # pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/54_7mhf_decoys_100/4545474/output_4564/pdbs/23.pdb")
     # occs = [0.7395988883650760, 0.260401111634924]
 
-    f_obs_file = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/7mhf/0/0.cif")
+    f_obs_file = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/7mhf_30/0/0.cif")
 
     # pdb_file = Path(score_dir, "data/decoy.pdb")
     # f_obs_file = Path(score_dir, "data/0.cif")

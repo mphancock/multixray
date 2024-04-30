@@ -4,6 +4,7 @@ import sys
 import multiprocessing
 import argparse
 import time
+import numpy as np
 
 sys.path.append(str(Path(Path.home(), "xray/score_bench/src")))
 from score_rmsd import pool_score
@@ -15,36 +16,35 @@ from utility import get_n_state_from_pdb_file
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pdb_df_file")
-    parser.add_argument("--skip", required=False, type=int)
+    parser.add_argument("--sample_file")
     args = parser.parse_args()
 
-    pdb_df_file = Path(args.pdb_df_file)
+    sample_file = Path(args.sample_file)
+    out_file = sample_file
 
-    # pdb_df_file = Path(Path.home(), "xray/sample_bench/data/7mhf/{}/ref.csv".format(exp_name))
-    pdb_df = pd.read_csv(pdb_df_file, index_col=0)
+    sample_df = pd.read_csv(sample_file, index_col=0)
 
     params = list()
 
-    if args.skip:
-        start = args.skip
-    else:
-        start = 0
+    print(len(sample_df))
 
-    # for i in [14833]:
-    print(len(pdb_df))
-    for i in range(start, len(pdb_df)):
-        pdb_file = Path(pdb_df.loc[i, "pdb"])
+    contains_nan = sample_df['r_free'].isna().any()
+    if not contains_nan:
+        print("Already processed")
+        exit()
+
+    for i in range(len(sample_df)):
+        pdb_file = Path(sample_df.iloc[i]["pdb"])
         if not pdb_file.exists():
             print("skipping {}".format(pdb_file))
             continue
 
-        n_state = pdb_df.loc[i, "N"]
-        cif_name = pdb_df.loc[i, "cif_name"]
+        n_state = sample_df.iloc[i]["N"]
+        cif_name = sample_df.iloc[i]["cif_name"]
         cif_file = Path(Path.home(), "xray/data/cifs/7mhf/{}.cif".format(cif_name))
 
         w_columns = ["w_{}".format(j) for j in range(n_state)]
-        occs = [float(occ) for occ in pdb_df.loc[i, w_columns]]
+        occs = [float(occ) for occ in sample_df.iloc[i][w_columns]]
         # print(occs)
 
         param_dict = dict()
@@ -62,28 +62,21 @@ if __name__ == "__main__":
         param_dict["score_fs"] = ["ml", "ff"]
         params.append(param_dict)
 
-        # print(params)
-
     t0 = time.time()
     pool_obj = multiprocessing.Pool(multiprocessing.cpu_count())
     pool_results = pool_obj.imap(pool_score, params)
-    j = 0
     for score_dict in pool_results:
         if not score_dict:
             continue
 
         print(score_dict)
+        index = int(Path(score_dict["pdb_file"]).stem)
 
-        i = int(Path(score_dict["pdb_file"]).stem)
-        pdb_df.loc[i, "r_free"] = score_dict["r_free"]
-        pdb_df.loc[i, "ff"] = score_dict["ff"]
-
-        if j % 100 == 0:
-            pdb_df.to_csv(str(pdb_df_file)+".tmp")
-
-        j = j + 1
+        sample_df.loc[index, "r_free"] = score_dict["r_free"]
+        sample_df.loc[index, "ff"] = score_dict["ff"]
 
     print(time.time() - t0)
 
-    pdb_df.to_csv(str(pdb_df_file)+".tmp")
+    print(sample_df.head())
+    sample_df.to_csv(out_file)
 

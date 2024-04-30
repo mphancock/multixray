@@ -18,6 +18,6 @@ mkdir "$OUT_DIR"
 cd "$TMPDIR"
 cp ~/xray/sample_bench/scripts/sample/run_md_multi.py .
 
-python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --input_csv /wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/csvs/7mhf_30.csv --job_id 1 --w_xray 1 --w_xray_multiplier 2 --n_state 1 --init_weights rand --sa "{step3000,T300,dofA,pdb1,w1,res2}" --start_pdb_file /wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb --steps 2
+python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --input_csv /wynton/home/sali/mhancock/xray/tmp/test.csv --job_id 0 --w_xray 0.5 --n_state 2 --init_weights rand --sa "{step3000,T300,dofA,pdb1,w1,res0}" --start_pdb_file /wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb --steps 2
 
 cd "$HOME/xray/sample_bench/scripts/sample"

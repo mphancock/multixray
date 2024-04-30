@@ -22,10 +22,9 @@ import cctbx_score
 if __name__ == "__main__":
     score_dir = Path(Path.home(), "xray/dev/32_score")
 
-    pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/169_N8/55/output_349/pdbs/277.pdb")
-    # occs = [0.1707090564501260, 0.2154425789446470,	0.135708096184682, 0.0539801939285565, 0.1220519934501550, 0.1262063697376800, 0.0563696183735114, 0.1195320929306410]
-    occs = [0.17, 0.21,	0.14, 0.05, 0.12, 0.13, 0.06, 0.12]
-    f_obs_file = Path("/wynton/home/sali/mhancock/xray/data/cifs/7mhf/7mhi.cif")
+    pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/182_bench/N0_J1/output_157/pdbs/237.pdb")
+    occs = [1]
+    f_obs_file = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/7mhf_30/0/0.cif")
 
     f_obs = miller_ops.get_miller_array(
             f_obs_file=f_obs_file,
@@ -113,6 +112,9 @@ if __name__ == "__main__":
     #     iselection=xray_structure.all_selection().iselection()
     # )
 
+    for i in range(18704):
+        print(i, flags.data()[i], f_obs.data()[i])
+
     f_model_manager = mmtbx.f_model.manager(
         xray_structure=xray_structure,
         f_obs=f_obs,
@@ -141,7 +143,7 @@ if __name__ == "__main__":
     # # print(dir(scatt))
     # print(len(xray_structure.scatterers()))
     # scatt.show()
-    print(r_free, r_work)
+    print(r_free, flags.size(), r_work, f_obs.size())
     print("likelihood:", score)
 
     for i in range(len(occs)):

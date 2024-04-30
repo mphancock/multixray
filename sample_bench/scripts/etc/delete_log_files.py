@@ -34,7 +34,7 @@ if __name__ == "__main__":
     print(len(log_files))
     for log_file in log_files:
         # print(log_file, get_creation_time(log_file))
-        delete_file = file_created_before_date(log_file, 2024, 4, 18)
+        delete_file = file_created_before_date(log_file, 2024, 4, 23)
         print("{} {}".format(log_file, delete_file))
         if delete_file:
             log_file.unlink()

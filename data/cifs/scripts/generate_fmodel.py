@@ -53,48 +53,73 @@ def get_f_model(
     return f_model
 
 
-def get_f_model_from_cif(
+def get_f_model_from_f_obs(
         pdb_file,
         cif_file,
+        occs,
         res=None
 ):
     f_obs = miller_ops.get_miller_array(
         f_obs_file=cif_file,
         label="_refln.F_meas_au"
     )
-    # f_obs = miller_ops.filter_f_obs_resolution(
-    #     f_obs=f_obs,
-    #     d_min=res,
-    #     d_max=None
-    # )
+
+    f_obs = miller_ops.clean_miller_array(f_obs)
+    status_array = miller_ops.get_miller_array(
+        f_obs_file=cif_file,
+        label="_refln.status"
+    )
+    flags = status_array.customized_copy(data=status_array.data()=="f")
+    f_obs, flags = f_obs.common_sets(other=flags)
+
+    f_obs = miller_ops.filter_f_obs_resolution(
+        f_obs=f_obs,
+        d_max=None,
+        d_min=None
+    )
+    flags = miller_ops.filter_f_obs_resolution(
+        f_obs=flags,
+        d_max=None,
+        d_min=None
+    )
     crystal_symmetry = f_obs.crystal_symmetry()
 
-    if res:
-        f_obs = f_obs.complete_array(
-            d_min=res,
-            d_max=None
-        )
+    # if res:
+    #     f_obs = f_obs.complete_array(
+    #         d_min=res,
+    #         d_max=None
+    #     )
 
-        f_obs.generate_r_free_flags(
-            fraction=.1
-        )
-
+    #     f_obs.generate_r_free_flags(
+    #         fraction=.1
+    #     )
 
     xray_structure = iotbx.pdb.input(str(pdb_file)).xray_structure_simple(
         crystal_symmetry=crystal_symmetry
     )
 
+    n_scatt = int(xray_structure.scatterers().size())
+    n_state = len(occs)
+    n_scatt_per_state = n_scatt//n_state
+
+    for i in range(n_scatt_per_state):
+        for state in range(n_state):
+            xray_structure.scatterers()[i+(state*n_scatt_per_state)].occupancy = occs[state]
+
     f_model_manager = mmtbx.f_model.manager(
         xray_structure=xray_structure,
         f_obs=f_obs,
-        target_name="ls"
+        r_free_flags=flags,
+        target_name="ml"
     )
+    f_model_manager.update_all_scales(apply_scale_k1_to_f_obs=False,remove_outliers=False)
 
-    f_model = f_model_manager.f_model()
+    f_model = f_model_manager.f_model().as_amplitude_array()
 
     print(f_model.size())
+    print(f_model_manager.r_free())
 
-    return f_model
+    return f_model, status_array
 
 
 def get_status_array(
@@ -145,8 +170,10 @@ def randomize_amplitude(
     for i in range(f_obs.size()):
         amp = f_obs.data()[i]
 
+        print(amp)
+
         mean = amp
-        std = amp*.05
+        std = amp*.1
         f_obs.data()[i] = np.random.normal(
             loc=mean,
             scale=std
@@ -156,47 +183,39 @@ def randomize_amplitude(
 
 
 if __name__ == "__main__":
-    pdb_file = Path("/wynton/home/sali/mhancock/xray/tmp/30.pdb")
-    cif_file = Path("/wynton/home/sali/mhancock/xray/tmp/30_0.cif")
+    pdb_file = Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/pdbs/7mhf_30/0.pdb")
+    cif_file = Path("/wynton/home/sali/mhancock/xray/data/cifs/7mhf/7mhf.cif")
+    out_cif_file = Path(Path.home(), "xray/tmp/1.cif")
 
-    # f_obs_array = get_f_model(
-    #     pdb_file=pdb_file,
-    #     uc_dim=(58.3050, 36.1540, 25.3620, 90.0000, 103.0900, 90.0000),
-    #     sg_symbol="C 1 2 1",
-    #     res=1
+    f_model, status_array = get_f_model_from_f_obs(
+        pdb_file=pdb_file,
+        cif_file=cif_file,
+        occs=[0.75,0.25],
+    )
+
+    # f_obs_array = randomize_amplitude(
+    #     f_obs=f_model
     # )
 
-    f_obs_array = get_f_model(
-        pdb_file=pdb_file,
-        uc_dim=(114.968, 54.622, 45.194, 90.000, 101.675, 90.000),
-        sg_symbol="C 1 2 1",
-        res=1,
-        ws=(0.6,0.4)
-    )
+    # # flags_array = f_obs_array.generate_r_free_flags(
+    # #     fraction=.1,
+    # #     max_free=None
+    # # )
 
-    f_obs_array = randomize_amplitude(
-        f_obs=f_obs_array
-    )
+    # for i in range(50):
+    #     print(f_obs_array.indices()[i], f_obs_array.data()[i], flags_array.data()[i])
 
-    flags_array = f_obs_array.generate_r_free_flags(
-        fraction=.1,
-        max_free=None
-    )
+    # status_array = get_status_array(
+    #     flags_array=flags_array
+    # )
 
-    for i in range(50):
-        print(f_obs_array.indices()[i], f_obs_array.data()[i], flags_array.data()[i])
-
-    status_array = get_status_array(
-        flags_array=flags_array
-    )
-
-    print(status_array.data())
-    print(flags_array.data())
+    # print(status_array.data())
+    # print(flags_array.data())
 
     write_cif(
-        f_obs=f_obs_array,
+        f_obs=f_model,
         status_array=status_array,
-        cif_file=cif_file
+        cif_file=out_cif_file
     )
 
     # for i in range(flags_array.size()):
