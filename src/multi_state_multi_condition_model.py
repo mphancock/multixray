@@ -65,11 +65,6 @@ class MultiStateMultiConditionModel:
             for pid in self.water_pids_dict[i]:
                 IMP.atom.CHARMMAtom.setup_particle(self.m, pid, "O")
 
-        self.com = IMP.atom.CenterOfMass.setup_particle(
-            IMP.Particle(self.m),
-            self.get_all_ca_pids()
-        )
-
     def get_m(self):
         return self.m
 
@@ -104,6 +99,11 @@ class MultiStateMultiConditionModel:
         return side_pids
 
     def get_com(self):
+        ## ConterOfMass does not dynamically update so need to reinstatiant
+        self.com = IMP.atom.CenterOfMass.setup_particle(
+            IMP.Particle(self.m),
+            self.get_all_ca_pids()
+        )
         return self.com
 
     def get_occs_for_condition_i(self, i):
@@ -123,24 +123,3 @@ class MultiStateMultiConditionModel:
     def normalize_w_mat(self):
         column_sums = self.w_mat.sum(axis=0)
         self.w_mat = self.w_mat / column_sums
-
-
-if __name__ == "__main__":
-    from pathlib import Path
-    import numpy as np
-
-    pdb_file = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/7mhf_30/0.pdb")
-    m = IMP.Model()
-    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
-    w_mat = np.ndarray(shape=[2,2])
-    w_mat[0,0] = 1
-    w_mat[0,1] = 3
-    w_mat[1,0] = 2
-    w_mat[1,1] = 4
-    msmcm = MultiStateMultiConditionModel(m, hs, w_mat)
-    print(msmcm.get_w_mat())
-    print(msmcm.get_hs())
-    print(msmcm.get_m)
-
-
-
