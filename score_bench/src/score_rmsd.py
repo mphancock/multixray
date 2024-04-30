@@ -18,6 +18,7 @@ import miller_ops
 import params
 import weights
 from multi_state_multi_condition_model import MultiStateMultiConditionModel
+from xray_restraint import XtalRestraint
 
 
 """
@@ -66,6 +67,13 @@ def pool_score(
             w_mat=decoy_w_mat
         )
         h_decoys = decoy_msmc_m.get_hs()
+
+        ref_w_mat = np.ndarray(shape=[len(ref_occs), 1])
+        ref_w_mat[:,0] = ref_occs
+        ref_msmc_m = MultiStateMultiConditionModel(
+            pdb_file=ref_file,
+            w_mat=ref_w_mat
+        )
     except RuntimeError as e:
         print(e)
         return None
@@ -93,6 +101,7 @@ def pool_score(
             f_obs, flags = f_obs.common_sets(other=flags)
 
             res = params["res"]
+            print(f_obs.size())
             if res:
                 f_obs = miller_ops.filter_f_obs_resolution(
                     f_obs=f_obs,
@@ -104,36 +113,47 @@ def pool_score(
                     d_max=None,
                     d_min=res
                 )
+            print(f_obs.size())
 
             pids = list()
             for h in h_decoys:
                 pids.extend(IMP.atom.Selection(h).get_selected_particle_indexes())
 
-            results_dict = cctbx_score.get_score(
-                hs=h_decoys,
-                occs=decoy_msmc_m.get_occs_for_condition_i(0),
-                pids=pids,
+            xray_r = XtalRestraint(
+                msmc_m=decoy_msmc_m,
+                cond=0,
                 f_obs=f_obs,
-                r_free_flags=flags,
-                target=score_f,
-                u_aniso_file=adp_file,
-                ab_file=params["ab_file"],
-                update_scale=params["scale"],
-                update_k1=params["scale_k1"],
-                delta=None
+                free_flags=flags,
+                w_xray=1,
+                update_scale=True,
+                update_k1=True,
+                u_aniso_file=None,
+                ref_com=ref_msmc_m.get_com()
             )
-            score = results_dict["score"]
-            scores_dict["r_free"] = results_dict["r_free"]
-            scores_dict["r_work"] = results_dict["r_work"]
-            scores_dict["r_all"] = results_dict["r_all"]
-        elif score_f in ["rmsd_avg", "rmsd_ord", "rmsd_dom", "avg_delta_w"]:
-            ref_w_mat = np.ndarray(shape=[len(ref_occs), 1])
-            ref_w_mat[:,0] = ref_occs
-            ref_msmc_m = MultiStateMultiConditionModel(
-                pdb_file=ref_file,
-                w_mat=ref_w_mat
-            )
+            xray_r.evaluate(False)
+            score = xray_r.get_f()
+            scores_dict["r_free"] = xray_r.get_r_free()
+            scores_dict["r_work"] = xray_r.get_r_work()
+            scores_dict["r_all"] = xray_r.get_r_all()
 
+            # results_dict = cctbx_score.get_score(
+            #     hs=h_decoys,
+            #     occs=decoy_msmc_m.get_occs_for_condition_i(0),
+            #     pids=pids,
+            #     f_obs=f_obs,
+            #     r_free_flags=flags,
+            #     target=score_f,
+            #     u_aniso_file=adp_file,
+            #     ab_file=params["ab_file"],
+            #     update_scale=params["scale"],
+            #     update_k1=params["scale_k1"],
+            #     delta=None
+            # )
+            # score = results_dict["score"]
+            # scores_dict["r_free"] = results_dict["r_free"]
+            # scores_dict["r_work"] = results_dict["r_work"]
+            # scores_dict["r_all"] = results_dict["r_all"]
+        elif score_f in ["rmsd_avg", "rmsd_ord", "rmsd_dom", "avg_delta_w"]:
             if score_f == "rmsd_avg":
                 f = align_imp.compute_rmsd_between_average
             elif score_f == "rmsd_ord":
