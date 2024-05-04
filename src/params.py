@@ -1,6 +1,13 @@
+import pickle
+import pandas as pd
+import numpy as np
+import math
+from pathlib import Path
+
+from utility import get_n_state_from_pdb_file, get_sample_sched_from_string, get_string_from_sample_sched
 
 
-def write_params(
+def write_params_txt(
         param_dict,
         param_file
 ):
@@ -10,3 +17,83 @@ def write_params(
         param_f.write("{:<15}{}\n".format(key, param_dict[key]))
     param_f.write("\n\n")
     param_f.close()
+
+
+def write_params_csv(
+        param_dict,
+        param_file
+):
+    param_df = pd.DataFrame()
+    N = param_dict["N"]
+    J = param_dict["J"]
+
+    param_df.loc[0,"N"] = N
+    param_df.loc[0,"J"] = J
+
+    for cond in range(J):
+        param_df.loc[0,"cif_{}".format(cond)] = param_dict["cifs"][cond]
+        param_df.loc[0,"ref_{}".format(cond)] = param_dict["refs"][cond]
+
+        for state in range(N):
+            param_df.loc[0,"w_{}_{}".format(state, cond)] = param_dict["ref_w_mat"][state, cond]
+
+    param_df.loc[0,"w_xray"] = param_dict["w_xray"]
+
+    sample_sched = param_dict["sample_sched"]
+    sample_sched_str = get_string_from_sample_sched(sample_sched)
+    param_df.loc[0,"sample_sched_str"] = sample_sched_str
+
+    param_df.loc[0,"sample_sched_str"] = param_dict["sample_sched_str"]
+
+    if param_dict["start_pdb_file"]:
+        param_df.loc[0,"start_pdb_file"] = param_dict["start_pdb_file"]
+
+    if param_dict["init_weights"]:
+        param_df.loc[0,"init_weights"] = param_dict["init_weights"]
+
+    param_df.to_csv(param_file)
+
+
+def read_job_csv(
+    job_csv_file,
+    job_id
+):
+    job_df = pd.read_csv(job_csv_file, index_col=0)
+    param_dict = dict()
+
+    N = int(job_df.loc[job_id]["N"])
+    J = int(job_df.loc[job_id]["J"])
+
+    cif_files = list()
+    ref_files = list()
+
+    for cond in range(J):
+        cif_files.append(Path(job_df.loc[job_id]["cif_{}".format(cond)]))
+        ref_files.append(Path(job_df.loc[job_id]["ref_{}".format(cond)]))
+
+    ref_n_state = get_n_state_from_pdb_file(ref_files[0])
+    ref_w_mat = np.ndarray([ref_n_state, J])
+
+    for cond in range(J):
+        for state in range(ref_n_state):
+            ref_w_mat[state, cond] = job_df.loc[job_id]["w_{}_{}".format(state, cond)]
+
+    param_dict["N"] = N
+    param_dict["J"] = J
+    param_dict["cifs"] = cif_files
+    param_dict["refs"] = ref_files
+    param_dict["ref_w_mat"] = ref_w_mat
+    param_dict["w_xray"] = job_df.loc[job_id]["w_xray"]
+
+    sample_sched_str = job_df.loc[job_id, "sample_sched_str"]
+    sample_sched = get_sample_sched_from_string(sample_sched_str)
+    param_dict["sample_sched"] = sample_sched
+
+    # Optional params
+    for param in ["start_pdb_file", "init_weights"]:
+        if param in job_df.columns:
+            param_dict[param] = job_df.loc[job_id, param]
+        else:
+            param_dict[param] = None
+
+    return param_dict
