@@ -12,19 +12,18 @@ module load CBI conda-stage
 conda activate imp_220_cctbx
 
 
-JOB_NAME="$1"
-JOB_DIR="$2"
-OFFSET="$4"
-mkdir -p "$JOB_DIR"
+JOB_DIR="$1"
+OFFSET="$2"
+# mkdir -p "$JOB_DIR"
 
 RUN_ID=$((SGE_TASK_ID-1+$OFFSET))
 TMP_OUT_DIR="$TMPDIR/output_$RUN_ID"
 OUT_DIR="$JOB_DIR/output_$RUN_ID"
 
 # Delete the output dir.
-rm -r "$OUT_DIR"
-mkdir "$TMP_OUT_DIR"
-mkdir "$OUT_DIR"
+# rm -r "$OUT_DIR"
+# mkdir "$TMP_OUT_DIR"
+# mkdir "$OUT_DIR"
 
 cd "$TMPDIR"
 cp ~/xray/sample_bench/scripts/sample/run_md_multi.py .

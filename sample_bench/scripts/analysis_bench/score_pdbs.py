@@ -20,7 +20,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     sample_file = Path(args.sample_file)
-    out_file = Path(str(sample_file)+".score")
+    out_file = sample_file
+    # out_file = Path(str(sample_file)+".score")
 
     data_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data")
 
@@ -36,25 +37,26 @@ if __name__ == "__main__":
     #     print("Already processed")
     #     exit()
 
+    Ns = [1, 2]
     for i in range(len(sample_df)):
         pdb_file = Path(sample_df.iloc[i]["pdb"])
         if not pdb_file.exists():
             print("skipping {}".format(pdb_file))
             continue
 
-        n_state = sample_df.iloc[i]["N"]
-        cif_name = sample_df.iloc[i]["cif_name"]
-        job_id = sample_df.iloc[i]["job_id"]
+        N = int(sample_df.iloc[i]["N"])
+        cif_name = int(sample_df.iloc[i]["cif_name"])
+        j = int(sample_df.iloc[i]["j"])
 
-        cif_dir_name = job_id // 2
+        cif_dir_name = j // 2
 
         cif_file = Path(data_dir, "cifs/7mhf_30/{}/{}.cif".format(cif_dir_name, cif_name))
         ref_file = Path(data_dir, "pdbs/7mhf_30/{}.pdb".format(cif_name))
 
-        w_columns = ["w_{}".format(j) for j in range(n_state)]
+        w_columns = ["w_{}".format(j) for j in range(N)]
         occs = [float(occ) for occ in sample_df.iloc[i][w_columns]]
 
-        ref_occs = [float(occ) for occ in cif_df.iloc[job_id][["w_0_{}".format(int(cif_name)), "w_1_{}".format(int(cif_name))]]]
+        ref_occs = [float(occ) for occ in cif_df.iloc[j][["w_0_{}".format(int(cif_name)), "w_1_{}".format(int(cif_name))]]]
 
         # print(occs)
 
@@ -79,7 +81,9 @@ if __name__ == "__main__":
     t0 = time.time()
     pool_obj = multiprocessing.Pool(multiprocessing.cpu_count())
     pool_results = pool_obj.imap(pool_score, params)
-    index = 0
+
+    ## Offset
+    index = 0+int(sample_df.index[0])
     for score_dict in pool_results:
         if not score_dict:
             continue

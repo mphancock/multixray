@@ -32,10 +32,13 @@ if __name__ == "__main__":
     log_files = list(data_dir.glob("*"))
 
     print(len(log_files))
+    n_deleted = 0
     for log_file in log_files:
-        # print(log_file, get_creation_time(log_file))
-        delete_file = file_created_before_date(log_file, 2024, 4, 23)
-        print("{} {}".format(log_file, delete_file))
+        creation_time = get_creation_time(log_file)
+        delete_file = file_created_before_date(log_file, 2024, 4, 30)
+        print("{} {} {}".format(log_file, creation_time, delete_file))
         if delete_file:
             log_file.unlink()
+            n_deleted += 1
+    print(n_deleted)
 

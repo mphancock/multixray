@@ -17,20 +17,23 @@ from utility import pool_read_pdb, get_n_state_from_pdb_file
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--exp_name")
+    parser.add_argument("--sample_file")
     parser.add_argument("--max_ff", type=int)
     parser.add_argument("--start", type=int)
     parser.add_argument("--n_pdb", type=int)
     args = parser.parse_args()
 
-    exp_name = args.exp_name
+    sample_file = Path(args.sample_file)
+    analysis_dir = sample_file.parents[0]
+
+    exp_name = analysis_dir.name
     max_ff = args.max_ff
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", exp_name)
     ref_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/{}_ref_{}".format(exp_name, max_ff))
     ref_dir.mkdir(exist_ok=True)
 
-    analysis_dir = Path(Path.home(), "xray/sample_bench/data/7mhf", exp_name)
-    sample_file = Path(analysis_dir, "sample.csv")
+    # analysis_dir = Path(Path.home(), "xray/sample_bench/data/7mhf", exp_name)
+    # sample_file = Path(analysis_dir, "sample.csv")
     sample_df = pd.read_csv(sample_file, index_col=0)
 
     start = args.start
@@ -43,9 +46,9 @@ if __name__ == "__main__":
     print(len(sample_df))
     ref_df = sample_df.copy()
     ref_df["r_free"] = np.nan
+    ref_df["rmsd"] = np.nan
     ref_df["ff"] = np.nan
     ref_df["pdb"] = [Path(ref_dir, "{}.pdb".format(index)) for index in ref_df.index]
-    ref_df.to_csv(ref_df_file)
 
     pdb_files = [Path(pdb_file) for pdb_file in sample_df["pdb"]]
     pool_params = list()
@@ -69,4 +72,6 @@ if __name__ == "__main__":
     for pool_result in pool_results:
         # Make sure that the pdb file existed
         print(pool_result)
+
+    ref_df.to_csv(ref_df_file)
 

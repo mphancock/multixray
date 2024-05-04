@@ -101,7 +101,7 @@ def pool_score(
             f_obs, flags = f_obs.common_sets(other=flags)
 
             res = params["res"]
-            print(f_obs.size())
+            # print(f_obs.size())
             if res:
                 f_obs = miller_ops.filter_f_obs_resolution(
                     f_obs=f_obs,
@@ -113,7 +113,7 @@ def pool_score(
                     d_max=None,
                     d_min=res
                 )
-            print(f_obs.size())
+            # print(f_obs.size())
 
             pids = list()
             for h in h_decoys:

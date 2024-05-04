@@ -11,11 +11,11 @@ sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
 from get_stat_df_simple import get_stat_df
 sys.path.append(str(Path(Path.home(), "xray/src")))
 # from refine import refine, pool_refine
-from utility import pool_read_pdb
+from utility import pool_read_pdb, get_cif_and_ref_from_input_df
 
 
 if __name__ == "__main__":
-    exp_name = "182_bench"
+    exp_name = "182_bench_ref_10000"
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", exp_name)
 
     n_states = [1, 2]
@@ -27,12 +27,12 @@ if __name__ == "__main__":
     for state_id in range(len(n_states)):
         N = n_states[state_id]
         for job_id in range(20):
-            print(state_id, job_id)
-            job_cif_files = cif_map_df.loc[job_id, "cifs"].split(",")
-            job_cif_names = [Path(cif).stem for cif in job_cif_files]
+            cif_files, ref_files, ref_mat = get_cif_and_ref_from_input_df(input_df=cif_map_df, job_id=job_id)
+
+            job_cif_names = [Path(cif).stem for cif in cif_files]
             J = len(job_cif_names)
 
-            job_dir = Path(exp_dir, "N{}_J{}".format(state_id, job_id))
+            job_dir = Path(exp_dir, "n{}_j{}".format(state_id, job_id))
             log_files = [Path(out_dir, "log.csv") for out_dir in job_dir.glob("*")]
 
             for cif_name in job_cif_names:
@@ -50,7 +50,7 @@ if __name__ == "__main__":
                     field=field,
                     N=1,
                     bonus_fields=bonus_fields,
-                    equil=50,
+                    equil=5,
                     pdb_only=True,
                     max_rmsd=None
                 )
@@ -60,8 +60,6 @@ if __name__ == "__main__":
                 stat_df["J"] = J
                 stat_df["job_id"] = job_id
 
-                job_cif_files = cif_map_df.loc[job_id].values[0].split(",")
-                job_cif_names = [Path(job_cif_file).stem for job_cif_file in job_cif_files]
                 job_cif_str = ",".join(job_cif_names)
                 stat_df["cifs"] = job_cif_str
                 stat_df.drop(columns=["index"], inplace=True)

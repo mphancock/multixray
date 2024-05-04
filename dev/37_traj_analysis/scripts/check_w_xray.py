@@ -17,16 +17,17 @@ sys.path.append(str(Path(Path.home(), "xray/sample_bench/scripts/analysis_exp"))
 
 
 if __name__ == "__main__":
-    exp_name = "184_w_xray_bench"
+    exp_name = "180_wxray_bench_ref_10000"
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", exp_name)
     analysis_dir = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/7mhf", exp_name)
     analysis_dir.mkdir(exist_ok=True)
-    n_states = [1]
+    n_states = [1, 2]
     # job_ids = list(range(63))
     job_ids = list(range(20))
     w_xrays = [0.03125, 0.0625, .125, .25, .5, 1, 2, 4, 8, 16, 32]
+    n_out_dir = 10
     # cif_df = pd.read_csv(Path("/wynton/home/sali/mhancock/xray/dev/35_cif_combos/data/7mhf.csv"), index_col=0)
-    cif_df = pd.read_csv(Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/csvs/7mhf_20.csv"), index_col=0)
+    cif_df = pd.read_csv(Path("/wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/csvs/7mhf_30.csv"), index_col=0)
 
     w_xray_df = pd.DataFrame()
 
@@ -40,9 +41,9 @@ if __name__ == "__main__":
             for w_xray_id in range(len(w_xrays)):
                 w_xray = w_xrays[w_xray_id]
 
-                job_name = "N{}_J{}_W{}".format(state_id, job_id, w_xray_id)
+                job_name = "n{}_j{}_w{}".format(state_id, job_id, w_xray_id)
                 job_dir = Path(exp_dir, job_name)
-                out_dirs = [Path(job_dir, "output_{}".format(i)) for i in range(5)]
+                out_dirs = [Path(job_dir, "output_{}".format(i)) for i in range(10)]
 
                 avg_n_pdb_files = 0
                 for out_dir in out_dirs:
@@ -61,10 +62,10 @@ if __name__ == "__main__":
                     params = "--input_csv /wynton/home/sali/mhancock/xray/dev/29_synthetic_native_3/data/cifs/csvs/7mhf_20.csv --job_id {} --w_xray {} --n_state {} --init_weights rand --sa {{step3000,T300,dofA,pdb1,w1,res1.5}} --steps 2".format(job_id, w_xray, n_state)
                     offset = str(out_dir).split("_")[-1]
 
-                    if redo:
-                        bash_str = "qsub -N w{} -l h_rt={} -l mem_free=1G -l scratch=1G -t 1-1 $HOME/xray/sample_bench/scripts/sample/run_slave.sh {} {} '{}' {}".format(job_name, h_rt, job_name, job_dir, params, offset)
-                        # print(bash_str)
-                        os.system(bash_str)
+                    # if redo:
+                    #     bash_str = "qsub -N w{} -l h_rt={} -l mem_free=1G -l scratch=1G -t 1-1 $HOME/xray/sample_bench/scripts/sample/run_slave.sh {} {} '{}' {}".format(job_name, h_rt, job_name, job_dir, params, offset)
+                    #     # print(bash_str)
+                    #     os.system(bash_str)
 
                     avg_n_pdb_files += n_pdb_files
 
