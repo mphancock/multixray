@@ -89,7 +89,7 @@ def molecular_dynamics(
         write_pdb_tracker = None
         copy_pdb_tracker = None
         for tracker in trackers:
-            print(tracker)
+            # print(tracker)
             if type(tracker) == pdb_writer.PDBWriterTracker:
                 write_pdb_tracker = tracker
             elif type(tracker) == pdb_writer.PDBCopyTracker:

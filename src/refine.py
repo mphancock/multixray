@@ -77,11 +77,13 @@ def refine_hs_to_max_ff(
             )
 
             ff_new = rset_charmm.evaluate(False)
-            print(ff_new)
+            print(ff_cur, ff_new)
 
             if ff_new < max_ff:
                 keep_refining = False
             elif abs(ff_cur - ff_new) < 100:
+                keep_refining = False
+            elif ff_new > 2000000:
                 keep_refining = False
 
 
