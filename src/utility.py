@@ -1,5 +1,50 @@
+from pathlib import Path
+import numpy as np
+
 import IMP
 import IMP.atom
+
+
+def get_string_from_sample_sched(sa_sched):
+    sa_str = ""
+    for sa_step in sa_sched:
+        step_str = ""
+        for key, val in sa_step.items():
+            if key == "res":
+                val_str = "{:.2f}".format(val)  # Format float values with 2 decimal points
+            else:
+                val_str = str(val)
+            step_str += f"{key}{val_str},"
+        sa_str += step_str[:-1] + ";"
+    return sa_str[:-1]
+
+
+def get_sample_sched_from_string(
+    sa_str
+):
+    sa_sched_strs = sa_str.split(";")
+
+    sa_sched = list()
+    keys = ["step", "T", "dof", "pdb", "w", "res"]
+    for sa_step_str in sa_sched_strs:
+        sa_step = dict()
+        for key_val in sa_step_str.split(","):
+            for key in keys:
+                if key in key_val:
+                    val_str = key_val[len(key):]
+                    if key in ["step", "T", "pdb", "w"]:
+                        val = int(val_str)
+                    elif key == "res":
+                        val = float(val_str)
+                    else:
+                        val = val_str
+
+                    sa_step[key] = val
+
+        sa_sched.append(sa_step)
+
+    return sa_sched
+
 
 
 def get_n_state_from_pdb_file(pdb_file):
