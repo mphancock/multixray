@@ -14,7 +14,8 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
             msmc_m,
             r_xrays,
             n_proposals,
-            radius
+            radius,
+            write=True
     ):
         IMP.OptimizerState.__init__(self, msmc_m.get_m(), "UpdateWeightsOptimizerState%1%")
         self.msmc_m = msmc_m
@@ -23,6 +24,7 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
         self.r_xrays = r_xrays
         self.n_proposals = n_proposals
         self.radius = radius
+        self.write = write
 
         self.on = True
 
@@ -69,7 +71,7 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
         best_occs = cur_occs
         best_score = cur_score
         for tmp_occs in all_tmp_occs:
-            print(self.get_name(), " evaluation")
+            # print(self.get_name(), " evaluation")
 
             # Update the weights.
             self.msmc_m.set_occs_for_condition_i(tmp_occs, cond)
@@ -82,7 +84,12 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
                 best_occs = tmp_occs
                 best_score = tmp_score
 
-            print(tmp_occs, tmp_score, best_occs, best_score)
+            if self.write:
+                print(tmp_occs, tmp_score, best_occs, best_score)
+
+        if self.write:
+            print(cur_score, cur_occs)
+            print(best_score, best_occs)
 
         return best_occs
 

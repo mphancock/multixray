@@ -4,7 +4,7 @@ import numpy as np
 import math
 from pathlib import Path
 
-from utility import get_n_state_from_pdb_file, get_sample_sched_from_string, get_string_from_sample_sched
+from utility import get_n_state_from_pdb_file
 
 
 def write_params_txt(
@@ -34,8 +34,10 @@ def write_params_csv(
         param_df.loc[0,"cif_{}".format(cond)] = param_dict["cifs"][cond]
         param_df.loc[0,"ref_{}".format(cond)] = param_dict["refs"][cond]
 
-        for state in range(N):
-            param_df.loc[0,"w_{}_{}".format(state, cond)] = param_dict["ref_w_mat"][state, cond]
+    ref_w_mat = param_dict["ref_w_mat"]
+    for state in range(ref_w_mat.shape[0]):
+        for cond in range(ref_w_mat.shape[1]):
+            param_df.loc[0,"w_{}_{}".format(state, cond)] = ref_w_mat[state, cond]
 
     param_df.loc[0,"w_xray"] = param_dict["w_xray"]
 
@@ -43,13 +45,8 @@ def write_params_csv(
     sample_sched_str = get_string_from_sample_sched(sample_sched)
     param_df.loc[0,"sample_sched_str"] = sample_sched_str
 
-    param_df.loc[0,"sample_sched_str"] = param_dict["sample_sched_str"]
-
     if param_dict["start_pdb_file"]:
         param_df.loc[0,"start_pdb_file"] = param_dict["start_pdb_file"]
-
-    if param_dict["init_weights"]:
-        param_df.loc[0,"init_weights"] = param_dict["init_weights"]
 
     param_df.to_csv(param_file)
 
@@ -64,19 +61,35 @@ def read_job_csv(
     N = int(job_df.loc[job_id]["N"])
     J = int(job_df.loc[job_id]["J"])
 
-    cif_files = list()
-    ref_files = list()
-
+    cif_files, ref_files = list(), list()
     for cond in range(J):
-        cif_files.append(Path(job_df.loc[job_id]["cif_{}".format(cond)]))
+        print(job_df.loc[job_id, "cif_0"], type(job_df.loc[job_id, "cif_0"]))
+
+        if type(job_df.loc[job_id, "cif_{}".format(cond)]) == str:
+            cif_files.append(Path(job_df.loc[job_id]["cif_{}".format(cond)]))
+        else:
+            cif_files.append(None)
         ref_files.append(Path(job_df.loc[job_id]["ref_{}".format(cond)]))
 
     ref_n_state = get_n_state_from_pdb_file(ref_files[0])
     ref_w_mat = np.ndarray([ref_n_state, J])
 
+    # If the job csv file contains reference weights, use them. Otherwise, use uniform weights.
     for cond in range(J):
         for state in range(ref_n_state):
-            ref_w_mat[state, cond] = job_df.loc[job_id]["w_{}_{}".format(state, cond)]
+            col = "w_{}_{}".format(state, cond)
+            if col in job_df.columns:
+                ref_w_mat[state, cond] = job_df.loc[job_id]["w_{}_{}".format(state, cond)]
+            else:
+                ref_w_mat[state, cond] = 1/ref_n_state
+
+    w_mat = np.ndarray([N, J])
+    for cond in range(J):
+        if job_df.loc[job_id]["init_weights"] == "uni":
+            w_mat[:, cond] = 1/N
+        else:
+            w_mat[:, cond] = weights.get_weights(floor=0.05, n_state=N)
+    param_dict["w_mat"] = w_mat
 
     param_dict["N"] = N
     param_dict["J"] = J
@@ -84,10 +97,9 @@ def read_job_csv(
     param_dict["refs"] = ref_files
     param_dict["ref_w_mat"] = ref_w_mat
     param_dict["w_xray"] = job_df.loc[job_id]["w_xray"]
+    param_dict["xray_freq"] = job_df.loc[job_id]["xray_freq"]
 
-    sample_sched_str = job_df.loc[job_id, "sample_sched_str"]
-    sample_sched = get_sample_sched_from_string(sample_sched_str)
-    param_dict["sample_sched"] = sample_sched
+    param_dict["sample_sched_str"] = job_df.loc[job_id, "sample_sched_str"]
 
     # Optional params
     for param in ["start_pdb_file", "init_weights"]:

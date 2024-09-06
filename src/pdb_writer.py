@@ -80,39 +80,3 @@ class PDBWriterTracker(trackers.Tracker):
         return [final_pdb_file]
 
 
-class PDBCopyTracker(trackers.Tracker):
-    def __init__(
-            self,
-            name,
-            m,
-            source_dir,
-            dest_dir
-    ):
-        trackers.Tracker.__init__(
-            self,
-            name=name,
-            m=m,
-            n=1
-        )
-        self.source_dir = source_dir
-        self.dest_dir = dest_dir
-        self.step = 0
-
-    def do_evaluate(self):
-        for file in self.source_dir.glob("*.pdb"):
-            dest_file = Path(self.dest_dir, file.name)
-            shutil.move(file, dest_file)
-
-        return 1
-
-    def evaluate(
-            self
-    ):
-        if self.step % self.get_period() == 0 and self.get_on():
-            copied = self.do_evaluate()
-        else:
-            copied = 0
-
-        self.step = self.step+1
-
-        return [copied]

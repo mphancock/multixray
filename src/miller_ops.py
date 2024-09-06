@@ -51,4 +51,3 @@ def filter_f_obs_resolution(
     return f_obs_filter
 
 
-

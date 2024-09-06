@@ -13,13 +13,18 @@ def evaluate_df_dict(
     df_dict = dict()
     # A call to evaluate will override the current derivative values. Therefore, the derivatives must be reset to their original values afterwards.
     df_0_dict = dict()
+    da = IMP.DerivativeAccumulator()
+
     for pid in pids:
         xyz = IMP.core.XYZ(m, pid)
-        df_0_dict[pid] = xyz.get_derivatives()
+        df_0 = xyz.get_derivatives()
+        df_0_dict[pid] = df_0
 
+    # Don't need to 0 because calling the top-level evaluate method  which sets derivatives to 0 first.
     r.evaluate(True)
 
     for pid in pids:
+        xyz = IMP.core.XYZ(m, pid)
         df_dict[pid] = xyz.get_derivatives()
         set_df(m, pid, df_0_dict[pid])
 
@@ -32,7 +37,7 @@ def get_df_dict(
         pids,
         r
 ):
-    print("r: {}".format(r.get_name()))
+    # print("r: {}".format(r.get_name()))
     # See if the restraint has a get_df call that stores the 3d vector first derivatives of all atoms.
     try:
         # get_df_dict returns stored a dictionary where keys are particle indexes and entries are the corresponding derivatives (a 3D vector).

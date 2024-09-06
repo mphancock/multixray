@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 import shutil
+import numpy as np
+import math
 
 import IMP
 import IMP.core
@@ -65,10 +67,16 @@ def refine_hs_to_max_ff(
         rset_charmm.set_weight(1)
         rs.append(rset_charmm)
 
-        keep_refining = True
+        # If the initial structure is non-physiological, don't refine
+        ff_cur = rset_charmm.evaluate(False)
+        if math.isnan(ff_cur) or ff_cur > 5000000:
+            keep_refining = False
+        else:
+            keep_refining = True
 
         while keep_refining:
-            ff_cur = rset_charmm.evaluate(False)
+            # ff_cur = rset_charmm.evaluate(False)
+            # print(ff_cur)
             refine_h(
                 h=h,
                 rs=rs,
@@ -83,8 +91,10 @@ def refine_hs_to_max_ff(
                 keep_refining = False
             elif abs(ff_cur - ff_new) < 100:
                 keep_refining = False
-            elif ff_new > 2000000:
+            elif ff_new > 2500000:
                 keep_refining = False
+
+            ff_cur = ff_new
 
 
 """

@@ -70,6 +70,32 @@ def compute_rmsd_between_average(
     return rmsd
 
 
+def compute_rmsd_between_average_pdb(
+        pdb_0,
+        pdb_1
+):
+    m, m_0 = IMP.Model(), IMP.Model()
+    hs_0 = IMP.atom.read_multimodel_pdb(str(pdb_0), m, IMP.atom.AllPDBSelector())
+    hs_1 = IMP.atom.read_multimodel_pdb(str(pdb_1), m_0, IMP.atom.AllPDBSelector())
+
+    pids_0 = IMP.atom.Selection(hs_0[0]).get_selected_particle_indexes()
+    pids_1 = IMP.atom.Selection(hs_1[0]).get_selected_particle_indexes()
+
+    occs_0 = np.array([1/len(hs_0)]*len(hs_0))
+    occs_1 = np.array([1/len(hs_1)]*len(hs_1))
+
+    rmsd = compute_rmsd_between_average(
+        h_0s=hs_0,
+        h_1s=hs_1,
+        pids_0=pids_0,
+        pids_1=pids_1,
+        occs_0=occs_0,
+        occs_1=occs_1
+    )
+
+    return rmsd
+
+
 def compute_weighted_rmsd(
         h_0s,
         h_1s,

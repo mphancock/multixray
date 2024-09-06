@@ -19,34 +19,6 @@ def get_string_from_sample_sched(sa_sched):
     return sa_str[:-1]
 
 
-def get_sample_sched_from_string(
-    sa_str
-):
-    sa_sched_strs = sa_str.split(";")
-
-    sa_sched = list()
-    keys = ["step", "T", "dof", "pdb", "w", "res"]
-    for sa_step_str in sa_sched_strs:
-        sa_step = dict()
-        for key_val in sa_step_str.split(","):
-            for key in keys:
-                if key in key_val:
-                    val_str = key_val[len(key):]
-                    if key in ["step", "T", "pdb", "w"]:
-                        val = int(val_str)
-                    elif key == "res":
-                        val = float(val_str)
-                    else:
-                        val = val_str
-
-                    sa_step[key] = val
-
-        sa_sched.append(sa_step)
-
-    return sa_sched
-
-
-
 def get_n_state_from_pdb_file(pdb_file):
     pdb_return = pool_read_pdb(pdb_file)
 
@@ -57,10 +29,11 @@ def get_n_state_from_pdb_file(pdb_file):
 
     return len(hs)
 
+
 def pool_read_pdb(
     pdb_file
 ):
-    print(pdb_file)
+    # print(pdb_file)
 
     if pdb_file.exists():
         m = IMP.Model()

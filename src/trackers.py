@@ -1,6 +1,8 @@
 import time
 from typing import Any
 import numpy as np
+import shutil
+import os
 
 import IMP
 import IMP.atom
@@ -34,7 +36,7 @@ class Tracker:
                 self.labels = [name]
 
         if len(self.labels) != self.n:
-            raise ValueError("Number of labels ({}) does not match the number of weights in the weight matrix ({})".format(len(labels), n_weights))
+            raise ValueError("Number of labels ({}) does not match n ({})".format(len(self.labels), self.n))
 
     def get_name(self):
         return self.name
@@ -250,7 +252,8 @@ class dfdXYZTracker(Tracker):
             m,
             pids,
             r,
-            pid
+            pid,
+            scale
 
     ):
         Tracker.__init__(
@@ -263,6 +266,7 @@ class dfdXYZTracker(Tracker):
         self.r = r
         self.pid = pid
         self.pids = pids
+        self.scale = scale
 
     def evaluate(
             self
@@ -272,7 +276,7 @@ class dfdXYZTracker(Tracker):
             pids=self.pids,
             r=self.r
         )
-        return df_dict[self.pid]
+        return df_dict[self.pid] * self.scale
 
 
 class dfMagTracker(Tracker):
@@ -469,3 +473,55 @@ class DFMagRatioTracker(Tracker):
             self
     ):
         return self.xr.get_df_mag_ratio()
+
+
+class CopyTracker(Tracker):
+    def __init__(
+            self,
+            name,
+            m,
+            source_dir,
+            dest_dir
+    ):
+        Tracker.__init__(
+            self,
+            name=name,
+            m=m,
+            n=1
+        )
+        self.source_dir = source_dir
+        self.dest_dir = dest_dir
+        self.step = 0
+
+    def do_evaluate(self):
+        # for file in self.source_dir.glob("*.pdb"):
+        #     dest_file = Path(self.dest_dir, file.name)
+        #     shutil.move(file, dest_file)
+
+        # shutil.copytree(self.source_dir, self.dest_dir)
+
+        # Iterate over the source directory contents
+        print("Performing copy after {} steps".format(self.step))
+        for item in os.listdir(self.source_dir):
+            s = os.path.join(self.source_dir, item)
+            d = os.path.join(self.dest_dir, item)
+            if os.path.isdir(s):
+                # Recursively copy subdirectory
+                shutil.copytree(s, d, dirs_exist_ok=True)
+            else:
+                # Copy file
+                shutil.copy2(s, d)
+
+        return 1
+
+    def evaluate(
+            self
+    ):
+        if self.step % self.get_period() == 0 and self.get_on():
+            copied = self.do_evaluate()
+        else:
+            copied = 0
+
+        self.step = self.step+1
+
+        return [copied]

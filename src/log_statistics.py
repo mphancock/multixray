@@ -13,7 +13,8 @@ class LogStatistics(IMP.OptimizerState):
             m,
             all_trackers,
             log_file,
-            log_freq
+            log_freq,
+            write=True
     ):
         IMP.OptimizerState.__init__(self, m, "LogStatistics%1%")
         self.m = m
@@ -21,6 +22,7 @@ class LogStatistics(IMP.OptimizerState):
         self.all_trackers = all_trackers
         self.log_file = log_file
         self.log_freq = log_freq
+        self.write = write
 
         columns = list()
         for tracker in self.all_trackers:
@@ -64,6 +66,17 @@ class LogStatistics(IMP.OptimizerState):
 
         raise RuntimeError("Tracker {} not found".format(name))
 
+    def get_trackers_by_type(
+            self,
+            tracker_type
+    ):
+        trackers = list()
+        for tracker in self.all_trackers:
+            if type(tracker) == tracker_type:
+                trackers.append(tracker)
+
+        return trackers
+
     def get_trackers(
             self
     ):
@@ -76,8 +89,11 @@ class LogStatistics(IMP.OptimizerState):
             entries.extend(tracker.evaluate())
 
         self.log_df.loc[len(self.log_df)] = entries
-        self.print_last_entry()
+
+        if self.write:
+            self.print_last_entry()
 
         if self.get_number_of_updates()%self.log_freq == 0:
+            # print("Log updating after {} steps".format(self.get_number_of_updates()))
             log_df = self.get_log()
             log_df.to_csv(self.log_file)

@@ -84,6 +84,13 @@ class MultiStateMultiConditionModel:
     def get_ca_pids(self, i):
         return self.ca_pids_dict[i]
 
+    def get_pids_in_res_range(self, start, end):
+        pids = list()
+        for h in self.hs:
+            pids.extend(IMP.atom.Selection(h, residue_indexes=range(start, end)).get_selected_particle_indexes())
+
+        return pids
+
     def get_all_ca_pids(self):
         ca_pids = list()
         for i in range(self.n_state):

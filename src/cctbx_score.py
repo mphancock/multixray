@@ -28,6 +28,10 @@ def get_score(
         u_aniso_file=None,
         delta=None
 ):
+    # print(occs)
+    # pid = IMP.atom.Selection(hs[0]).get_selected_particle_indexes()[0]
+    # print(IMP.atom.Atom(hs[0].get_model(), pid).get_occupancy())
+
     # print(f_obs.size())
     crystal_symmetry = f_obs.crystal_symmetry()
     xray_structure = xray_struct.get_xray_structure(
@@ -38,6 +42,9 @@ def get_score(
         u_aniso_file=u_aniso_file,
         delta=delta
     )
+
+    # print(xray_structure.scatterers()[0].occupancy)
+    # print(xray_structure.show_summary())
 
     xray_structure.scatterers().flags_set_grads(
         state=False
