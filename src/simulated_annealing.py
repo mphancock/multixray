@@ -162,7 +162,6 @@ class SimulatedAnnealing:
         weight_o_state,
         com_o_state
     ):
-        print("SA")
         self.msmc_m = msmc_m
         self.rset_xray = rset_xray
         self.rset_charmm = rset_charmm
@@ -204,7 +203,6 @@ class SimulatedAnnealing:
         self.md.set_maximum_time_step(self.t_step)
 
     def run(self):
-        print("SA run")
         cur_step = 0
         cur_sa_step = 0
         while cur_step < self.n_step:
@@ -212,7 +210,9 @@ class SimulatedAnnealing:
             if self.sa_sched.get_xray_on(cur_sa_step):
                 ## set the resolution of all xray restraints
                 res = self.sa_sched.get_resolution(cur_sa_step)
-                for r_xray in self.rset_xray.get_restraints():
+                for i in range(self.rset_xray.get_number_of_restraints()):
+                    r_xray = self.rset_xray.get_restraint(i)
+                    print(type(r_xray))
                     r_xray.set_d_min(res)
                 sf = IMP.core.RestraintsScoringFunction([self.rset_xray, self.rset_charmm])
 
