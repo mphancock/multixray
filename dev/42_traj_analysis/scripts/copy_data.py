@@ -14,10 +14,10 @@ if __name__ == "__main__":
     job_ids = list()
     out_ids = list()
 
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/213_singles")
-    dest_dir = Path("../data/213")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/202_no_wxray_auto")
+    dest_dir = Path("../data/202")
 
-    for job_id in range(1,54):
+    for job_id in range(14):
         dest_pdb_dir = Path(dest_dir, "pdbs/{}".format(job_id))
         dest_pdb_dir.mkdir(exist_ok=True, parents=True)
 
@@ -34,11 +34,11 @@ if __name__ == "__main__":
             print(max_pdb_file)
             shutil.copy(max_pdb_file, Path(dest_pdb_dir, "{}.pdb".format(out_id)))
 
-        # for out_id in range(1):
-        #     out_dir = Path(exp_dir, "{}/output_{}".format(job_id, out_id))
-        #     shutil.copy(Path(out_dir, "log.csv"), Path(dest_log_dir, "{}.csv".format(out_id)))
+        for out_id in range(10):
+            out_dir = Path(exp_dir, "{}/output_{}".format(job_id, out_id))
+            shutil.copy(Path(out_dir, "log.csv"), Path(dest_log_dir, "{}.csv".format(out_id)))
 
-        #     print(job_id, out_id)
+            print(job_id, out_id)
 
 
 

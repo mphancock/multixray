@@ -5,24 +5,29 @@ import IMP.core
 import IMP.algebra
 
 
+## function to get the derivatives of a restraint r with respect to the position of pids
 def evaluate_df_dict(
         m,
         pids,
         r
 ):
+    ## a call to evaluate will override the current derivative values and the derivatives must be reset to their original values afterwards
+    ## dictionary to store restraint derivatives
     df_dict = dict()
-    # A call to evaluate will override the current derivative values. Therefore, the derivatives must be reset to their original values afterwards.
-    df_0_dict = dict()
-    da = IMP.DerivativeAccumulator()
 
+    ## dictionary to store original derivatives
+    df_0_dict = dict()
+
+    ## store the original derivatives
     for pid in pids:
         xyz = IMP.core.XYZ(m, pid)
         df_0 = xyz.get_derivatives()
         df_0_dict[pid] = df_0
 
-    # Don't need to 0 because calling the top-level evaluate method  which sets derivatives to 0 first.
+    # don't need to 0 because calling the top-level evaluate method which sets derivatives to 0 first
     r.evaluate(True)
 
+    ## get the restraint derivatives and reset to the original derivatives
     for pid in pids:
         xyz = IMP.core.XYZ(m, pid)
         df_dict[pid] = xyz.get_derivatives()

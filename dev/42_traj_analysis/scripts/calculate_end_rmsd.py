@@ -14,19 +14,19 @@ if __name__ == "__main__":
     out_ids = list()
     end_rmsds = list()
 
-    data_dir = Path("../data/209")
+    data_dir = Path("../data/202")
     data_dir.mkdir(exist_ok=True)
 
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/209_9000_low_res")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/202_no_wxray_auto")
 
-    for job_id in range(26):
+    for job_id in range(14):
         for out_id in range(10):
             out_path = Path(exp_dir, "{}/output_{}".format(job_id, out_id))
 
             log_file = Path(out_path, "log.csv")
             log_df = pd.read_csv(log_file, index_col=0)
 
-            if False:
+            if job_id == 0:
                 rmsd = log_df.loc[len(log_df)-1, "rmsd_0"]
             else:
                 rmsd = log_df.loc[len(log_df)-1, "rmsd_7mhl"]
