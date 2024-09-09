@@ -17,16 +17,16 @@ sys.path.append(str(Path(Path.home(), "xray/sample_bench/scripts/analysis_exp"))
 
 
 if __name__ == "__main__":
-    exp_name = "186_w_xray_bench_ref_10000"
+    exp_name = "199_refine"
+    job_csv_file = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/params/199.csv")
+    params_df = pd.read_csv(job_csv_file, index_col=0)
+
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", exp_name)
     analysis_dir = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/7mhf", exp_name)
     analysis_dir.mkdir(exist_ok=True)
 
-    job_csv_file = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/params/w_xray_bench.csv")
-
     w_xray_df = pd.DataFrame()
-
-    for i in range(440):
+    for i in range(len(params_df)):
         job_dir = Path(exp_dir, str(i))
         param_dict = read_job_csv(job_csv_file=job_csv_file, job_id=i)
 
@@ -35,9 +35,10 @@ if __name__ == "__main__":
 
         ## Perform the analysis based on the first r free
         field = "r_free_{}".format(cif_names[0])
-        bonus_fields = list()
-        for i in range(1, len(cif_names)):
-            bonus_fields.append("r_free_{}".format(cif_names[i]))
+        bonus_fields = ["r_work_{}".format(cif_names[0])]
+        for j in range(1, len(cif_names)):
+            bonus_fields.append("r_free_{}".format(cif_names[j]))
+            bonus_fields.append("r_work_{}".format(cif_names[j]))
         bonus_fields.extend(["ff", "pdb"])
 
         N, J = param_dict["N"], param_dict["J"]
@@ -47,7 +48,7 @@ if __name__ == "__main__":
         bonus_fields.extend(w_cols)
 
         log_files = [Path(out_dir, "log.csv") for out_dir in job_dir.glob("*/")]
-        print(log_files)
+        # print(log_files)
 
         if len(log_files) == 0:
             continue
@@ -59,7 +60,7 @@ if __name__ == "__main__":
             field=field,
             N=1,
             bonus_fields=bonus_fields,
-            equil=5,
+            equil=1,
             pdb_only=True,
             max_rmsd=None
         )
@@ -74,9 +75,12 @@ if __name__ == "__main__":
         w_xray_df.loc[i, "r_free"] = stat_df.loc[0, field]
 
         for w_col in w_cols:
-            w_xray_df.loc[df_id, w_col] = stat_df.loc[0, w_col]
+            w_xray_df.loc[i, w_col] = stat_df.loc[0, w_col]
 
         for bonus_field in bonus_fields:
-            w_xray_df.loc[df_id, bonus_field] = stat_df.loc[0, bonus_field]
+            w_xray_df.loc[i, bonus_field] = stat_df.loc[0, bonus_field]
+
+        for j in range(len(cif_files)):
+            w_xray_df.loc[i, "cif_{}".format(j)] = cif_files[j]
 
     w_xray_df.to_csv(Path(analysis_dir, "w_xray.csv"))

@@ -18,26 +18,33 @@ from generate_fmodel import get_f_model_from_f_obs, write_cif
 
 
 if __name__ == "__main__":
-    data_dir = Path(Path.home(), "xray/sample_bench/data/7mhf/179_exp")
-    summary_df_file = Path(data_dir, "summary.csv")
+    data_dir = Path(Path.home(), "xray/sample_bench/data/7mhf/189_exp_ref_10000")
+    summary_df_file = Path(data_dir, "summary_best.csv")
     summary_df = pd.read_csv(summary_df_file, index_col=0)
 
-    pdb_dir = Path(Path.home(), "xray/sample_bench/data/7mhf/179_exp/summary")
+    # pdb_dir = Path(Path.home(), "xray/sample_bench/data/7mhf/179_exp/summary")
+    pdb_df = pd.read_csv(Path(data_dir, "summary_best.csv"), index_col=0)
     f_obs_dir = Path(Path.home(), "xray/data/cifs/7mhf")
-    cif_dir = Path(data_dir, "summary_cifs")
+    f_model_dir = Path(data_dir, "summary_best_cif")
 
-    for pdb_file in pdb_dir.glob("*.pdb"):
-        cif_name = pdb_file.stem[0:4]
-        N = int(pdb_file.stem.split("_")[1][1:])
-        J = int(pdb_file.stem.split("_")[2][1:])
+    for index in pdb_df.index:
+        N = pdb_df.loc[index, "N"]
+        J = pdb_df.loc[index, "J"]
 
-        print(pdb_file, cif_name, N, J)
+        cif_name = None
+        for cif_name in ["7mhf", "7mhg", "7mhh", "7mhi", "7mhj", "7mhk"]:
+            if not np.isnan(pdb_df.loc[index, "xray_{}".format(cif_name)]):
+                break
+
 
         f_obs_file = Path(f_obs_dir, "{}.cif".format(cif_name))
+        f_model_file = Path(f_model_dir, "{}.cif".format(index))
 
-        pdb_entry = summary_df[(summary_df["cif_name"] == cif_name) & (summary_df["N"] == N) & (summary_df["J"] == J)].iloc[0]
+        pdb_file = pdb_df.loc[index, "pdb"]
+        # pdb_entry = summary_df[(summary_df["cif_name"] == cif_name) & (summary_df["N"] == N) & (summary_df["J"] == J)].iloc[0]
 
-        occs = [pdb_entry["w_{}".format(i)] for i in range(N)]
+        occs = [pdb_df.loc[index, "w_{}_{}".format(i, cif_name)] for i in range(N)]
+        print(pdb_file, cif_name, N, J)
         print(occs)
 
         f_model, status_array = get_f_model_from_f_obs(
@@ -46,12 +53,12 @@ if __name__ == "__main__":
             occs=occs
         )
 
-        out_cif_file = Path(cif_dir, "{}.cif".format(pdb_file.stem))
-        print(out_cif_file)
+        # out_cif_file = Path(cif_dir, "{}.cif".format(index.stem))
+        # print(out_cif_file)
         write_cif(
             f_obs=f_model,
             status_array=status_array,
-            cif_file=out_cif_file
+            cif_file=f_model_file
         )
 
 

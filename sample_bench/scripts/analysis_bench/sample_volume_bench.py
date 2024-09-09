@@ -9,6 +9,8 @@ import sys
 
 sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
 from get_stat_df import get_stat_df
+sys.path.append(str(Path(Path.home(), "xray/src")))
+from params import read_job_csv
 
 
 """
@@ -121,16 +123,24 @@ def get_sample_volume_df(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument("--job_dir")
-    parser.add_argument("--field")
-    parser.add_argument("--bonus_fields")
-    parser.add_argument("--stat_df_file")
-    # parser.add_argument("--out_file")
-    args = parser.parse_args()
-    print(vars(args))
+    # parser.add_argument("--field")
+    # parser.add_argument("--bonus_fields")
+    # parser.add_argument("--stat_df_file")
+    # parser.add_argument("--job_csv_file")
+    # job_csv_file = Path(args.job_csv_file)
+    # stat_df_file = Path(args.stat_df_file)
 
-    stat_df_file = Path(args.stat_df_file)
+    bonus_fields = ["ff", "rmsd"]
+    stat_df_file = Path(Path.home(), "xray/sample_bench/data/7mhf/187_bench_ref_10000/sample_per_out.csv")
+    job_csv_file = Path(Path.home(), "xray/sample_bench/data/params/bench.csv")
+
+    # parser.add_argument("--out_file")
+    # args = parser.parse_args()
+    # print(vars(args))
+
     analysis_dir = stat_df_file.parents[0]
     out_file = Path(analysis_dir, "volume.csv")
+
 
     # job_dir = Path(args.job_dir)
     # out_dirs = list(job_dir.glob("output*"))
@@ -161,10 +171,16 @@ if __name__ == "__main__":
     # stat_df = stat_df.dropna()
     # score_stat_df.to_csv(Path(sample_bench_dir, "stat_df_{}.csv".format(args.field)))
     volume_df = pd.DataFrame()
-    for n in range(2):
-        for j in range(20):
+
+    for k in range(10):
+        job_ids = [k*2, k*2+1, 20+k*2, 20+k*2+1]
+        for job_id in job_ids:
+            job_params = read_job_csv(job_csv_file=job_csv_file, job_id=job_id)
+            N = job_params["N"]
+            J = job_params["J"]
+
             stat_df = pd.read_csv(stat_df_file, index_col=0)
-            stat_df = stat_df.loc[(stat_df["j"] == j) & (stat_df["n"] == n)]
+            stat_df = stat_df.loc[stat_df["job_id"] == job_id]
             print(len(stat_df))
 
             # if "rmsd_0+rmsd_1" in stat_df.columns:
@@ -177,12 +193,14 @@ if __name__ == "__main__":
             # Next, create m random groups of n log files to compute the mean and standard deviation of the minimum field values of the log files in the group. m and n are both set to the number of total log files.
             volume_n_j_df = get_sample_volume_df(
                 log_min_df=stat_df,
-                score_field="r_free",
-                extra_fields=["ff", "rmsd"],
+                score_field="field",
+                extra_fields=["r_free_0"],
                 max_n=len(stat_df)
             )
-            volume_n_j_df["n"] = n
-            volume_n_j_df["j"] = j
+            volume_n_j_df["k"] = k
+            volume_n_j_df["job_id"] = job_id
+            volume_n_j_df["N"] = N
+            volume_n_j_df["J"] = J
             volume_df = pd.concat([volume_df, volume_n_j_df])
 
     print(volume_df.head())

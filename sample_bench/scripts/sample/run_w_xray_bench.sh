@@ -5,7 +5,6 @@ EXP_ID=186
 EXP_NAME="186_w_xray_bench"
 N_JOBS="1-5"
 OFFSET="0"
-
 H_RT="6:00:00"
 
 for JOB_ID in {0..439}

@@ -2,28 +2,29 @@ from pathlib import Path
 import sys
 import pandas as pd
 
-sys.path.append(str(Path(Path.home(), "xray/score_bench/src")))
-import score_rmsd
+sys.path.append(str(Path(Path.home(), "xray/src")))
+from score import pool_score
 
 
 if __name__ == "__main__":
     param_dict = dict()
-    param_dict["decoy_file"] = Path("/wynton/home/sali/mhancock/xray/tmp/refine/21.pdb")
-    # param_dict["decoy_file"] = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/179_exp/N0_J0/output_8/pdbs/104.pdb")
-    param_dict["decoy_occs"] = [0.5012057054063240, 0.4987942945936770]
-    param_dict["ref_file"] = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/7mhf_30/0.pdb")
-    param_dict["ref_occs"] = [0.5,0.5]
-    param_dict["cif_file"] = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/cifs/7mhf_30/0/0.cif")
-    # param_dict["cif_file"] = Path(Path.home(), "xray/data/cifs/7mhf/7mhf.cif")
+    # param_dict["decoy_file"] = Path("/wynton/home/sali/mhancock/xray/dev/39_bench_ensemble/data/pdbs/7mhl.pdb")
+    # param_dict["decoy_occs"] = [1/54]*54
+
+    param_dict["decoy_file"] = Path("/wynton/home/sali/mhancock/xray/dev/39_bench_ensemble/data/pdbs/7mhl/0.pdb")
+    param_dict["decoy_occs"] = [1/54]
+    param_dict["ref_file"] = Path("/wynton/home/sali/mhancock/xray/dev/39_bench_ensemble/data/pdbs/7mhl.pdb")
+    param_dict["ref_occs"] = [1/54]*54
+    param_dict["cif_file"] = Path(Path.home(), "xray/dev/39_bench_ensemble/data/cifs/7mhl.cif")
     param_dict["flags_file"] = param_dict["cif_file"]
     param_dict["ab_file"] = None
     param_dict["adp_file"] = None
     param_dict["scale_k1"] = True
     param_dict["scale"] = True
-    param_dict["res"] = 2
+    param_dict["res"] = 0
     param_dict["score_fs"] = ["ml", "ff"]
 
-    score_dict = score_rmsd.pool_score(
+    score_dict = pool_score(
         params=param_dict
     )
     print(score_dict)

@@ -28,6 +28,7 @@ def pool_get_stat_info_df(
     N = params_dict["N"]
     pdb_only = params_dict["pdb_only"]
     max_rmsd = params_dict["max_rmsd"]
+    max_ff = params_dict["max_ff"]
 
     # Merge the log files into a single dataframe.
     log_dfs = []
@@ -62,6 +63,9 @@ def pool_get_stat_info_df(
 
         if max_rmsd:
             log_df = log_df[log_df["rmsd_0"] <= max_rmsd]
+
+        if max_ff:
+            log_df = log_df[log_df["ff"] <= max_ff]
 
         log_dfs.append(log_df)
 
@@ -105,7 +109,8 @@ def get_stat_df(
         bonus_fields,
         equil,
         pdb_only,
-        max_rmsd=None
+        max_rmsd=None,
+        max_ff=None
 ):
     # Construct the stat_df.
     columns = [field]
@@ -132,6 +137,7 @@ def get_stat_df(
         pool_param["bonus_fields"] = bonus_fields
         pool_param["pdb_only"] = pdb_only
         pool_param["max_rmsd"] = max_rmsd
+        pool_param["max_ff"] = max_ff
         pool_params.append(pool_param)
 
     # Collect all of the field stat dfs and log file groups that are returned by get_stat_from_log_files. The field stat dfs will be used to populate the final stat df. The format of the field stat dfs has the following columns: field, stat, value, log, id. The df will only have more than one row if the stat is either "max" or "min" and N>1.

@@ -127,7 +127,8 @@ def pool_score(
                 update_scale=params["scale"],
                 update_k1=params["scale_k1"],
                 u_aniso_file=None,
-                ref_com=ref_msmc_m.get_com()
+                ref_com=ref_msmc_m.get_com(),
+                update_freq=1
             )
             xray_r.evaluate(False)
             score = xray_r.get_f()

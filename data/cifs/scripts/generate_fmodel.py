@@ -10,6 +10,7 @@ import iotbx
 from scitbx.array_family import flex
 
 sys.path.append(str(Path(Path.home(), "xray/src")))
+sys.path.append(str(Path(Path.home(), "Documents/xray/src")))
 import miller_ops
 
 
@@ -46,9 +47,9 @@ def get_f_model(
     # )
 
     f_model = xray_structure.structure_factors(
-        d_min=1.0
+        d_min=res
     ).f_calc().amplitudes()
-    print(f_model.size())
+    print(f_model.d_min())
 
     return f_model
 
@@ -165,19 +166,33 @@ def write_cif(
 
 
 def randomize_amplitude(
-        f_obs
+        f_obs,
+        dist="norm",
+        std=None
 ):
     for i in range(f_obs.size()):
         amp = f_obs.data()[i]
 
-        print(amp)
+        # print(amp)
 
         mean = amp
-        std = amp*.1
-        f_obs.data()[i] = np.random.normal(
-            loc=mean,
-            scale=std
-        )
+
+        if dist == "norm":
+            f_obs.data()[i] = np.random.normal(
+                loc=mean,
+                scale=std
+            )
+        elif dist == "uni":
+            if mean-std < 0:
+                low = 0
+            else:
+                low = mean-std
+
+            f_obs.data()[i] = np.random.uniform(
+                low=low,
+                high=mean+std
+            )
+
 
     return f_obs
 

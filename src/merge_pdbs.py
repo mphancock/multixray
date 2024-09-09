@@ -103,7 +103,6 @@ def write_merge_pdb_file(
         pdb_dir = pdb_files[0].parents[0]
         for i in range(pdb_min, max_it):
             pdb_files_order.append(Path(pdb_dir, "{}.pdb".format(i)))
-
     else:
         pdb_files_order = pdb_files
 

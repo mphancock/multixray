@@ -7,3 +7,5 @@
 **/tmp
 tmp/*
 dev/*/data/output_0
+
+dev/42_traj_analysis/data/*

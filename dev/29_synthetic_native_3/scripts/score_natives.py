@@ -11,7 +11,9 @@ if __name__ == "__main__":
     n_cond = 2
     n_state = 2
 
-    native_file = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/scores/7mhf_30.csv")
+    cif_name = "7mhf_30"
+
+    native_file = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/scores/{}.csv".format(cif_name))
     native_df = pd.read_csv(native_file, index_col=0)
 
     # for cond in list(range(n_cond)):
@@ -19,7 +21,7 @@ if __name__ == "__main__":
 
     for i in range(len(native_df)):
         pdb_file = Path(native_df.loc[i, "pdb"])
-        cif_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/cifs/7mhf_30/{}".format(i))
+        cif_dir = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/cifs/{}/{}".format(cif_name, i))
 
         for cond in range(n_cond):
             occs = list()

@@ -1,29 +1,18 @@
 #! /bin/bash
 
 
-EXP_ID=179
-EXP_NAME="179_exp"
+EXP_ID=189
+EXP_NAME="189_exp"
 N_JOBS="1-25"
 OFFSET="0"
+H_RT="48:00:00"
 
-H_RTS=("08:00:00" "12:00:00" "16:00:00" "24:00:00" "56:00:00")
-N_STATES=(1 2 4 8 16)
-
-for N_STATE_ID in {0..4}
+# for JOB_ID in {0..39}
+for (( JOB_ID=314; JOB_ID>=0; JOB_ID-- ))
 do
-    H_RT=${H_RTS[$N_STATE_ID]}
-    for JOB_ID in {0..62}
-    do
-        # echo $W_XRAY_ID
-        JOB_NAME=N"$N_STATE_ID"_J"$JOB_ID"
-        echo "$JOB_NAME"
-        JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/$EXP_NAME/$JOB_NAME"
+    JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/$EXP_NAME/$JOB_ID"
 
-        W_XRAY=${W_XRAYS[$W_XRAY_ID]}
-        N_STATE=${N_STATES[$N_STATE_ID]}
+    PARAMS="--job_csv_file /wynton/home/sali/mhancock/xray/sample_bench/data/params/exp.csv --job_id $JOB_ID"
 
-        PARAMS="--input_csv /wynton/home/sali/mhancock/xray/dev/35_cif_combos/data/7mhf.csv --job_id $JOB_ID --w_xray /wynton/home/sali/mhancock/xray/sample_bench/data/7mhf/178_wxray/best_wxray.csv --n_state $N_STATE --init_weights rand --sa {step3000,T300,dofA,pdb1,w1,res0} --steps 2"
-
-        qsub -N e"$JOB_NAME" -l h_rt=$H_RT -l mem_free=1G -l scratch=1G -t "$N_JOBS" "$HOME/xray/sample_bench/scripts/sample/run_slave.sh" "$JOB_NAME" "$JOB_DIR" "$PARAMS" "$OFFSET"
-    done
+    qsub -N b"$EXP_ID"_"$JOB_ID" -l h_rt=$H_RT -l mem_free=1G -l scratch=1G -t "$N_JOBS" "$HOME/xray/sample_bench/scripts/sample/run_slave.sh" "$JOB_DIR" "$OFFSET" "$PARAMS"
 done

@@ -20,4 +20,18 @@ from refine import refine_hs_to_max_ff
 
 
 if __name__ == "__main__":
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/183_test")
+    log_dfs = list()
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/194_free_control_all_N/4")
+
+    for out_dir in exp_dir.glob("output*"):
+        log_df = pd.read_csv(Path(out_dir, "log.csv"))
+        log_df = log_df[log_df['pdb'].notna()]
+        log_dfs.append(log_df)
+
+    print(len(log_dfs))
+
+    all_log_df = pd.concat(log_dfs)
+    # print(all_log_df.columns)
+
+    print(all_log_df["r_free_7mhi"].min())
+    print(all_log_df["r_work_7mhi"].min())
