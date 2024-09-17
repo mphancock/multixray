@@ -17,8 +17,8 @@ sys.path.append(str(Path(Path.home(), "xray/sample_bench/scripts/analysis_exp"))
 
 
 if __name__ == "__main__":
-    exp_name = "199_refine"
-    job_csv_file = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/params/199.csv")
+    exp_name = "222_wxray"
+    job_csv_file = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/params/222.csv")
     params_df = pd.read_csv(job_csv_file, index_col=0)
 
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", exp_name)
@@ -31,7 +31,10 @@ if __name__ == "__main__":
         param_dict = read_job_csv(job_csv_file=job_csv_file, job_id=i)
 
         cif_files = param_dict["cifs"]
-        cif_names = [cif_file.stem for cif_file in cif_files]
+        cif_names = [cif_file.stem for cif_file in cif_files if cif_file]
+
+        if len(cif_names) == 0:
+            continue
 
         ## Perform the analysis based on the first r free
         field = "r_free_{}".format(cif_names[0])
@@ -47,8 +50,13 @@ if __name__ == "__main__":
             w_cols.append("w_{}_{}".format(state, cif_names[0]))
         bonus_fields.extend(w_cols)
 
-        log_files = [Path(out_dir, "log.csv") for out_dir in job_dir.glob("*/")]
+        # log_files = [Path(out_dir, "log.csv") for out_dir in job_dir.glob("*/")]
         # print(log_files)
+        log_files = list()
+        for out_dir in job_dir.glob("*/"):
+            log_file = Path(out_dir, "log.csv")
+            if log_file.exists():
+                log_files.append(log_file)
 
         if len(log_files) == 0:
             continue

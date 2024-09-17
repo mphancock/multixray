@@ -47,8 +47,10 @@ if __name__ == "__main__":
     # sel = IMP.atom.AllPDBSelector()
     sel_2 = IMP.atom.NonAlternativePDBSelector()
     sel_1 = IMP.atom.NonWaterNonHydrogenPDBSelector()
+    sel_3 = IMP.atom.ATOMPDBSelector()
     # sel_2 = IMP.atom.WaterPDBSelector()
     sel = IMP.atom.AndPDBSelector(sel_1, sel_2)
+    sel = IMP.atom.AndPDBSelector(sel, sel_3)
 
     h = IMP.atom.read_pdb(
         str(pdb_file),
@@ -63,10 +65,10 @@ if __name__ == "__main__":
     print(len(pids))
 
     # Set all atomic b factors to 0 and occupancies to 1.
-    # for pid in pids:
-    #     atom = IMP.atom.Atom(m, pid)
-    #     atom.set_occupancy(1)
-        # atom.set_temperature_factor(0)
+    for pid in pids:
+        atom = IMP.atom.Atom(m, pid)
+        atom.set_occupancy(1)
+        atom.set_temperature_factor(15)
 
     IMP.atom.write_pdb(
         mhd=h,

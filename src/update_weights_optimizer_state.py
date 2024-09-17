@@ -38,15 +38,16 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
         self.on = on
 
     def do_update(self, call):
-        for i in range(len(self.r_xrays)):
-            cur_occs = self.msmc_m.get_w_mat()[:,i]
+        if self.on:
+            for i in range(len(self.r_xrays)):
+                cur_occs = self.msmc_m.get_w_mat()[:,i]
 
-            new_occs = self.get_new_occs(
-                cur_occs=cur_occs,
-                cond=i
-            )
+                new_occs = self.get_new_occs(
+                    cur_occs=cur_occs,
+                    cond=i
+                )
 
-            self.msmc_m.set_occs_for_condition_i(new_occs, i)
+                self.msmc_m.set_occs_for_condition_i(new_occs, i)
 
 
     def get_new_occs(

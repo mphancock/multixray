@@ -13,6 +13,8 @@ import params
 import reset
 import pdb_writer
 import log_statistics
+from trackers import TempTracker
+from weight_thermostat import WeightThermostat
 
 
 class SimulatedAnnealingSchedule:
@@ -21,7 +23,6 @@ class SimulatedAnnealingSchedule:
         sa_string
     ):
         self.read_sa_sched_string(sa_string)
-        print(self.sa_sched_df)
 
     def read_sa_sched_string(
         self,
@@ -182,37 +183,57 @@ class SimulatedAnnealing:
         ## Reorder in a bid...
         self.md = IMP.atom.MolecularDynamics(self.m)
         T_0 = sa_sched.get_temperature(0)
-        self.s_v = IMP.atom.VelocityScalingOptimizerState(self.m, self.ps, T_0)
-        self.md.add_optimizer_state(self.s_v)
+
+        # self.s_v = IMP.atom.VelocityScalingOptimizerState(self.m, self.ps, T_0)
+        # self.s_v.set_period(10)
+        # self.md.add_optimizer_state(self.s_v)
         self.md.set_particles(self.ps)
 
         sf = IMP.core.RestraintsScoringFunction([rset_charmm])
         self.md.set_scoring_function(sf)
         self.md.set_has_required_score_states(True)
 
-        for o_state in [self.log_o_state, self.weight_o_state, self.com_o_state]:
+        ## create weight thermostat
+        self.thermostat_o_state = WeightThermostat(
+            msmc_m=msmc_m,
+            rset_xray=rset_xray,
+            md=self.md,
+            T_target=T_0,
+            warmup_steps=50
+        )
+        self.thermostat_o_state.set_period(10)
+        # self.weight_o_state.set_on(False)
+
+        for o_state in [self.com_o_state, self.weight_o_state, self.thermostat_o_state, self.log_o_state]:
             if o_state:
                 self.md.add_optimizer_state(o_state)
 
+        ## turn off center of mass adjustment
+        self.com_o_state.turn_off()
+
         self.md.setup(self.ps)
         self.md.set_temperature(T_0)
-        for pid in self.pids:
-            IMP.atom.LinearVelocity.setup_particle(self.m, pid)
 
         self.md.assign_velocities(T_0)
         self.md.set_maximum_time_step(self.t_step)
+
+        ## if there is a temp tracker turn it on
+        temp_tracker = self.log_o_state.get_trackers_by_type(TempTracker)[0]
+        temp_tracker.set_on()
+        temp_tracker.set_md(self.md)
+
 
     def run(self):
         cur_step = 0
         cur_sa_step = 0
         while cur_step < self.n_step:
+            print(self.sa_sched.get_weight_on(cur_sa_step))
             ## turn on/off the xray restraints
             if self.sa_sched.get_xray_on(cur_sa_step):
                 ## set the resolution of all xray restraints
                 res = self.sa_sched.get_resolution(cur_sa_step)
                 for i in range(self.rset_xray.get_number_of_restraints()):
                     r_xray = self.rset_xray.get_restraint(i)
-                    print(type(r_xray))
                     r_xray.set_d_min(res)
                 sf = IMP.core.RestraintsScoringFunction([self.rset_xray, self.rset_charmm])
 
@@ -247,7 +268,7 @@ class SimulatedAnnealing:
             n_frames = self.sa_sched.get_steps(cur_sa_step)
             t_step = 2
 
-            self.s_v.set_temperature(T)
+            # self.s_v.set_temperature(T)
             self.md.set_temperature(T)
             self.md.set_maximum_time_step(t_step)
             # md.set_velocity_cap(.005)

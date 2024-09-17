@@ -15,16 +15,28 @@ class CenterOfMassOptimizerState(IMP.OptimizerState):
         self.pids = pids
         self.ref_com = ref_com
 
-    def do_update(self, call):
-        com = IMP.atom.CenterOfMass.setup_particle(
-            IMP.Particle(self.m),
-            self.pids
-        )
+        self.is_on = True
 
-        delta = self.ref_com.get_coordinates() - com.get_coordinates()
-        for pid in self.pids:
-            xyz = IMP.core.XYZ(self.m, pid)
-            coords_adjust = xyz.get_coordinates() + delta
-            xyz.set_coordinates(coords_adjust)
+    def get_is_on(self):
+        return self.is_on
+
+    def turn_on(self):
+        self.is_on = on
+
+    def turn_off(self):
+        self.is_on = False
+
+    def do_update(self, call):
+        if self.is_on:
+            com = IMP.atom.CenterOfMass.setup_particle(
+                IMP.Particle(self.m),
+                self.pids
+            )
+
+            delta = self.ref_com.get_coordinates() - com.get_coordinates()
+            for pid in self.pids:
+                xyz = IMP.core.XYZ(self.m, pid)
+                coords_adjust = xyz.get_coordinates() + delta
+                xyz.set_coordinates(coords_adjust)
 
 

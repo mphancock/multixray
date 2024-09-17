@@ -40,6 +40,7 @@ if __name__ == "__main__":
     parser.add_argument("--tmp_out_dir")
     parser.add_argument("--job_csv_file")
     parser.add_argument("--job_id")
+    parser.add_argument("--write", action="store_true")
     args = parser.parse_args()
 
     ## Be able to read from a params csv to make rerunning jobs easier
@@ -145,11 +146,10 @@ if __name__ == "__main__":
             # w_xray=args.w_xray/len(cif_files),
             update_scale=True,
             update_k1=True,
-            # update_scale=False,
-            # update_k1=False,
             u_aniso_file=None,
             update_freq=xray_freq,
-            ref_com=com
+            # ref_com=com
+            ref_com=None
         )
 
         rset_xray.add_restraint(r_xray)
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         r_xrays=r_xrays,
         n_proposals=10,
         radius=.05,
-        write=False
+        write=args.write
     )
     w_os.set_period(100)
 
@@ -275,17 +275,6 @@ if __name__ == "__main__":
     # test_pid = msmc_m.get_all_pids()[0]
     test_xyz = IMP.core.XYZ(m, test_pid)
 
-    if len(r_xrays) > 0:
-        dxray_dx_tracker = trackers.dfdXYZTracker(
-            name="dxray_dx",
-            m=m,
-            pids=msmc_m.get_all_pids(),
-            r=rset_xray.get_restraint(0),
-            pid=test_pid,
-            scale=w_xray
-        )
-        all_trackers.append(dxray_dx_tracker)
-
     dcharmm_dx_tracker = trackers.dfdXYZTracker(
         name="dcharmm_dx",
         m=m,
@@ -321,12 +310,94 @@ if __name__ == "__main__":
     )
     all_trackers.append(xyz_tracker)
 
+    delta_tracker = trackers.DeltaTracker(
+        name="com_delta",
+        msmc_1=msmc_m,
+        msmc_2=ref_msmc_ms[0]
+    )
+    all_trackers.append(delta_tracker)
+
+    delta_mag_tracker = trackers.DeltaMagnitudeTracker(
+        name="com_delta_mag",
+        msmc_1=msmc_m,
+        msmc_2=ref_msmc_ms[0]
+    )
+    all_trackers.append(delta_mag_tracker)
+
+    test_lin_vel = IMP.atom.LinearVelocity(m, test_pid)
+    lin_vel_tracker = trackers.linearVelocityTracker(
+        name="lin_vel",
+        m=m,
+        lin_vel=test_lin_vel
+    )
+    all_trackers.append(lin_vel_tracker)
+
+    velocity_mag_tracker = trackers.VelocityMagnitudeTracker(
+        name="vel_mag",
+        m=m,
+        pids=msmc_m.get_all_pids()
+    )
+    all_trackers.append(velocity_mag_tracker)
+
+    if len(r_xrays) > 0:
+        for i in range(rset_xray.get_number_of_restraints()):
+            cif_name = cif_files[i].stem
+            dxray_magnitude_tracker = trackers.dfMagnitudeTracker(
+                name="dxray_{}_mag".format(cif_name),
+                m=m,
+                pids=msmc_m.get_all_pids(),
+                r=rset_xray.get_restraint(i),
+                scale=w_xray
+            )
+            all_trackers.append(dxray_magnitude_tracker)
+
+            dxray_dx_tracker = trackers.dfdXYZTracker(
+                name="dxray_{}_dx".format(cif_name),
+                m=m,
+                pids=msmc_m.get_all_pids(),
+                r=rset_xray.get_restraint(i),
+                pid=test_pid,
+                scale=w_xray
+            )
+            all_trackers.append(dxray_dx_tracker)
+
+    dcharmm_mag_tracker = trackers.dfMagnitudeTracker(
+        name="dcharmm_mag",
+        m=m,
+        pids=msmc_m.get_all_pids(),
+        r=rset_charmm,
+        scale=1
+    )
+    all_trackers.append(dcharmm_mag_tracker)
+
+    dXYZ_mag_tracker = trackers.dXYZMagnitudeTracker(
+        name="dxyz_mag",
+        m=m,
+        pids=msmc_m.get_all_pids()
+    )
+
+    ## turn off until md is added
+    temp_tracker = trackers.TempTracker(
+        name="temp",
+        m=m
+    )
+    temp_tracker.set_off()
+    all_trackers.append(temp_tracker)
+
+    ## track the weight of the xray restraints
+    wxray_tracker = trackers.XrayWeightTracker(
+        name="wxray",
+        m=msmc_m.get_m(),
+        r_xray=rset_xray.get_restraint(0)
+    )
+    all_trackers.append(wxray_tracker)
+
     log_ostate = log_statistics.LogStatistics(
         m=m,
         all_trackers=all_trackers,
         log_file=Path(tmp_out_dir, "log.csv"),
         log_freq=1,
-        write=False
+        write=args.write
     )
 
     rset_charmm.evaluate(calc_derivs=True)

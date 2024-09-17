@@ -86,7 +86,10 @@ class LogStatistics(IMP.OptimizerState):
         entries = list()
         for tracker in self.all_trackers:
             # print(entry_list)
-            entries.extend(tracker.evaluate())
+            if tracker.get_on():
+                entries.extend(tracker.evaluate())
+            else:
+                entries.append(None)
 
         self.log_df.loc[len(self.log_df)] = entries
 

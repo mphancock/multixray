@@ -122,6 +122,62 @@ class XYZTracker(Tracker):
     ):
         return list(self.xyz.get_coordinates())
 
+class linearVelocityTracker(Tracker):
+    def __init__(self, name, m, lin_vel):
+        Tracker.__init__(self, name=name, m=m, n=3)
+        self.lin_vel = lin_vel
+
+    def evaluate(self):
+        return list(self.lin_vel.get_velocity())
+
+
+class VelocityMagnitudeTracker(Tracker):
+    def __init__(self, name, m, pids):
+        Tracker.__init__(self, name=name, m=m, n=1)
+        self.pids = pids
+
+    def evaluate(self):
+        mean_vel = 0
+        for pid in self.pids:
+            lin_vel = IMP.atom.LinearVelocity(self.m, pid)
+            mean_vel += np.linalg.norm(lin_vel.get_velocity())
+
+        return [mean_vel / len(self.pids)]
+
+
+class dfMagnitudeTracker(Tracker):
+    def __init__(
+            self,
+            name,
+            m,
+            pids,
+            r,
+            scale
+
+    ):
+        Tracker.__init__(self, name=name, m=m, n=1)
+        # self.r can be a restraint or a restraint set.
+        self.r = r
+        self.pids = pids
+        self.scale = scale
+
+    def evaluate(
+            self
+    ):
+        df_dict = derivatives.get_df_dict(
+            m=self.m,
+            pids=self.pids,
+            r=self.r
+        )
+
+        df_mag = 0
+        for pid in self.pids:
+            df = df_dict[pid] * self.scale
+            df_mag += np.linalg.norm(df)
+
+        return [df_mag / len(self.pids)]
+
+
 
 class dXYZTracker(Tracker):
     def __init__(
@@ -142,6 +198,19 @@ class dXYZTracker(Tracker):
             self
     ):
         return list(self.xyz.get_derivatives())
+
+
+class dXYZMagnitudeTracker(Tracker):
+    def __init__(self, name, m, pids):
+        Tracker.__init__(self, name=name, m=m, n=1)
+        self.pids = pids
+
+    def evaluate(self):
+        dXYZ = 0
+        for pid in self.pids:
+            dXYZ += np.linalg.norm(IMP.core.XYZ(m, pid).get_derivatives())
+
+        return [dXYZ / len(self.pids)]
 
 
 class RMSDTracker(Tracker):
@@ -184,6 +253,35 @@ class RMSDTracker(Tracker):
         )
 
         return [float(rmsd)]
+
+
+## tracker between 2 center of masses to track translational shift of protein during trajectories
+## tracker does not dynamically update
+class DeltaTracker(Tracker):
+    def __init__(self, name, msmc_1, msmc_2):
+        Tracker.__init__(self, name=name, m=msmc_1.get_m(), n=3)
+        self.msmc_1 = msmc_1
+        self.msmc_2 = msmc_2
+
+    def evaluate(self):
+        com_1 = self.msmc_1.get_com().get_coordinates()
+        com_2 = self.msmc_2.get_com().get_coordinates()
+        delta = com_1-com_2
+
+        return [delta[0], delta[1], delta[2]]
+
+
+class DeltaMagnitudeTracker(Tracker):
+    def __init__(self, name, msmc_1, msmc_2):
+        Tracker.__init__(self, name=name, m=msmc_1.get_m(), n=1)
+        self.msmc_1 = msmc_1
+        self.msmc_2 = msmc_2
+
+    def evaluate(self):
+        com_1 = self.msmc_1.get_com().get_coordinates()
+        com_2 = self.msmc_2.get_com().get_coordinates()
+
+        return [np.linalg.norm(com_1-com_2)]
 
 
 class fTracker(Tracker):
@@ -279,14 +377,12 @@ class dfdXYZTracker(Tracker):
         return df_dict[self.pid] * self.scale
 
 
-class dfMagTracker(Tracker):
+## temp tracker cant initialize md
+class TempTracker(Tracker):
     def __init__(
             self,
             name,
-            m,
-            pids,
-            r1,
-            r2
+            m
     ):
         Tracker.__init__(
             self,
@@ -294,48 +390,28 @@ class dfMagTracker(Tracker):
             m=m,
             n=1
         )
-        # r1 and r2 can be a restraint or a restraint set.
-        self.r1 = r1
-        self.r2 = r2
-        self.pids = pids
+        self.md = None
 
-    def evaluate(
-            self
-    ):
-        ratio = derivatives.get_df_mag_ratio(
-            m=self.m,
-            pids=self.pids,
-            r1=self.r1,
-            r2=self.r2
-        )
-
-        return ratio
-
-
-class TempTracker(Tracker):
-    def __init__(
+    def set_md(
             self,
-            name,
             md
     ):
-        Tracker.__init__(
-            self,
-            name=name,
-            m=md.get_model(),
-            n=1
-        )
         self.md = md
+
+    def get_md(
+            self
+    ):
+        return self.md
 
     def evaluate(
             self
     ):
         # energy in kcal / mol
         energy = self.md.get_kinetic_energy()
-        temp = self.md.get_kinetic_temperature(
-            ekinetic=energy
-        )
+        temp = self.md.get_kinetic_temperature(ekinetic=energy)
 
-        return temp
+        return [temp]
+
 
 class OccTracker(Tracker):
     def __init__(
@@ -525,3 +601,24 @@ class CopyTracker(Tracker):
         self.step = self.step+1
 
         return [copied]
+
+class XrayWeightTracker(Tracker):
+    def __init__(
+            self,
+            name,
+            m,
+            r_xray
+    ):
+        Tracker.__init__(
+            self,
+            name=name,
+            m=m,
+            n=1
+        )
+
+        self.r_xray = r_xray
+
+    def evaluate(
+            self
+    ):
+        return [self.r_xray.get_weight()]

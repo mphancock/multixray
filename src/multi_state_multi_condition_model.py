@@ -65,6 +65,14 @@ class MultiStateMultiConditionModel:
             for pid in self.water_pids_dict[i]:
                 IMP.atom.CHARMMAtom.setup_particle(self.m, pid, "O")
 
+        # Setup coordinates for md
+        for h in self.hs:
+            for pid in IMP.atom.Selection(h).get_selected_particle_indexes():
+                d = IMP.core.XYZR(self.m, pid)
+                d.set_coordinates_are_optimized(True)
+
+                IMP.atom.LinearVelocity.setup_particle(self.m, pid)
+
     def get_m(self):
         return self.m
 

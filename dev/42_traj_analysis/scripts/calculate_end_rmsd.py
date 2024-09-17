@@ -14,12 +14,12 @@ if __name__ == "__main__":
     out_ids = list()
     end_rmsds = list()
 
-    data_dir = Path("../data/202")
+    data_dir = Path("../data/204")
     data_dir.mkdir(exist_ok=True)
 
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/202_no_wxray_auto")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/204_inflection")
 
-    for job_id in range(14):
+    for job_id in range(11):
         for out_id in range(10):
             out_path = Path(exp_dir, "{}/output_{}".format(job_id, out_id))
 
