@@ -20,7 +20,7 @@ cp ~/xray/sample_bench/scripts/sample/run_md_multi.py .
 
 # python -m pdb run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --job_csv_file /wynton/home/sali/mhancock/xray/sample_bench/data/params/207.csv --job_id 0
 
-python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --job_csv_file /wynton/home/sali/mhancock/xray/sample_bench/data/params/222.csv --job_id 5 --write
+python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --job_csv_file /wynton/home/sali/mhancock/xray/sample_bench/data/params/222.csv --job_id 0 --write
 
 # cp ~/xray/sample_bench/scripts/sample/run_md_ff.py .
 

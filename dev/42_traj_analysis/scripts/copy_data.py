@@ -14,11 +14,12 @@ if __name__ == "__main__":
     job_ids = list()
     out_ids = list()
 
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/221_2_cif")
-    dest_dir = Path("../data/221")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/223_wxray_thermo")
+    dest_dir = Path("../data/223")
 
     # for job_id in range(14):
     for job_dir in exp_dir.glob("*"):
+        print(job_dir)
         job_id = job_dir.stem
 
         dest_pdb_dir = Path(dest_dir, "pdbs/{}".format(job_id))

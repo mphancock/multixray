@@ -7,11 +7,11 @@ N_JOBS="1-10"
 OFFSET="0"
 H_RT="24:00:00"
 
-for JOB_ID in {5..5}
+for JOB_ID in {0..0}
 do
     JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/$EXP_NAME/$JOB_ID"
-    JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/$EXP_ID.csv"
-    # JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/215.csv"
+    # JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/$EXP_ID.csv"
+    JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/222.csv"
 
     PARAMS="--job_csv_file $JOB_FILE --job_id $JOB_ID"
 

@@ -134,21 +134,23 @@ Run a generic multi-state molecular dynamics simulation.
 
 **********
 Parameters:
-    output_dir: the output directory for the simulation containing the params file, log file, and pdb files.
+    msmc_m (MultiStateMultiConditionModel): The multi-state multi-condition model.
 
-    hs: a list of hierarchies to simulate.
+    rset_xray (IMP.RestraintSet): The x-ray restraints.
 
-    rs: a list of restraint sets to use for scoring.
+    rset_charmm (IMP.RestraintSet): The CHARMM restraints.
 
-    T: the temperature to use for the simulation.
+    t_step (float): The time step.
 
-    t_step: the time step to use for the simulation.
+    n_step (int): The number of steps.
 
-    steps: the number of steps to run the simulation for. A T=-1 means run until the process is killed.
+    sa_sched (SimulatedAnnealingSchedule): The simulated annealing schedule.
 
-    sa_sched: a list of tuples of the form (T, d_min, steps, pids_work) where T is the temperature to use for the simulation, d_min is the resolution cutoff to use for the xray restraint, steps is the number of steps to run the simulation for, and pids_work is the list of particle ids to use for the simulation.
+    log_o_state (IMP.OptimizerState): The log optimizer state.
 
-    o_states: a list of optimizer states to use for the simulation.
+    weight_o_state (IMP.OptimizerState): The weight optimizer state.
+
+    com_o_state (IMP.OptimizerState): The center of mass optimizer state.
 """
 class SimulatedAnnealing:
     def __init__(
@@ -186,7 +188,6 @@ class SimulatedAnnealing:
 
         # self.s_v = IMP.atom.VelocityScalingOptimizerState(self.m, self.ps, T_0)
         # self.s_v.set_period(10)
-        # self.md.add_optimizer_state(self.s_v)
         self.md.set_particles(self.ps)
 
         sf = IMP.core.RestraintsScoringFunction([rset_charmm])
@@ -194,15 +195,17 @@ class SimulatedAnnealing:
         self.md.set_has_required_score_states(True)
 
         ## create weight thermostat
-        self.thermostat_o_state = WeightThermostat(
-            msmc_m=msmc_m,
-            rset_xray=rset_xray,
-            md=self.md,
-            T_target=T_0,
-            warmup_steps=50
-        )
-        self.thermostat_o_state.set_period(10)
-        # self.weight_o_state.set_on(False)
+        if rset_xray.get_number_of_restraints() > 0:
+            self.thermostat_o_state = WeightThermostat(
+                msmc_m=msmc_m,
+                rset_xray=rset_xray,
+                md=self.md,
+                T_target=T_0,
+                warmup_steps=50
+            )
+            self.thermostat_o_state.set_period(10)
+        else:
+            self.thermostat_o_state = None
 
         for o_state in [self.com_o_state, self.weight_o_state, self.thermostat_o_state, self.log_o_state]:
             if o_state:

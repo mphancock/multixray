@@ -385,12 +385,13 @@ if __name__ == "__main__":
     all_trackers.append(temp_tracker)
 
     ## track the weight of the xray restraints
-    wxray_tracker = trackers.XrayWeightTracker(
-        name="wxray",
-        m=msmc_m.get_m(),
-        r_xray=rset_xray.get_restraint(0)
-    )
-    all_trackers.append(wxray_tracker)
+    if len(r_xrays) > 0:
+        wxray_tracker = trackers.XrayWeightTracker(
+            name="wxray",
+            m=msmc_m.get_m(),
+            r_xray=rset_xray.get_restraint(0)
+        )
+        all_trackers.append(wxray_tracker)
 
     log_ostate = log_statistics.LogStatistics(
         m=m,

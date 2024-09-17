@@ -79,7 +79,6 @@ class WeightThermostat(IMP.OptimizerState):
         self,
         call
     ):
-        # print(self.get_number_of_updates())
         ## get number of updates is the number of times that do update has been called
         if self.get_number_of_updates()*self.get_period() >= self.warmup_steps:
             w_xray_cur = self.rset_xray.get_restraint(0).get_weight()
@@ -88,8 +87,6 @@ class WeightThermostat(IMP.OptimizerState):
             T_cur = self.md.get_kinetic_temperature(ekinetic=energy)
 
             w_xray = w_xray_cur * self.T_target / T_cur
-
-            # print(w_xray)
 
             for i in range(self.rset_xray.get_number_of_restraints()):
                 self.rset_xray.get_restraint(i).set_weight(w_xray)
