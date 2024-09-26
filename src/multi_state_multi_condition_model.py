@@ -24,7 +24,8 @@ class MultiStateMultiConditionModel:
 
         self.hs = list()
 
-        pdb_selectors = [IMP.atom.ChainPDBSelector(["A"]), IMP.atom.NonWaterNonHydrogenPDBSelector(), IMP.atom.NonAlternativePDBSelector(), IMP.atom.ATOMPDBSelector()]
+        # pdb_selectors = [IMP.atom.ChainPDBSelector(["A"]), IMP.atom.NonWaterNonHydrogenPDBSelector(), IMP.atom.NonAlternativePDBSelector(), IMP.atom.ATOMPDBSelector()]
+        pdb_selectors = [IMP.atom.ChainPDBSelector(["A"]), IMP.atom.NonWaterPDBSelector(), IMP.atom.NonAlternativePDBSelector(), IMP.atom.ATOMPDBSelector()]
         sel = pdb_selectors[0]
         for i in range(1, len(pdb_selectors)):
             sel = IMP.atom.AndPDBSelector(sel, pdb_selectors[i])
@@ -38,9 +39,19 @@ class MultiStateMultiConditionModel:
             raise RuntimeError("Number of states in pdb file ({}) does not match the number of states in the model ({}).".format(pdb_file_n_state, self.n_state))
 
         # Set b factors
+        avg_b_factor = 0
         for h in self.hs:
             for pid in IMP.atom.Selection(h).get_selected_particle_indexes():
-                IMP.atom.Atom(self.m, pid).set_temperature_factor(15)
+                avg_b_factor += IMP.atom.Atom(self.m, pid).get_temperature_factor()
+
+        avg_b_factor /= len(self.hs) * len(IMP.atom.Selection(self.hs[0]).get_selected_particle_indexes())
+
+        print("AVG B FACTOR: ", avg_b_factor)
+
+        for h in self.hs:
+            for pid in IMP.atom.Selection(h).get_selected_particle_indexes():
+                # IMP.atom.Atom(self.m, pid).set_temperature_factor(15)
+                IMP.atom.Atom(self.m, pid).set_temperature_factor(avg_b_factor)
 
         self.pids_dict = dict()
         self.prot_pids_dict = dict()

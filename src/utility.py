@@ -4,6 +4,8 @@ import numpy as np
 import IMP
 import IMP.atom
 
+import iotbx.pdb
+import mmtbx.model
 
 def get_string_from_sample_sched(sa_sched):
     sa_str = ""
@@ -48,8 +50,18 @@ def pool_read_pdb(
         return RuntimeError("{} file does not exist".format(pdb_file))
 
 
-if __name__ == "__main__":
-    from pathlib import Path
+def get_u_anisos_from_file(
+    u_aniso_file
+):
+    # The particles will line up based on the order they are read in from the pdb file.
+    model = mmtbx.model.manager(model_input=iotbx.pdb.input(str(u_aniso_file)))
+    xray_struct = model.get_xray_structure()
+    scatterers = xray_struct.scatterers()
 
-    pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/168_N4_ref/14833.pdb")
-    print(pool_read_pdb(pdb_file))
+    u_anisos = list()
+    for i in range(len(scatterers)):
+        scatterer = scatterers[i]
+        u_aniso = scatterer.u_star
+        u_anisos.append(u_aniso)
+
+    return u_anisos

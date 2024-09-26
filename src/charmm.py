@@ -21,15 +21,25 @@ def charmm_restraints(
     rs = list()
 
     # Configure the IMP model based on the CHARMM parameterization.
-    ff = IMP.atom.get_heavy_atom_CHARMM_parameters()
+    # ff = IMP.atom.get_heavy_atom_CHARMM_parameters()
+    pids = IMP.atom.Selection(h).get_selected_particle_indexes()
+    print(len(pids))
+
+    ff = IMP.atom.get_all_atom_CHARMM_parameters()
     topology = ff.create_topology(h)
 
     # topology.apply_default_patches()
-    topology.setup_hierarchy(h)
-
-    IMP.atom.remove_charmm_untyped_atoms(h)
+    # topology.setup_hierarchy(h)
+    topology.add_atom_types(h)
     # topology.add_missing_atoms(h)
-    topology.add_coordinates(h)
+    # IMP.atom.remove_charmm_untyped_atoms(h)
+    # topology.add_coordinates(h)
+
+    pids = IMP.atom.Selection(h).get_selected_particle_indexes()
+    print(len(pids))
+
+
+    # topology.add_missing_atoms(h)
     bonds = topology.add_bonds(h)
     angles = ff.create_angles(bonds)
     dihedrals = ff.create_dihedrals(bonds)

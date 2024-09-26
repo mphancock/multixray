@@ -6,16 +6,16 @@ from merge_pdbs import write_merge_pdb_file
 
 
 if __name__ == "__main__":
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/217_no_ref_com")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/232_weights")
 
-    traj_dir = Path("../data/217/trajs")
+    traj_dir = Path("../data/232/trajs")
     traj_dir.mkdir(exist_ok=True)
 
-    for i in [5]:
+    for i in [2]:
         job_dir = Path(exp_dir, str(i))
     # for job_dir in exp_dir.glob("*"):
         job_id = job_dir.stem
-        pdb_dir = Path(job_dir, "output_7/pdbs")
+        pdb_dir = Path(job_dir, "output_0/pdbs")
         pdb_files = list(pdb_dir.glob("*.pdb"))
         print(pdb_files)
 

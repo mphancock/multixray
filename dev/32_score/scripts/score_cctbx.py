@@ -122,7 +122,7 @@ if __name__ == "__main__":
         target_name="ml",
         max_number_of_bins=1
     )
-    f_model_manager.update_all_scales(apply_scale_k1_to_f_obs=True,remove_outliers=False)
+    f_model_manager.update_all_scales(apply_scale_k1_to_f_obs=True,remove_outliers=True)
 
     r_work = f_model_manager.r_work()
     r_free = f_model_manager.r_free()

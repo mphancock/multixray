@@ -163,7 +163,9 @@ class SimulatedAnnealing:
         sa_sched,
         log_o_state,
         weight_o_state,
-        com_o_state
+        com_o_state,
+        vel_thermo,
+        weight_thermo
     ):
         self.msmc_m = msmc_m
         self.rset_xray = rset_xray
@@ -194,20 +196,33 @@ class SimulatedAnnealing:
         self.md.set_scoring_function(sf)
         self.md.set_has_required_score_states(True)
 
+        ## setup velocity thermostat
+        if vel_thermo:
+            self.vel_thermo_o_state = IMP.atom.BerendsenThermostatOptimizerState(
+                pis=self.ps,
+                temperature=T_0-2,
+                tau=10
+            )
+        else:
+            self.vel_thermo_o_state = None
+
         ## create weight thermostat
         if rset_xray.get_number_of_restraints() > 0:
-            self.thermostat_o_state = WeightThermostat(
+            self.weight_thermostat_o_state = WeightThermostat(
                 msmc_m=msmc_m,
                 rset_xray=rset_xray,
                 md=self.md,
                 T_target=T_0,
                 warmup_steps=50
             )
-            self.thermostat_o_state.set_period(10)
-        else:
-            self.thermostat_o_state = None
+            self.weight_thermostat_o_state.set_period(10)
 
-        for o_state in [self.com_o_state, self.weight_o_state, self.thermostat_o_state, self.log_o_state]:
+            if not weight_thermo:
+                self.weight_thermostat_o_state.set_on(False)
+        else:
+            self.weight_thermostat_o_state = None
+
+        for o_state in [self.com_o_state, self.weight_o_state, self.vel_thermo_o_state, self.weight_thermostat_o_state, self.log_o_state]:
             if o_state:
                 self.md.add_optimizer_state(o_state)
 

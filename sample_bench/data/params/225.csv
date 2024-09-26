@@ -1,0 +1,7 @@
+,start_pdb_file,N,J,cif_0,ref_0,w_xray,xray_freq,sample_sched_str,init_weights
+0,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,1,1,,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,,,"s5000,t300,dA,p1,w0,r0",uni
+1,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,2,1,/wynton/home/sali/mhancock/xray/dev/39_bench_ensemble/data/cifs/7mhl.cif,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,5000,10,"s5000,t300,dA,p1,w0,r0",uni
+2,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,4,1,/wynton/home/sali/mhancock/xray/dev/39_bench_ensemble/data/cifs/7mhl.cif,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,5000,10,"s5000,t300,dA,p1,w0,r0",uni
+3,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,8,1,/wynton/home/sali/mhancock/xray/dev/39_bench_ensemble/data/cifs/7mhl.cif,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,5000,10,"s5000,t300,dA,p1,w0,r0",uni
+4,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,16,1,/wynton/home/sali/mhancock/xray/dev/39_bench_ensemble/data/cifs/7mhl.cif,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,5000,10,"s5000,t300,dA,p1,w0,r0",uni
+5,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,32,1,/wynton/home/sali/mhancock/xray/dev/39_bench_ensemble/data/cifs/7mhl.cif,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,5000,10,"s5000,t300,dA,p1,w0,r0",uni

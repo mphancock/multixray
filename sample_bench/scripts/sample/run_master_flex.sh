@@ -1,17 +1,18 @@
 #! /bin/bash
 
 
-EXP_ID=223
-EXP_NAME="223_wxray_thermo"
+EXP_ID=237
+EXP_NAME="237_all_states"
 N_JOBS="1-10"
 OFFSET="0"
 H_RT="24:00:00"
+JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/237.csv"
+# JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/$EXP_ID.csv"
 
-for JOB_ID in {0..0}
+
+for JOB_ID in {12..35}
 do
-    JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/$EXP_NAME/$JOB_ID"
-    # JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/$EXP_ID.csv"
-    JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/222.csv"
+    JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/$EXP_NAME/$JOB_ID"
 
     PARAMS="--job_csv_file $JOB_FILE --job_id $JOB_ID"
 

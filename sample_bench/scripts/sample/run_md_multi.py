@@ -121,7 +121,8 @@ if __name__ == "__main__":
 
         f_obs_array = miller_ops.get_miller_array(
             f_obs_file=cif_file,
-            label="_refln.F_meas_au"
+            # label="_refln.F_meas_au"
+            label="_refln.intensity_meas"
         )
         f_obs_array = miller_ops.clean_miller_array(f_obs_array)
 
@@ -214,24 +215,24 @@ if __name__ == "__main__":
         )
         all_trackers.append(r_factor_tracker)
 
-    for cond in range(J):
-        if cif_files[cond]:
-            ref_name = "rmsd_{}".format(cif_files[cond].stem)
-        else:
-            ref_name = "rmsd_{}".format(cond)
+    # for cond in range(J):
+    #     if cif_files[cond]:
+    #         ref_name = "rmsd_{}".format(cif_files[cond].stem)
+    #     else:
+    #         ref_name = "rmsd_{}".format(cond)
 
-        ref_msmc_m = ref_msmc_ms[cond]
-        rmsd_all_tracker = trackers.RMSDTracker(
-            name=ref_name,
-            rmsd_func=align_imp.compute_rmsd_between_average,
-            hs_0=msmc_m.get_hs(),
-            hs_1=ref_msmc_m.get_hs(),
-            pids_0=msmc_m.get_ca_pids(0),
-            pids_1=ref_msmc_m.get_ca_pids(0),
-            occs_0=msmc_m.get_w_mat()[:, cond],
-            occs_1=ref_msmc_m.get_w_mat()[:, 0]
-        )
-        all_trackers.append(rmsd_all_tracker)
+    #     ref_msmc_m = ref_msmc_ms[cond]
+    #     rmsd_all_tracker = trackers.RMSDTracker(
+    #         name=ref_name,
+    #         rmsd_func=align_imp.compute_rmsd_between_average,
+    #         hs_0=msmc_m.get_hs(),
+    #         hs_1=ref_msmc_m.get_hs(),
+    #         pids_0=msmc_m.get_ca_pids(0),
+    #         pids_1=ref_msmc_m.get_ca_pids(0),
+    #         occs_0=msmc_m.get_w_mat()[:, cond],
+    #         occs_1=ref_msmc_m.get_w_mat()[:, 0]
+    #     )
+    #     all_trackers.append(rmsd_all_tracker)
 
     weight_labels = list()
     for state in range(N):
@@ -271,67 +272,70 @@ if __name__ == "__main__":
         copy_tracker.set_period(100)
         all_trackers.append(copy_tracker)
 
-    test_pid = IMP.atom.Selection(hs, residue_index=50, atom_type=IMP.atom.AT_CA).get_selected_particle_indexes()[0]
-    # test_pid = msmc_m.get_all_pids()[0]
-    test_xyz = IMP.core.XYZ(m, test_pid)
+    test_pids = list()
+    for h in hs:
+        test_pid = IMP.atom.Selection(h, residue_index=50, atom_type=IMP.atom.AT_CA).get_selected_particle_indexes()[0]
+        test_pids.append(test_pid)
 
-    dcharmm_dx_tracker = trackers.dfdXYZTracker(
-        name="dcharmm_dx",
-        m=m,
-        pids=msmc_m.get_all_pids(),
-        r=rset_charmm,
-        pid=test_pid,
-        scale=1
-    )
-    all_trackers.append(dcharmm_dx_tracker)
+    # test_xyz = IMP.core.XYZ(m, test_pid)
 
-    # for r in charmm_rs:
-    #     df_dx_tracker = trackers.dfdXYZTracker(
-    #         name="d{}_dx".format(r.get_name()),
+    # for state in range(N):
+    #     dcharmm_dx_tracker = trackers.dfdXYZTracker(
+    #         name="dcharmm_{}".format(state),
     #         m=m,
     #         pids=msmc_m.get_all_pids(),
-    #         r=r,
-    #         pid=test_pid,
+    #         r=rset_charmm,
+    #         pid=test_pids[state],
     #         scale=1
     #     )
-    #     all_trackers.append(df_dx_tracker)
+    #     all_trackers.append(dcharmm_dx_tracker)
 
-    dxyz_tracker = trackers.dXYZTracker(
-        name="dxyz",
-        m=m,
-        xyz=test_xyz
-    )
-    all_trackers.append(dxyz_tracker)
+    ## single particle trackers
+    for state in range(N):
+        test_pid = test_pids[state]
+        test_xyz = IMP.core.XYZ(m, test_pid)
 
-    xyz_tracker = trackers.XYZTracker(
-        name="xyz",
-        m=m,
-        xyz=test_xyz
-    )
-    all_trackers.append(xyz_tracker)
+        ## position of particle
+        xyz_tracker = trackers.XYZTracker(
+            name="xyz_{}".format(state),
+            m=m,
+            xyz=test_xyz
+        )
+        all_trackers.append(xyz_tracker)
 
-    delta_tracker = trackers.DeltaTracker(
-        name="com_delta",
-        msmc_1=msmc_m,
-        msmc_2=ref_msmc_ms[0]
-    )
-    all_trackers.append(delta_tracker)
+        ## total derivative on particle
+        dxyz_tracker = trackers.dXYZTracker(
+            name="dxyz_{}".format(state),
+            m=m,
+            xyz=test_xyz
+        )
+        all_trackers.append(dxyz_tracker)
 
-    delta_mag_tracker = trackers.DeltaMagnitudeTracker(
-        name="com_delta_mag",
-        msmc_1=msmc_m,
-        msmc_2=ref_msmc_ms[0]
-    )
-    all_trackers.append(delta_mag_tracker)
+        ## xray derivative on particle
+        if rset_xray.get_number_of_restraints() > 0:
+            for cif_file in cif_files:
+                cif_name = cif_file.stem
+                dxray_dx_tracker = trackers.dfdXYZTracker(
+                    name="d{}_dx_{}".format(cif_name, state),
+                    m=m,
+                    pids=msmc_m.get_all_pids(),
+                    r=rset_xray.get_restraint(i),
+                    pid=test_pid,
+                    scale=w_xray
+                )
+                all_trackers.append(dxray_dx_tracker)
 
-    test_lin_vel = IMP.atom.LinearVelocity(m, test_pid)
-    lin_vel_tracker = trackers.linearVelocityTracker(
-        name="lin_vel",
-        m=m,
-        lin_vel=test_lin_vel
-    )
-    all_trackers.append(lin_vel_tracker)
+        # ## linear velocity of particle
+        # test_lin_vel = IMP.atom.LinearVelocity(m, test_pid)
+        # lin_vel_tracker = trackers.linearVelocityTracker(
+        #     name="lin_vel_{}".format(state),
+        #     m=m,
+        #     lin_vel=test_lin_vel
+        # )
+        # all_trackers.append(lin_vel_tracker)
 
+    ## magnitude trackers
+    ## average velocity magnitude
     velocity_mag_tracker = trackers.VelocityMagnitudeTracker(
         name="vel_mag",
         m=m,
@@ -339,6 +343,17 @@ if __name__ == "__main__":
     )
     all_trackers.append(velocity_mag_tracker)
 
+    ## average charmmm derivative magnitude
+    dcharmm_mag_tracker = trackers.dfMagnitudeTracker(
+        name="dcharmm_mag",
+        m=m,
+        pids=msmc_m.get_all_pids(),
+        r=rset_charmm,
+        scale=1
+    )
+    all_trackers.append(dcharmm_mag_tracker)
+
+    ## average xray derivative magnitude
     if len(r_xrays) > 0:
         for i in range(rset_xray.get_number_of_restraints()):
             cif_name = cif_files[i].stem
@@ -351,31 +366,55 @@ if __name__ == "__main__":
             )
             all_trackers.append(dxray_magnitude_tracker)
 
-            dxray_dx_tracker = trackers.dfdXYZTracker(
-                name="dxray_{}_dx".format(cif_name),
-                m=m,
-                pids=msmc_m.get_all_pids(),
-                r=rset_xray.get_restraint(i),
-                pid=test_pid,
-                scale=w_xray
-            )
-            all_trackers.append(dxray_dx_tracker)
-
-    dcharmm_mag_tracker = trackers.dfMagnitudeTracker(
-        name="dcharmm_mag",
-        m=m,
-        pids=msmc_m.get_all_pids(),
-        r=rset_charmm,
-        scale=1
-    )
-    all_trackers.append(dcharmm_mag_tracker)
-
+    ## average derivative magnitude
     dXYZ_mag_tracker = trackers.dXYZMagnitudeTracker(
         name="dxyz_mag",
         m=m,
         pids=msmc_m.get_all_pids()
     )
 
+    ## all other trackers
+    ## track RMSD of each state
+    print(msmc_m.get_w_mat().shape)
+    for state in range(N):
+        rmsd_tracker = trackers.RMSDTracker(
+            name="rmsd_{}".format(state),
+            rmsd_func=align_imp.compute_rmsd_between_average,
+            hs_0=[msmc_m.get_hs()[state]],
+            hs_1=[ref_msmc_ms[0].get_hs()[0]],
+            pids_0=msmc_m.get_ca_pids(state),
+            pids_1=ref_msmc_ms[0].get_ca_pids(0),
+            occs_0=np.array([1]),
+            occs_1=np.array([1])
+        )
+        all_trackers.append(rmsd_tracker)
+
+    # ## track the center of mass of the model
+    # delta_tracker = trackers.DeltaTracker(
+    #     name="com_delta",
+    #     msmc_1=msmc_m,
+    #     msmc_2=ref_msmc_ms[0]
+    # )
+    # all_trackers.append(delta_tracker)
+
+    # ## track the magnitude of the center of mass of the model
+    # delta_mag_tracker = trackers.DeltaMagnitudeTracker(
+    #     name="com_delta_mag",
+    #     msmc_1=msmc_m,
+    #     msmc_2=ref_msmc_ms[0]
+    # )
+    # all_trackers.append(delta_mag_tracker)
+
+    # ## track the weight of the xray restraints
+    # if len(r_xrays) > 0:
+    #     wxray_tracker = trackers.XrayWeightTracker(
+    #         name="wxray",
+    #         m=msmc_m.get_m(),
+    #         r_xray=rset_xray.get_restraint(0)
+    #     )
+    #     all_trackers.append(wxray_tracker)
+
+    ## track the temperature
     ## turn off until md is added
     temp_tracker = trackers.TempTracker(
         name="temp",
@@ -383,15 +422,6 @@ if __name__ == "__main__":
     )
     temp_tracker.set_off()
     all_trackers.append(temp_tracker)
-
-    ## track the weight of the xray restraints
-    if len(r_xrays) > 0:
-        wxray_tracker = trackers.XrayWeightTracker(
-            name="wxray",
-            m=msmc_m.get_m(),
-            r_xray=rset_xray.get_restraint(0)
-        )
-        all_trackers.append(wxray_tracker)
 
     log_ostate = log_statistics.LogStatistics(
         m=m,
@@ -430,7 +460,9 @@ if __name__ == "__main__":
         sa_sched=sa_sched,
         log_o_state=log_ostate,
         weight_o_state=w_os,
-        com_o_state=com_os
+        com_o_state=com_os,
+        weight_thermo=params_dict["weight_thermo"],
+        vel_thermo=params_dict["vel_thermo"]
     )
     sa.run()
 

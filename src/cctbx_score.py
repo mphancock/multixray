@@ -9,6 +9,7 @@ import IMP.atom
 import mmtbx.f_model
 import cctbx.crystal
 import cctbx.xray
+from scitbx.array_family import flex
 
 sys.path.append("/home/matthew/xtal_python/src")
 import xray_struct
@@ -101,7 +102,13 @@ def get_score(
     occ_grads = list()
 
     for i in range(len(xray_structure.scatterers())):
-        site_grads.append(grads[i*4:i*4+3])
+        cur_atom_grads = grads[i*4:i*4+3]
+
+        ## should these gradients be orthogonalized?
+        # cur_atom_grads = crystal_symmetry.unit_cell().orthogonalize((cur_atom_grads[0], cur_atom_grads[1], cur_atom_grads[2]))
+        cur_atom_grads = (cur_atom_grads[0], cur_atom_grads[1], cur_atom_grads[2])
+
+        site_grads.append(cur_atom_grads)
         occ_grads.append(grads[3+i*4])
 
     results_dict = dict()

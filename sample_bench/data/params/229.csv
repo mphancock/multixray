@@ -1,0 +1,3 @@
+,start_pdb_file,N,J,cif_0,ref_0,w_xray,xray_freq,thermo,sample_sched_str,init_weights
+0,/wynton/home/sali/mhancock/xray/data/pdbs/3k0m/3k0m_refined.pdb,1.0,1.0,,/wynton/home/sali/mhancock/xray/data/pdbs/3k0m/3k0m.pdb,10000,1,0,"s5000,t300,dA,p1,w0,r0",uni
+1,/wynton/home/sali/mhancock/xray/data/pdbs/3k0m/3k0m_refined.pdb,1.0,1.0,/wynton/home/sali/mhancock/xray/data/cifs/3k0m/3k0m.cif,/wynton/home/sali/mhancock/xray/data/pdbs/3k0m/3k0m.pdb,10000,1,0,"s5000,t300,dA,p1,w0,r0",uni

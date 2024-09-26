@@ -99,6 +99,9 @@ def read_job_csv(
     param_dict["w_xray"] = job_df.loc[job_id]["w_xray"]
     param_dict["xray_freq"] = job_df.loc[job_id]["xray_freq"]
 
+    param_dict["weight_thermo"] = job_df.loc[job_id]["weight_thermo"]
+    param_dict["vel_thermo"] = job_df.loc[job_id]["vel_thermo"]
+
     param_dict["sample_sched_str"] = job_df.loc[job_id, "sample_sched_str"]
 
     # Optional params

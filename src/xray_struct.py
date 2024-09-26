@@ -12,32 +12,9 @@ import mmtbx.model
 import iotbx.pdb
 from cctbx.array_family import flex
 
-
-def get_u_aniso_from_file(
-    u_aniso_file,
-    pids
-):
-    # The particles will line up based on the order they are read in from the pdb file.
-    model = mmtbx.model.manager(model_input=iotbx.pdb.input(str(u_aniso_file)))
-    xray_struct = model.get_xray_structure()
-    scatterers = xray_struct.scatterers()
-
-    if len(pids) % len(scatterers) != 0:
-        raise RuntimeError("get_u_aniso_from_file only works when the number of pids is a multiple of the number of scatterers in the pdb file.")
-
-    # u_anisos_dict = dict()
-
-    adps = list()
-    for i in range(len(scatterers)):
-        scatterer = scatterers[i]
-        u_aniso = scatterer.u_star
-        adps.append(u_aniso)
-
-    u_aniso_dict = dict()
-    for i in range(len(pids)):
-        u_aniso_dict[pids[i]] = adps[i%len(scatterers)]
-
-    return u_aniso_dict
+import sys
+sys.path.append(str(Path(Path.home(), "xray/src")))
+from utility import get_u_anisos_from_file
 
 
 """
@@ -57,20 +34,34 @@ def get_xray_structure(
     unit_cell = crystal_symmetry.unit_cell()
 
     if u_aniso_file:
-        u_stars_dict = get_u_aniso_from_file(
-            u_aniso_file,
-            pids=pids
+        u_anisos = get_u_anisos_from_file(
+            u_aniso_file
         )
+    else:
+        u_anisos = None
 
+    ## do a check that the names are equal across all the states
+    names = list()
+    cnt = 0
     for i in range(len(hs)):
+        print("state", i)
         h = hs[i]
+
+        if i == 0:
+            names = [m.get_particle_name(pid) for pid in IMP.atom.Selection(h).get_selected_particle_indexes()]
 
         # Get only subset of pids that are in th state corresponding to h.
         pids_state = IMP.atom.Selection(h).get_selected_particle_indexes()
-        pids_state_subset = list(set(pids).intersection(set(pids_state)))
+        # pids_state_subset = list(set(pids).intersection(set(pids_state)))
 
-        for j in range(len(pids_state_subset)):
-            pid = pids_state_subset[j]
+        print("pids_state", len(pids_state))
+
+        for j in range(len(pids_state)):
+            ## only check the name of the first particle in the state because there may be a different number of solvent atoms
+            if j == 0 and names[j] != m.get_particle_name(pids_state[j]):
+                raise RuntimeError("The names of the particles across states don't match")
+
+            pid = pids_state[j]
             d = IMP.core.XYZR(m, pid)
             coords_cart = (d.get_x(), d.get_y(), d.get_z())
             if delta:
@@ -86,6 +77,9 @@ def get_xray_structure(
             occ = occs[i]
             b_factor = a.get_temperature_factor()
 
+            # print(i, cnt, m.get_particle_name(pid))
+            # cnt = cnt + 1
+
             scatterer = cctbx.xray.scatterer(
                 label=m.get_particle_name(pid),
                 site=coords_frac,
@@ -99,12 +93,13 @@ def get_xray_structure(
             # print(i)
             if u_aniso_file:
                 scatterer.set_use_u(False, True)
-                u_star = u_stars_dict[pid]
+                u_star = u_anisos[cnt]
                 scatterer.u_star = u_star
             else:
                 scatterer.set_use_u(True, False)
 
             scatterers.append(scatterer)
+            cnt += 1
 
     xray_structure = cctbx.xray.structure(
         scatterers=scatterers,

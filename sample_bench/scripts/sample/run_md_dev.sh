@@ -18,12 +18,6 @@ mkdir "$OUT_DIR"
 cd "$TMPDIR"
 cp ~/xray/sample_bench/scripts/sample/run_md_multi.py .
 
-# python -m pdb run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --job_csv_file /wynton/home/sali/mhancock/xray/sample_bench/data/params/207.csv --job_id 0
-
-python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --job_csv_file /wynton/home/sali/mhancock/xray/sample_bench/data/params/222.csv --job_id 0 --write
-
-# cp ~/xray/sample_bench/scripts/sample/run_md_ff.py .
-
-# python run_md_ff.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --job_csv_file /wynton/home/sali/mhancock/xray/sample_bench/data/params/207.csv --job_id 0
+python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --job_csv_file /wynton/home/sali/mhancock/xray/sample_bench/data/params/test.csv --job_id 0 --write
 
 cd "$HOME/xray/sample_bench/scripts/sample"

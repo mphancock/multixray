@@ -14,8 +14,8 @@ if __name__ == "__main__":
     job_ids = list()
     out_ids = list()
 
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/223_wxray_thermo")
-    dest_dir = Path("../data/223")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/237_all_states")
+    dest_dir = Path("../data/237")
 
     # for job_id in range(14):
     for job_dir in exp_dir.glob("*"):
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         dest_log_dir = Path(dest_dir, "logs/{}".format(job_id))
         dest_log_dir.mkdir(exist_ok=True, parents=True)
 
-        for out_id in range(25):
+        for out_id in range(10):
             out_dir = Path(exp_dir, "{}/output_{}".format(job_id, out_id))
             pdb_dir = Path(out_dir, "pdbs")
 

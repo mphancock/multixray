@@ -22,6 +22,10 @@ def get_miller_array(
     if array_id < 0:
         raise RuntimeError("{} was not found in {}".format(label, f_obs_file))
 
+    if label_array.is_xray_intensity_array():
+        label_array = label_array.f_sq_as_f()
+        label_array.set_observation_type_xray_amplitude()
+
     return label_array
 
 
