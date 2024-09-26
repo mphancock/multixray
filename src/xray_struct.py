@@ -44,7 +44,6 @@ def get_xray_structure(
     names = list()
     cnt = 0
     for i in range(len(hs)):
-        print("state", i)
         h = hs[i]
 
         if i == 0:
@@ -53,8 +52,6 @@ def get_xray_structure(
         # Get only subset of pids that are in th state corresponding to h.
         pids_state = IMP.atom.Selection(h).get_selected_particle_indexes()
         # pids_state_subset = list(set(pids).intersection(set(pids_state)))
-
-        print("pids_state", len(pids_state))
 
         for j in range(len(pids_state)):
             ## only check the name of the first particle in the state because there may be a different number of solvent atoms

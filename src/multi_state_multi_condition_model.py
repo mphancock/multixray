@@ -25,7 +25,7 @@ class MultiStateMultiConditionModel:
         self.hs = list()
 
         # pdb_selectors = [IMP.atom.ChainPDBSelector(["A"]), IMP.atom.NonWaterNonHydrogenPDBSelector(), IMP.atom.NonAlternativePDBSelector(), IMP.atom.ATOMPDBSelector()]
-        pdb_selectors = [IMP.atom.ChainPDBSelector(["A"]), IMP.atom.NonWaterPDBSelector(), IMP.atom.NonAlternativePDBSelector(), IMP.atom.ATOMPDBSelector()]
+        pdb_selectors = [IMP.atom.NonAlternativePDBSelector()]
         sel = pdb_selectors[0]
         for i in range(1, len(pdb_selectors)):
             sel = IMP.atom.AndPDBSelector(sel, pdb_selectors[i])
@@ -46,8 +46,6 @@ class MultiStateMultiConditionModel:
 
         avg_b_factor /= len(self.hs) * len(IMP.atom.Selection(self.hs[0]).get_selected_particle_indexes())
 
-        print("AVG B FACTOR: ", avg_b_factor)
-
         for h in self.hs:
             for pid in IMP.atom.Selection(h).get_selected_particle_indexes():
                 # IMP.atom.Atom(self.m, pid).set_temperature_factor(15)
@@ -61,7 +59,6 @@ class MultiStateMultiConditionModel:
         self.ca_pids_dict = dict()
         water_at_type = IMP.atom.AtomType("HET: O  ")
 
-        # print(self.n_state, len(self.hs))
         for i in range(self.n_state):
             h = self.hs[i]
             self.pids_dict[i] = IMP.atom.Selection(h).get_selected_particle_indexes()
@@ -83,6 +80,11 @@ class MultiStateMultiConditionModel:
                 d.set_coordinates_are_optimized(True)
 
                 IMP.atom.LinearVelocity.setup_particle(self.m, pid)
+
+        print("SETTING UP MODEL", pdb_file)
+        print("AVG B FACTOR: ", avg_b_factor)
+        print("NO OF WATERS: ", len(self.water_pids_dict[0]))
+
 
     def get_m(self):
         return self.m
