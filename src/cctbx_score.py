@@ -27,41 +27,8 @@ def get_score(
         update_k1=False,
         delta=None
 ):
-    # print(occs)
-    # pid = IMP.atom.Selection(hs[0]).get_selected_particle_indexes()[0]
-    # print(IMP.atom.Atom(hs[0].get_model(), pid).get_occupancy())
-
-    # print(f_obs.size())
-    # print("CCTBX score")
-
-    # crystal_symmetry = f_obs.crystal_symmetry()
-    # xray_structure = xray_struct.get_xray_structure(
-    #     hs=hs,
-    #     occs=occs,
-    #     pids=pids,
-    #     crystal_symmetry=crystal_symmetry,
-    #     u_anisos=u_anisos,
-    #     delta=delta
-    # )
-    # print(xray_structure.show_scatterers())
-
-    # print("POST XRAY STRUCT")
-    # raise Exception("STOP")
-
-    # print(xray_structure.scatterers()[0].occupancy)
-    # print(xray_structure.show_summary())
-
-    # xray_structure.scatterers().flags_set_grads(
-    #     state=False
-    # )
-    # xray_structure.scatterers().flags_set_grad_site(
-    #     iselection=xray_structure.all_selection().iselection()
-    # )
-    # xray_structure.scatterers().flags_set_grad_occupancy(
-    #     iselection=xray_structure.all_selection().iselection()
-    # )
-
     xray_structure = msmc_m.get_multi_xray_structure(cond)
+
 
     target_name = target
 

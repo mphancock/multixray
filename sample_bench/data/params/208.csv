@@ -1,2 +1,0 @@
-,start_pdb_file,N,J,cif_0,ref_0,w_xray,sample_sched_str,init_weights
-0,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,1.0,1.0,/wynton/home/sali/mhancock/xray/dev/39_bench_ensemble/data/cifs/7mhl.cif,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_refine.pdb,8900,"step50000,T300,dofA,pdb1,w0,res0",uni

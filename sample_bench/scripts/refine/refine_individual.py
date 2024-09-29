@@ -27,6 +27,10 @@ if __name__ == "__main__":
     hs = msmc_model.get_hs()
     m = msmc_model.get_m()
 
+    pid = IMP.atom.Selection(hs[0]).get_selected_particles()[0]
+    d = IMP.core.XYZR(m, pid)
+    print(d.get_coordinates())
+
     for h in hs:
         rs = list()
         rset_charmm = IMP.RestraintSet(m, 1.0)
@@ -65,6 +69,6 @@ if __name__ == "__main__":
         ff_new = rset_charmm.evaluate(False)
         print(ff_cur, ff_new)
 
+    print(d.get_coordinates())
 
-    msmc_model.update_xray_h()
-    IMP.atom.write_multimodel_pdb(hs, str(Path(Path.home(), "Documents/xray/data/pdbs/3k0m/3k0m_refine.pdb")))
+    msmc_model.write_pdb_file(Path(Path.home(), "Documents/xray/data/pdbs/3k0m/3k0m_refine.pdb"))

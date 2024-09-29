@@ -144,10 +144,8 @@ if __name__ == "__main__":
             f_obs=f_obs_array,
             free_flags=flags_array,
             w_xray=w_xray,
-            # w_xray=args.w_xray/len(cif_files),
             update_scale=True,
             update_k1=True,
-            u_aniso_file=None,
             update_freq=xray_freq,
             # ref_com=com
             ref_com=None

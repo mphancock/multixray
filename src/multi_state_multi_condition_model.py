@@ -295,9 +295,6 @@ class MultiStateMultiConditionModel:
 
     ## update the individual xray structures then get the multi xray structure which updates automatically
     def get_multi_xray_structure(self, cond):
-        ## this only needs to be updated once for all conditions
-        import time
-
         if cond == 0:
             ## this is the relatively expensive step
             self.update_xray_hs()
@@ -332,6 +329,8 @@ class MultiStateMultiConditionModel:
         # atoms = self.multi_xray_hierarchy.atoms()
         # Update the atomic positions in the hierarchy
         # atoms.set_xyz(new_sites_cart)
+
+        self.update_xray_hs()
 
         pdb_content = self.merge_xray_h.as_pdb_string(crystal_symmetry=self.get_cryustal_symmetry())
 

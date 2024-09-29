@@ -10,7 +10,7 @@ from multi_state_multi_condition_model import MultiStateMultiConditionModel
 
 
 if __name__ == "__main__":
-    pdb_file = Path(Path.home(), "Documents/xray/data/pdbs/3k0m/3k0m.pdb")
+    pdb_file = Path(Path.home(), "Documents/xray/data/pdbs/3k0m/3k0m_refine.pdb")
     w_mat = np.array([[0.5, 1.0],[0.5, 0.0]])
     msmc_model = MultiStateMultiConditionModel(
         pdb_file=pdb_file,
