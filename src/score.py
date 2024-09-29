@@ -45,6 +45,7 @@ def pool_score(
     ref_file=params["ref_file"]
     ref_occs=params["ref_occs"]
     adp_file=params["adp_file"]
+    adp_type=params["adp_type"]
     cif_file=params["cif_file"]
     score_fs=params["score_fs"]
 
@@ -87,7 +88,7 @@ def pool_score(
             # Set f_obs.
             f_obs = miller_ops.get_miller_array(
                 f_obs_file=cif_file,
-                label="_refln.F_meas_au"
+                label="_refln.intensity_meas"
             )
             f_obs = miller_ops.clean_miller_array(f_obs)
 
@@ -126,7 +127,6 @@ def pool_score(
                 w_xray=1,
                 update_scale=params["scale"],
                 update_k1=params["scale_k1"],
-                u_aniso_file=None,
                 ref_com=ref_msmc_m.get_com(),
                 update_freq=1
             )

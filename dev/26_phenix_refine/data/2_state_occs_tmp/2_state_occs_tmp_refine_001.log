@@ -1,0 +1,201 @@
+# Date 2024-09-26 Time 07:20:10 PDT -0700 (1727360410.93 s)
+#phil __OFF__
+
+Command line arguments: "/wynton/home/sali/mhancock/xray/data/cifs/3k0m/3k0m.cif" "/wynton/home/sali/mhancock/xray/dev/26_phenix_refine/data/2_state_occs_tmp.pdb" "base_output_dir=/wynton/home/sali/mhancock/xray/dev/26_phenix_refine/data/2_state_occs_tmp" "strategy=none" "ordered_solvent=true" "ordered_solvent.mode=every_macro_cycle" "refinement.input.xray_data.labels=_refln.intensity_meas,_refln.intensity_sigma" "refinement.input.xray_data.r_free_flags.label=_refln.status" "write_eff_file=false" "write_geo_file=false" "write_def_file=false" "write_maps=false" "write_map_coefficients=false" "write_model_cif_file=false"
+
+HOSTNAME = sali-dev1
+USER = mhancock
+PID = 263221
+SGE_ARCH = lx-amd64
+
+-------------------------------------------------------------------------------
+  PHENIX: Python-based Hierarchical ENvironment for Integrated Xtallography
+  Version: 1.20.1
+  Release tag: 4487
+  Platform: intel-linux-2.6-x86_64
+  User: mhancock
+-------------------------------------------------------------------------------
+
+              phenix.refine: Macromolecular Structure Refinement
+
+-------------------------------------------------------------------------------
+
+Phenix developers include:
+  Paul Adams, Pavel Afonine, Gabor Bunkoczi, Tom Burnley, Vincent Chen, 
+  Youval Dar, Ian Davis, Eli Draizen, Nathaniel Echols, Richard Gildea, 
+  Piet Gros, Ralf Grosse-Kunstleve, Jeffrey Headd, Bradley Hintze, Li-Wei Hung, 
+  Tom Ioerger, Dorothee Liebschner, Airlie McCoy, Erik McKee, Nigel Moriarty, 
+  Robert Oeffner, Billy Poon, Randy Read, Jane Richardson, David Richardson, 
+  Jim Sacchettini, Nicholas Sauter, Oleg Sobolev, Laurent Storoni, 
+  Tom Terwilliger, Christopher Williams, Peter Zwart
+Phenix home page:
+  http://www.phenix-online.org/
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+Phenix components are copyrighted by:
+  - Lawrence Berkeley National Laboratory
+  - Los Alamos National Laboratory
+  - University of Cambridge
+  - Duke University
+  - Texas Agricultural Experiment Station &
+    Texas Engineering Experiment Station
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+Major third-party components of Phenix include:
+    Python, wxWidgets, wxPython, Boost, SCons, Clipper,
+    CCP4 Monomer Library, CCP4 I/O libraries, PyCifRW, FFTPACK, L-BFGS,
+    MUSCLE, KSDSSP, PULCHRA, ANTLRv3
+  Enter phenix.acknowledgments for details.
+-------------------------------------------------------------------------------
+
+Processing inputs. This may take a minute or two.
+
+Command line parameter definitions:
+  refinement.gui.base_output_dir = /wynton/home/sali/mhancock/xray/dev/26_phenix_refine/data/2_state_occs_tmp
+
+  refinement.refine.strategy = none
+
+  refinement.main.ordered_solvent = true
+
+  refinement.ordered_solvent.mode = every_macro_cycle
+
+  refinement.input.xray_data.labels = _refln.intensity_meas,_refln.intensity_sigma
+
+  refinement.input.xray_data.r_free_flags.label = _refln.status
+
+  refinement.output.write_eff_file = false
+
+  refinement.output.write_geo_file = false
+
+  refinement.output.write_def_file = false
+
+  refinement.output.write_maps = false
+
+  refinement.output.write_map_coefficients = false
+
+  refinement.output.write_model_cif_file = false
+
+  No user-defined map coefficients or files defined; will use default map
+  outputs instead.
+Working crystal symmetry after inspecting all inputs:
+  Unit cell: (42.419, 51.741, 88.639, 90, 90, 90)
+  Space group: P 21 21 21 (No. 19)
+
+
+     ----------Scaling input intensities via French-Wilson Method----------    
+
+Trying 60 bins...
+Number of bins = 60
+** Calculating bin mean intensity values for each intensity **
+** Total # rejected intensities: 8 **
+** Summary or rejected intensities **
+-----------------------------------------------------------------
+Miller Index  :  Intensity  :  Sigma  :  Bin Mean Intensity
+(4, 4, 0)    -6.800      1.800    4247.209
+(0, 3, 22)    -14.800      2.500    4142.294
+(0, 12, 2)    -20.300      2.700    4538.808
+(9, 0, 6)    -14.800      3.300    4631.194
+(9, 7, 0)    -21.000      3.100    4196.845
+(8, 8, 13)    -17.700      2.800    3424.366
+(10, 15, 60)    -18.100      3.100    26.367
+(21, 0, 55)    -27.800      6.800    20.379
+-----------------------------------------------------------------
+Input data summary:
+  Miller array info: /wynton/home/sali/mhancock/xray/data/cifs/3k0m/3k0m.cif:r3k0msf,_refln.intensity_meas,_refln.intensity_sigma,systematic_absences_eliminated
+  Observation type: xray.intensity
+  Type of data: double, size=54562
+  Type of sigmas: double, size=54562
+  Number of Miller indices: 54562
+  Anomalous flag: False
+  Unit cell: (42.419, 51.741, 88.639, 90, 90, 90)
+  Space group: P 21 21 21 (No. 19)
+  Systematic absences: 0
+  Centric reflections: 5102
+  Resolution range: 44.3195 1.25001
+  Completeness in resolution range: 0.996148
+  Completeness with d_max=infinity: 0.99613
+  Wavelength: 0.9537
+
+Data used summary:
+  Miller array info: /wynton/home/sali/mhancock/xray/data/cifs/3k0m/3k0m.cif:r3k0msf,_refln.intensity_meas,_refln.intensity_sigma,systematic_absences_eliminated
+  Observation type: xray.amplitude
+  Type of data: double, size=54554
+  Type of sigmas: double, size=54554
+  Number of Miller indices: 54554
+  Anomalous flag: False
+  Unit cell: (42.419, 51.741, 88.639, 90, 90, 90)
+  Space group: P 21 21 21 (No. 19)
+  Systematic absences: 0
+  Centric reflections: 5096
+  Resolution range: 44.3195 1.25001
+  Completeness in resolution range: 0.996002
+  Completeness with d_max=infinity: 0.995983
+  Wavelength: 0.9537
+
+Free-R flags summary:
+  Miller array info: /wynton/home/sali/mhancock/xray/data/cifs/3k0m/3k0m.cif:r3k0msf,_refln.status
+  Observation type: None
+  Type of data: bool, size=54554
+  Type of sigmas: None
+  Number of Miller indices: 54554
+  Anomalous flag: False
+  Unit cell: (42.419, 51.741, 88.639, 90, 90, 90)
+  Space group: P 21 21 21 (No. 19)
+  Systematic absences: 0
+  Centric reflections: 5096
+  Resolution range: 44.3195 1.25001
+  Completeness in resolution range: 0.996002
+  Completeness with d_max=infinity: 0.995983
+  Wavelength: 0.9537
+  Test (R-free) flag value: 0
+  Number of work/free reflections by resolution:
+                                           work  free  %free
+    bin  1: 44.3474 -  2.6929 [5748/5769]  5440   308   5.4%
+    bin  2:  2.6929 -  2.1374 [5534/5536]  5251   283   5.1%
+    bin  3:  2.1374 -  1.8672 [5498/5499]  5241   257   4.7%
+    bin  4:  1.8672 -  1.6965 [5464/5467]  5209   255   4.7%
+    bin  5:  1.6965 -  1.5749 [5437/5446]  5173   264   4.9%
+    bin  6:  1.5749 -  1.4820 [5403/5415]  5119   284   5.3%
+    bin  7:  1.4820 -  1.4078 [5407/5431]  5123   284   5.3%
+    bin  8:  1.4078 -  1.3465 [5362/5397]  5073   289   5.4%
+    bin  9:  1.3465 -  1.2947 [5343/5395]  5083   260   4.9%
+    bin 10:  1.2947 -  1.2500 [5358/5418]  5097   261   4.9%
+                                  overall 51809  2745   5.0%
+
+  Symmetric amino acids flipped
+    Residue "A GLU   15": "OE1" <-> "OE2"
+    Residue "A PHE   36": "CD1" <-> "CD2" "CE1" <-> "CE2" "HD1" <-> "HD2" "HE1" <-> "HE2"
+    Residue "A GLU   81": "OE1" <-> "OE2"
+    Residue "A PHE  113": "CD1" <-> "CD2" "CE1" <-> "CE2" "HD1" <-> "HD2" "HE1" <-> "HE2"
+    Residue "A GLU  165": "OE1" <-> "OE2"
+    Residue "A PHE   22": "CD1" <-> "CD2" "CE1" <-> "CE2" "HD1" <-> "HD2" "HE1" <-> "HE2"
+    Residue "A PHE   36": "CD1" <-> "CD2" "CE1" <-> "CE2" "HD1" <-> "HD2" "HE1" <-> "HE2"
+    Residue "A PHE   46": "CD1" <-> "CD2" "CE1" <-> "CE2" "HD1" <-> "HD2" "HE1" <-> "HE2"
+    Residue "A GLU  165": "OE1" <-> "OE2"
+  Time to flip residues: 0.00s
+
+Sorry: number of groups of duplicate atom labels: 2483
+  total number of affected atoms:          4966
+  group "ATOM    .*.  N   VAL A   2 .*.     N  "
+        "ATOM    .*.  N   VAL A   2 .*.     N  "
+  group "ATOM    .*.  CA  VAL A   2 .*.     C  "
+        "ATOM    .*.  CA  VAL A   2 .*.     C  "
+  group "ATOM    .*.  C   VAL A   2 .*.     C  "
+        "ATOM    .*.  C   VAL A   2 .*.     C  "
+  group "ATOM    .*.  O   VAL A   2 .*.     O  "
+        "ATOM    .*.  O   VAL A   2 .*.     O  "
+  group "ATOM    .*.  CB  VAL A   2 .*.     C  "
+        "ATOM    .*.  CB  VAL A   2 .*.     C  "
+  group "ATOM    .*.  CG1 VAL A   2 .*.     C  "
+        "ATOM    .*.  CG1 VAL A   2 .*.     C  "
+  group "ATOM    .*.  CG2 VAL A   2 .*.     C  "
+        "ATOM    .*.  CG2 VAL A   2 .*.     C  "
+  group "ATOM    .*.  H   VAL A   2 .*.     H  "
+        "ATOM    .*.  H   VAL A   2 .*.     H  "
+  group "ATOM    .*.  HA  VAL A   2 .*.     H  "
+        "ATOM    .*.  HA  VAL A   2 .*.     H  "
+  group "ATOM    .*.  HB  VAL A   2 .*.     H  "
+        "ATOM    .*.  HB  VAL A   2 .*.     H  "
+  ... 2473 remaining groups not shown

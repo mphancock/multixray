@@ -291,39 +291,39 @@ if __name__ == "__main__":
     #     all_trackers.append(dcharmm_dx_tracker)
 
     ## single particle trackers
-    for state in range(N):
-        test_pid = test_pids[state]
-        test_xyz = IMP.core.XYZ(m, test_pid)
+    # for state in range(N):
+    #     test_pid = test_pids[state]
+    #     test_xyz = IMP.core.XYZ(m, test_pid)
 
-        ## position of particle
-        xyz_tracker = trackers.XYZTracker(
-            name="xyz_{}".format(state),
-            m=m,
-            xyz=test_xyz
-        )
-        all_trackers.append(xyz_tracker)
+    #     ## position of particle
+    #     xyz_tracker = trackers.XYZTracker(
+    #         name="xyz_{}".format(state),
+    #         m=m,
+    #         xyz=test_xyz
+    #     )
+    #     all_trackers.append(xyz_tracker)
 
-        ## total derivative on particle
-        dxyz_tracker = trackers.dXYZTracker(
-            name="dxyz_{}".format(state),
-            m=m,
-            xyz=test_xyz
-        )
-        all_trackers.append(dxyz_tracker)
+    #     ## total derivative on particle
+    #     dxyz_tracker = trackers.dXYZTracker(
+    #         name="dxyz_{}".format(state),
+    #         m=m,
+    #         xyz=test_xyz
+    #     )
+    #     all_trackers.append(dxyz_tracker)
 
-        ## xray derivative on particle
-        if rset_xray.get_number_of_restraints() > 0:
-            for cif_file in cif_files:
-                cif_name = cif_file.stem
-                dxray_dx_tracker = trackers.dfdXYZTracker(
-                    name="d{}_dx_{}".format(cif_name, state),
-                    m=m,
-                    pids=msmc_m.get_all_pids(),
-                    r=rset_xray.get_restraint(i),
-                    pid=test_pid,
-                    scale=w_xray
-                )
-                all_trackers.append(dxray_dx_tracker)
+    #     ## xray derivative on particle
+    #     if rset_xray.get_number_of_restraints() > 0:
+    #         for cif_file in cif_files:
+    #             cif_name = cif_file.stem
+    #             dxray_dx_tracker = trackers.dfdXYZTracker(
+    #                 name="d{}_dx_{}".format(cif_name, state),
+    #                 m=m,
+    #                 pids=msmc_m.get_all_pids(),
+    #                 r=rset_xray.get_restraint(i),
+    #                 pid=test_pid,
+    #                 scale=w_xray
+    #             )
+    #             all_trackers.append(dxray_dx_tracker)
 
         # ## linear velocity of particle
         # test_lin_vel = IMP.atom.LinearVelocity(m, test_pid)
@@ -397,25 +397,24 @@ if __name__ == "__main__":
     # )
     # all_trackers.append(delta_tracker)
 
-    # ## track the magnitude of the center of mass of the model
-    # delta_mag_tracker = trackers.DeltaMagnitudeTracker(
-    #     name="com_delta_mag",
-    #     msmc_1=msmc_m,
-    #     msmc_2=ref_msmc_ms[0]
-    # )
-    # all_trackers.append(delta_mag_tracker)
+    ## track the magnitude of the center of mass of the model
+    delta_mag_tracker = trackers.DeltaMagnitudeTracker(
+        name="com_delta_mag",
+        msmc_1=msmc_m,
+        msmc_2=ref_msmc_ms[0]
+    )
+    all_trackers.append(delta_mag_tracker)
 
-    # ## track the weight of the xray restraints
-    # if len(r_xrays) > 0:
-    #     wxray_tracker = trackers.XrayWeightTracker(
-    #         name="wxray",
-    #         m=msmc_m.get_m(),
-    #         r_xray=rset_xray.get_restraint(0)
-    #     )
-    #     all_trackers.append(wxray_tracker)
+    ## track the weight of the xray restraints
+    if len(r_xrays) > 0:
+        wxray_tracker = trackers.XrayWeightTracker(
+            name="wxray",
+            m=msmc_m.get_m(),
+            r_xray=rset_xray.get_restraint(0)
+        )
+        all_trackers.append(wxray_tracker)
 
-    ## track the temperature
-    ## turn off until md is added
+    ## track the temperature but turn off until md is added
     temp_tracker = trackers.TempTracker(
         name="temp",
         m=m

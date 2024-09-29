@@ -12,10 +12,6 @@ import mmtbx.model
 import iotbx.pdb
 from cctbx.array_family import flex
 
-import sys
-sys.path.append(str(Path(Path.home(), "xray/src")))
-from utility import get_u_anisos_from_file
-
 
 """
 Given an IMP model, the unit cell dimensions, and the space group; the function converts the IMP structure representation into the cctbx structure representation and returns the corresponding cctbx xray structure.
@@ -25,20 +21,13 @@ def get_xray_structure(
         occs,
         pids,
         crystal_symmetry,
-        u_aniso_file=None,
+        u_anisos=None,
         delta=None
 ):
     m = hs[0].get_model()
 
     scatterers = cctbx.array_family.flex.xray_scatterer()
     unit_cell = crystal_symmetry.unit_cell()
-
-    if u_aniso_file:
-        u_anisos = get_u_anisos_from_file(
-            u_aniso_file
-        )
-    else:
-        u_anisos = None
 
     ## do a check that the names are equal across all the states
     names = list()
@@ -88,9 +77,9 @@ def get_xray_structure(
             )
 
             # print(i)
-            if u_aniso_file:
+            if u_anisos:
                 scatterer.set_use_u(False, True)
-                u_star = u_anisos[cnt]
+                u_star = u_anisos[pid]
                 scatterer.u_star = u_star
             else:
                 scatterer.set_use_u(True, False)

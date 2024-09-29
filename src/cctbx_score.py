@@ -17,16 +17,14 @@ import miller_ops
 
 
 def get_score(
-        hs,
-        occs,
-        pids,
+        msmc_m,
+        cond,
         f_obs,
         r_free_flags,
         target,
         ab_file=None,
         update_scale=True,
         update_k1=False,
-        u_aniso_file=None,
         delta=None
 ):
     # print(occs)
@@ -34,28 +32,36 @@ def get_score(
     # print(IMP.atom.Atom(hs[0].get_model(), pid).get_occupancy())
 
     # print(f_obs.size())
-    crystal_symmetry = f_obs.crystal_symmetry()
-    xray_structure = xray_struct.get_xray_structure(
-        hs=hs,
-        occs=occs,
-        pids=pids,
-        crystal_symmetry=crystal_symmetry,
-        u_aniso_file=u_aniso_file,
-        delta=delta
-    )
+    # print("CCTBX score")
+
+    # crystal_symmetry = f_obs.crystal_symmetry()
+    # xray_structure = xray_struct.get_xray_structure(
+    #     hs=hs,
+    #     occs=occs,
+    #     pids=pids,
+    #     crystal_symmetry=crystal_symmetry,
+    #     u_anisos=u_anisos,
+    #     delta=delta
+    # )
+    # print(xray_structure.show_scatterers())
+
+    # print("POST XRAY STRUCT")
+    # raise Exception("STOP")
 
     # print(xray_structure.scatterers()[0].occupancy)
     # print(xray_structure.show_summary())
 
-    xray_structure.scatterers().flags_set_grads(
-        state=False
-    )
-    xray_structure.scatterers().flags_set_grad_site(
-        iselection=xray_structure.all_selection().iselection()
-    )
-    xray_structure.scatterers().flags_set_grad_occupancy(
-        iselection=xray_structure.all_selection().iselection()
-    )
+    # xray_structure.scatterers().flags_set_grads(
+    #     state=False
+    # )
+    # xray_structure.scatterers().flags_set_grad_site(
+    #     iselection=xray_structure.all_selection().iselection()
+    # )
+    # xray_structure.scatterers().flags_set_grad_occupancy(
+    #     iselection=xray_structure.all_selection().iselection()
+    # )
+
+    xray_structure = msmc_m.get_multi_xray_structure(cond)
 
     target_name = target
 
