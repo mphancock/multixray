@@ -8,8 +8,8 @@ from score import pool_score
 
 if __name__ == "__main__":
     param_dict = dict()
-    param_dict["decoy_file"] = Path(Path.home(), "Documents/xray/data/pdbs/3k0m/3k0m.pdb")
-    param_dict["decoy_occs"] = [1]
+    param_dict["decoy_file"] = Path(Path.home(), "Documents/xray/dev/42_traj_analysis/data/242/pdbs/11/1.pdb")
+    param_dict["decoy_occs"] = [0.5,0.5]
     param_dict["ref_file"] = Path(Path.home(), "Documents/xray/data/pdbs/3k0m/3k0m.pdb")
     param_dict["ref_occs"] = [1]
     param_dict["cif_file"] = Path(Path.home(), "Documents/xray/data/cifs/3k0m/3k0m.cif")

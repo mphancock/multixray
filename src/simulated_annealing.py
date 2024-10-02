@@ -196,11 +196,15 @@ class SimulatedAnnealing:
         self.md.set_scoring_function(sf)
         self.md.set_has_required_score_states(True)
 
-        ## setup velocity thermostat
+        # setup velocity thermostat but only on non solvent atoms
+        ## this doesn't work bc the particle stack on the thermostat and md must be the same
+        self.prot_pids = msmc_m.get_all_protein_pids()
+        self.prot_ps = [self.m.get_particle(pid) for pid in self.prot_pids]
+
         if vel_thermo:
             self.vel_thermo_o_state = IMP.atom.BerendsenThermostatOptimizerState(
                 pis=self.ps,
-                temperature=T_0-2,
+                temperature=T_0,
                 tau=10
             )
         else:
@@ -231,8 +235,12 @@ class SimulatedAnnealing:
 
         self.md.setup(self.ps)
         self.md.set_temperature(T_0)
-
         self.md.assign_velocities(T_0)
+
+        # set solvent velocities to 0
+        # for pid in msmc_m.get_all_solvent_pids():
+        #     IMP.atom.LinearVelocity(self.m, pid).set_velocity(IMP.algebra.Vector3D(0,0,0))
+
         self.md.set_maximum_time_step(self.t_step)
 
         ## if there is a temp tracker turn it on
@@ -289,7 +297,7 @@ class SimulatedAnnealing:
             # self.s_v.set_temperature(T)
             self.md.set_temperature(T)
             self.md.set_maximum_time_step(t_step)
-            # md.set_velocity_cap(.005)
+            self.md.set_velocity_cap(.25)
 
             self.md.simulate(n_frames*t_step)
 

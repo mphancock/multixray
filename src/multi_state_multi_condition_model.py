@@ -14,7 +14,6 @@ from scitbx.array_family import flex
 
 sys.path.append(str(Path(Path.home(), "xray/src")))
 import utility
-from u_aniso import get_u_anisos_from_file
 
 
 
@@ -60,15 +59,13 @@ class MultiStateMultiConditionModel:
             raise e
 
         self.hs = list()
+        self.xray_hs = list()
 
         # pdb_selectors = [IMP.atom.ChainPDBSelector(["A"]), IMP.atom.NonWaterNonHydrogenPDBSelector(), IMP.atom.NonAlternativePDBSelector(), IMP.atom.ATOMPDBSelector()]
         pdb_selectors = [IMP.atom.NonAlternativePDBSelector()]
         sel = pdb_selectors[0]
         for i in range(1, len(pdb_selectors)):
             sel = IMP.atom.AndPDBSelector(sel, pdb_selectors[i])
-
-        ## create a temp list to store xray structures
-        self.xray_hs = list()
 
         if pdb_file_n_state == 1 and self.n_state >= 1:
             for i in range(self.n_state):
@@ -77,8 +74,8 @@ class MultiStateMultiConditionModel:
 
                 self.xray_hs.append(hierarchy)
                 self.crystal_symmetry = crystal_symmetry
-        # elif pdb_file_n_state == self.n_state:
-        #     self.hs.extend(IMP.atom.read_multimodel_pdb(str(pdb_file), self.m, sel))
+        elif pdb_file_n_state == self.n_state:
+            self.hs.extend(IMP.atom.read_multimodel_pdb(str(pdb_file), self.m, sel))
         else:
             raise RuntimeError("Number of states in pdb file ({}) does not match the number of states in the model ({}).".format(pdb_file_n_state, self.n_state))
 
@@ -205,6 +202,20 @@ class MultiStateMultiConditionModel:
 
         return side_pids
 
+    def get_all_protein_pids(self):
+        prot_pids = list()
+        for i in range(self.n_state):
+            prot_pids.extend(self.prot_pids_dict[i])
+
+        return prot_pids
+
+    def get_all_solvent_pids(self):
+        solvent_pids = list()
+        for i in range(self.n_state):
+            solvent_pids.extend(self.water_pids_dict[i])
+
+        return solvent_pids
+
     def get_xray_hierarchy(self, i):
         return self.xray_hs[i]
 
@@ -323,13 +334,7 @@ class MultiStateMultiConditionModel:
                 raise RuntimeError("Number of atoms in state {} xray structure ({}) does not match the number of atoms in the hierarchy ({})".format(i, n_pids, n_atoms))
 
     def write_pdb_file(self, pdb_file):
-        # Write the PDB content to a file
-        # new_sites_cart = self.multi_xray_structure.sites_cart()
-        # Get the atoms from the hierarchy
-        # atoms = self.multi_xray_hierarchy.atoms()
-        # Update the atomic positions in the hierarchy
-        # atoms.set_xyz(new_sites_cart)
-
+        ## update the positions before writing
         self.update_xray_hs()
 
         pdb_content = self.merge_xray_h.as_pdb_string(crystal_symmetry=self.get_cryustal_symmetry())

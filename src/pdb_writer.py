@@ -36,17 +36,17 @@ class PDBWriterTracker(trackers.Tracker):
     def __init__(
             self,
             name,
-            hs,
+            msmc_m,
             pdb_dir,
             log_pdb_dir=None
     ):
         trackers.Tracker.__init__(
             self,
             name=name,
-            m=hs[0].get_model(),
+            m=msmc_m.get_m(),
             n=1
         )
-        self.hs = hs
+        self.msmc_m = msmc_m
         self.pdb_dir = pdb_dir
         self.step = 0
         self.log_pdb_dir = log_pdb_dir
@@ -56,7 +56,8 @@ class PDBWriterTracker(trackers.Tracker):
         cur_pdb_file = Path(self.pdb_dir, "{}.pdb".format(self.cur_pdb_id))
 
         # print(cur_pdb_file)
-        IMP.atom.write_multimodel_pdb(self.hs, str(cur_pdb_file))
+        # IMP.atom.write_multimodel_pdb(self.hs, str(cur_pdb_file))
+        self.msmc_m.write_pdb_file(cur_pdb_file)
         self.cur_pdb_id = self.cur_pdb_id+1
 
         # final_pdb_file is the pdb file after copying.

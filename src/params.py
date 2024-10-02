@@ -60,6 +60,8 @@ def read_job_csv(
 
     N = int(job_df.loc[job_id]["N"])
     J = int(job_df.loc[job_id]["J"])
+    param_dict["N"] = N
+    param_dict["J"] = J
 
     cif_files, ref_files = list(), list()
     for cond in range(J):
@@ -91,18 +93,12 @@ def read_job_csv(
             w_mat[:, cond] = weights.get_weights(floor=0.05, n_state=N)
     param_dict["w_mat"] = w_mat
 
-    param_dict["N"] = N
-    param_dict["J"] = J
     param_dict["cifs"] = cif_files
     param_dict["refs"] = ref_files
     param_dict["ref_w_mat"] = ref_w_mat
-    param_dict["w_xray"] = job_df.loc[job_id]["w_xray"]
-    param_dict["xray_freq"] = job_df.loc[job_id]["xray_freq"]
 
-    param_dict["weight_thermo"] = job_df.loc[job_id]["weight_thermo"]
-    param_dict["vel_thermo"] = job_df.loc[job_id]["vel_thermo"]
-
-    param_dict["sample_sched_str"] = job_df.loc[job_id, "sample_sched_str"]
+    for col in ["w_xray", "xray_freq", "weight_thermo", "vel_thermo", "sample_sched_str", "refine"]:
+        param_dict[col] = job_df.loc[job_id][col]
 
     # Optional params
     for param in ["start_pdb_file", "init_weights"]:

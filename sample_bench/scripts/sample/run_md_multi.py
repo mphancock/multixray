@@ -26,7 +26,6 @@ import update_weights_optimizer_state
 import reset
 from simulated_annealing import SimulatedAnnealing, SimulatedAnnealingSchedule
 from params import write_params_txt, write_params_csv, read_job_csv
-import weight_restraint
 import miller_ops
 import weights
 import utility
@@ -95,9 +94,6 @@ if __name__ == "__main__":
         w_mat=w_mat
     )
 
-    ## SAMPLE
-    # Setup simulated annealing schedule.
-
     ### SCORING
     m, hs = msmc_m.get_m(), msmc_m.get_hs()
     rset_charmm = IMP.RestraintSet(m, 1.0)
@@ -108,6 +104,15 @@ if __name__ == "__main__":
             eps=False
         )
         rset_charmm.add_restraints(charmm_rs)
+
+        if params_dict["refine"]:
+            print("REFINING STARTING MODEL")
+
+            sf_refine = IMP.core.RestraintsScoringFunction([rset_charmm])
+            cg = IMP.core.ConjugateGradients(m)
+            cg.set_scoring_function(sf_refine)
+            cg.optimize(25)
+
 
     # Is turning this off going to be really bad?
     # rset_charmm.set_weight(1/N)
@@ -251,7 +256,7 @@ if __name__ == "__main__":
 
     pdb_tracker = pdb_writer.PDBWriterTracker(
         name="pdb",
-        hs=hs,
+        msmc_m=msmc_m,
         pdb_dir=tmp_pdb_dir,
         log_pdb_dir=pdb_dir
     )

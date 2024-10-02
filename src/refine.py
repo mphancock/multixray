@@ -154,40 +154,9 @@ def refine_hs(
 def refine_h(
     h,
     rs,
-    n_step,
-    log_file,
+    n_step
 ):
     m = h.get_model()
-
-    # all_trackers = list()
-    # step_tracker = trackers.StepTracker(
-    #     name="step",
-    #     m=m
-    # )
-    # all_trackers.append(step_tracker)
-
-    # time_tracker = trackers.TimeTracker(
-    #     name="time",
-    #     m=m
-    # )
-    # all_trackers.append(time_tracker)
-
-    # ff_tracker = trackers.fTracker(
-    #     name="ff",
-    #     r=rset_charmm
-    # )
-    # all_trackers.append(ff_tracker)
-
-    o_states = list()
-
-    if log_file:
-        log_ostate = log_statistics.LogStatistics(
-            m=m,
-            all_trackers=all_trackers,
-            log_file=log_file,
-            log_freq=1000
-        )
-        o_states.append(log_ostate)
 
     sf = IMP.core.RestraintsScoringFunction(rs)
     cg = IMP.core.ConjugateGradients(m)
@@ -197,5 +166,3 @@ def refine_h(
         cg.add_optimizer_state(o_state)
 
     cg.optimize(n_step)
-
-    # return rset_charmm.evaluate(False)

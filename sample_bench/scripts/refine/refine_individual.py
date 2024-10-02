@@ -20,7 +20,7 @@ from multi_state_multi_condition_model import MultiStateMultiConditionModel
 
 if __name__ == "__main__":
     msmc_model = MultiStateMultiConditionModel(
-        pdb_file=Path(Path.home(), "Documents/xray/data/pdbs/3k0m/3k0m.pdb"),
+        pdb_file=Path(Path.home(), "Documents/xray/data/pdbs/3k0m/3k0n.pdb"),
         w_mat=np.array([[1]])
     )
 
@@ -71,4 +71,4 @@ if __name__ == "__main__":
 
     print(d.get_coordinates())
 
-    msmc_model.write_pdb_file(Path(Path.home(), "Documents/xray/data/pdbs/3k0m/3k0m_refine.pdb"))
+    msmc_model.write_pdb_file(Path(Path.home(), "Documents/xray/data/pdbs/3k0m/3k0n_refine.pdb"))

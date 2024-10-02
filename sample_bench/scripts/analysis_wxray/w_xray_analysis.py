@@ -17,17 +17,18 @@ sys.path.append(str(Path(Path.home(), "xray/sample_bench/scripts/analysis_exp"))
 
 
 if __name__ == "__main__":
-    exp_name = "222_wxray"
-    job_csv_file = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/params/222.csv")
+    exp_name = "243_3k0n"
+    job_csv_file = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/params/243.csv")
     params_df = pd.read_csv(job_csv_file, index_col=0)
 
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", exp_name)
-    analysis_dir = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/7mhf", exp_name)
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out", exp_name)
+    analysis_dir = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/analysis", exp_name)
     analysis_dir.mkdir(exist_ok=True)
 
     w_xray_df = pd.DataFrame()
     for i in range(len(params_df)):
         job_dir = Path(exp_dir, str(i))
+        print(job_dir)
         param_dict = read_job_csv(job_csv_file=job_csv_file, job_id=i)
 
         cif_files = param_dict["cifs"]

@@ -11,8 +11,6 @@ import cctbx.crystal
 import cctbx.xray
 from scitbx.array_family import flex
 
-sys.path.append("/home/matthew/xtal_python/src")
-import xray_struct
 import miller_ops
 
 
