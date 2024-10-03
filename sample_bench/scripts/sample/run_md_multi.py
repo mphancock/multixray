@@ -66,7 +66,6 @@ if __name__ == "__main__":
     w_mat = params_dict["w_mat"]
 
     # Optional params
-    start_pdb_file = params_dict["start_pdb_file"]
     init_weights = params_dict["init_weights"]
 
     # write_params_csv(param_dict=params_dict, param_file=Path(out_dir, "params.csv"))
@@ -76,21 +75,21 @@ if __name__ == "__main__":
     ref_msmc_ms = list()
     for cond in range(J):
         ref_msmc_m = multi_state_multi_condition_model.MultiStateMultiConditionModel(
-            pdb_file=ref_pdb_files[cond],
+            pdb_files=[ref_pdb_files[cond]],
             w_mat=ref_w_mat
         )
 
         ref_msmc_ms.append(ref_msmc_m)
 
     ### REPRESENTATION
-    if start_pdb_file:
-        pdb_file = Path(start_pdb_file)
-    else:
-        pdb_file = random.choice(ref_pdb_files)
+    # if start_pdb_file:
+    #     pdb_file = Path(start_pdb_file)
+    # else:
+    #     pdb_file = random.choice(ref_pdb_files)
 
     # Setup the multi state multi condition model
     msmc_m = multi_state_multi_condition_model.MultiStateMultiConditionModel(
-        pdb_file=pdb_file,
+        pdb_files=params_dict["start_pdb_file"],
         w_mat=w_mat
     )
 
@@ -286,7 +285,7 @@ if __name__ == "__main__":
     #     dcharmm_dx_tracker = trackers.dfdXYZTracker(
     #         name="dcharmm_{}".format(state),
     #         m=m,
-    #         pids=msmc_m.get_all_pids(),
+    #         pids=msmc_m.get_pids(),
     #         r=rset_charmm,
     #         pid=test_pids[state],
     #         scale=1
@@ -321,7 +320,7 @@ if __name__ == "__main__":
     #             dxray_dx_tracker = trackers.dfdXYZTracker(
     #                 name="d{}_dx_{}".format(cif_name, state),
     #                 m=m,
-    #                 pids=msmc_m.get_all_pids(),
+    #                 pids=msmc_m.get_pids(),
     #                 r=rset_xray.get_restraint(i),
     #                 pid=test_pid,
     #                 scale=w_xray
@@ -342,7 +341,7 @@ if __name__ == "__main__":
     velocity_mag_tracker = trackers.VelocityMagnitudeTracker(
         name="vel_mag",
         m=m,
-        pids=msmc_m.get_all_pids()
+        pids=msmc_m.get_pids()
     )
     all_trackers.append(velocity_mag_tracker)
 
@@ -350,7 +349,7 @@ if __name__ == "__main__":
     dcharmm_mag_tracker = trackers.dfMagnitudeTracker(
         name="dcharmm_mag",
         m=m,
-        pids=msmc_m.get_all_pids(),
+        pids=msmc_m.get_pids(),
         r=rset_charmm,
         scale=1
     )
@@ -363,7 +362,7 @@ if __name__ == "__main__":
             dxray_magnitude_tracker = trackers.dfMagnitudeTracker(
                 name="dxray_{}_mag".format(cif_name),
                 m=m,
-                pids=msmc_m.get_all_pids(),
+                pids=msmc_m.get_pids(),
                 r=rset_xray.get_restraint(i),
                 scale=w_xray
             )
@@ -373,7 +372,7 @@ if __name__ == "__main__":
     dXYZ_mag_tracker = trackers.dXYZMagnitudeTracker(
         name="dxyz_mag",
         m=m,
-        pids=msmc_m.get_all_pids()
+        pids=msmc_m.get_pids()
     )
 
     ## all other trackers
@@ -385,8 +384,8 @@ if __name__ == "__main__":
             rmsd_func=align_imp.compute_rmsd_between_average,
             hs_0=[msmc_m.get_hs()[state]],
             hs_1=[ref_msmc_ms[0].get_hs()[0]],
-            pids_0=msmc_m.get_ca_pids(state),
-            pids_1=ref_msmc_ms[0].get_ca_pids(0),
+            pids_0=msmc_m.get_ca_pids_in_state(state),
+            pids_1=ref_msmc_ms[0].get_ca_pids_in_state(0),
             occs_0=np.array([1]),
             occs_1=np.array([1])
         )
@@ -438,7 +437,7 @@ if __name__ == "__main__":
 
     evaluate_df_dict(
         m=m,
-        pids=msmc_m.get_all_pids(),
+        pids=msmc_m.get_pids(),
         r=rset_charmm
     )
 
@@ -447,7 +446,7 @@ if __name__ == "__main__":
     # Need one absolute center of mass
     com_os = com_optimizer_state.CenterOfMassOptimizerState(
         m=m,
-        pids=msmc_m.get_all_ca_pids(),
+        pids=msmc_m.get_ca_pids(),
         ref_com=ref_msmc_ms[0].get_com()
     )
 

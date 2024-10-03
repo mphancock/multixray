@@ -23,91 +23,76 @@ def read_non_altloc_structure(
 ):
     pdb_inp = pdb.input(file_name=str(pdb_file))
     hierarchy = pdb_inp.construct_hierarchy()
-
     asc = hierarchy.atom_selection_cache()
-
-    # Create a selection for atoms where altloc is not 'B'
     sel = asc.selection("not altloc 'B'")
-
-    # Alternatively, if you want to select atoms where altloc is blank or any character except 'B'
-    # sel = asc.selection("altloc '?' and not altloc 'B'")
-
-    # Apply the selection to get a new hierarchy with only the selected atoms
     hierarchy_not_altloc_B = hierarchy.select(sel)
 
-    atoms = hierarchy_not_altloc_B.atoms()
-
     crystal_symmetry = pdb_inp.crystal_symmetry()
-
-    # xray_structure = hierarchy_not_altloc_B.extract_xray_structure(crystal_symmetry=crystal_symmetry)
 
     return hierarchy_not_altloc_B, crystal_symmetry
 
 
+## maintains invariance between the imp hierarchy list (hs) and a multi state xray hierarchy (multi_xray_h)
 class MultiStateMultiConditionModel:
     def __init__(
             self,
-            pdb_file,
+            pdb_files,
             w_mat
     ):
         self.m = IMP.Model()
         self.set_w_mat(w_mat)
 
+        ## pdb files needs to be a list of pdb files or contain a single multi state pdb file
+        if not ( len(pdb_files) == 1 or len(pdb_files) == self.n_state ):
+            raise RuntimeError("Invalid number of pdb files ({}) for the number of states ({})".format(len(pdb_files), self.n_state))
+
         try:
-            pdb_file_n_state = utility.get_n_state_from_pdb_file(pdb_file)
+            pdb_file_n_state = utility.get_n_state_from_pdb_file(pdb_files[0])
         except RuntimeError as e:
             raise e
 
         self.hs = list()
-        self.xray_hs = list()
 
-        # pdb_selectors = [IMP.atom.ChainPDBSelector(["A"]), IMP.atom.NonWaterNonHydrogenPDBSelector(), IMP.atom.NonAlternativePDBSelector(), IMP.atom.ATOMPDBSelector()]
         pdb_selectors = [IMP.atom.NonAlternativePDBSelector()]
         sel = pdb_selectors[0]
         for i in range(1, len(pdb_selectors)):
             sel = IMP.atom.AndPDBSelector(sel, pdb_selectors[i])
 
+        ## if it is a single state pdb file then need to deal with altlocs
         if pdb_file_n_state == 1 and self.n_state >= 1:
-            for i in range(self.n_state):
-                self.hs.append(IMP.atom.read_pdb(str(pdb_file), self.m, sel))
-                hierarchy, crystal_symmetry = read_non_altloc_structure(pdb_file)
+            ## create a tmp list to store the individual xray hierarchies
+            xray_hs = list()
+            self.multi_xray_h = root()
 
-                self.xray_hs.append(hierarchy)
+            for state in range(self.n_state):
+                pdb_file = pdb_files[state]
+                self.hs.append(IMP.atom.read_pdb(str(pdb_file), self.m, sel))
+                xray_h, crystal_symmetry = read_non_altloc_structure(pdb_file)
                 self.crystal_symmetry = crystal_symmetry
+
+                ## merge the xray hierarchies as well into the multi state xray hierarchy
+                model = xray_h.only_model()
+                model.id = str(state+1)
+                self.multi_xray_h.append_model(model.detached_copy())
+        ## there's an assumption that the multistate pdb file doesn't contain altlocs
         elif pdb_file_n_state == self.n_state:
+            pdb_file = pdb_files[0]
             self.hs.extend(IMP.atom.read_multimodel_pdb(str(pdb_file), self.m, sel))
+            pdb_inp = pdb.input(file_name=str(pdb_file))
+            self.multi_xray_h = pdb_inp.construct_hierarchy()
+            self.crystal_symmetry = pdb_inp.crystal_symmetry()
         else:
             raise RuntimeError("Number of states in pdb file ({}) does not match the number of states in the model ({}).".format(pdb_file_n_state, self.n_state))
 
-        ## merge the xray hierarchies as well
-        self.merge_xray_h = root()
+        ## the models can only be used to modify atoms but share references with the multi hierarchy
+        ## not hierarchies and can't be used to write pdbs or make atom selections
+        if len(self.hs) != len(self.multi_xray_h.models()):
+            raise RuntimeError("Number of IMP hierarchies ({}) does not match the number of xray hierarchies ({})".format(len(self.hs), len(self.multi_xray_h.models())))
 
-        for i, xray_hierarchy in enumerate(self.xray_hs):
-            model = xray_hierarchy.only_model()
-            model.id = str(i + 1)
-            self.merge_xray_h.append_model(model.detached_copy())
-
-        self.all_pids = list()
-        self.all_atoms = list()
-        self.state_atoms = dict()
-
-        for i in range(self.n_state):
-            pids = IMP.atom.Selection(self.hs[i]).get_selected_particle_indexes()
-            self.all_pids.extend(pids)
-
-            atoms = self.xray_hs[i].atoms()
-            self.all_atoms.extend(atoms)
-
-            self.state_atoms[i] = atoms
-
-        print("SETTING UP MODEL", pdb_file)
+        print("SETTING UP MODEL", pdb_files)
         print("NO STATES: ", len(self.hs))
         pids = IMP.atom.Selection(self.hs[0]).get_selected_particle_indexes()
         print("NO OF ATOMS PER STATE: ", len(pids))
-        # i = 0
-        # for pid in pids:
-        #     print(i, IMP.atom.Atom(self.m, pid).get_name())
-        #     i += 1
 
         self.pids_dict = dict()
         self.prot_pids_dict = dict()
@@ -115,22 +100,10 @@ class MultiStateMultiConditionModel:
         self.backbone_pids_dict = dict()
         self.side_pids_dict = dict()
         self.ca_pids_dict = dict()
-        water_at_type = IMP.atom.AtomType("HET: O  ")
+        self.water_at_type = IMP.atom.AtomType("HET: O  ")
 
-        for i in range(self.n_state):
-            h = self.hs[i]
-            self.pids_dict[i] = IMP.atom.Selection(h).get_selected_particle_indexes()
-            self.prot_pids_dict[i] = (IMP.atom.Selection(h) - IMP.atom.Selection(h, atom_type=water_at_type)).get_selected_particle_indexes()
-            self.water_pids_dict[i] = IMP.atom.Selection(h, atom_type=water_at_type).get_selected_particle_indexes()
-            self.backbone_pids_dict[i] = IMP.atom.Selection(h, atom_types=[IMP.atom.AT_CA, IMP.atom.AT_C, IMP.atom.AT_O, IMP.atom.AT_N]).get_selected_particle_indexes()
-            self.side_pids_dict[i] = list(set(self.prot_pids_dict[i]) - set(self.backbone_pids_dict[i]))
-            self.ca_pids_dict[i] = IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()
-
-        ## imp setup
-        # Setup waters
-        for i in range(len(self.hs)):
-            for pid in self.water_pids_dict[i]:
-                IMP.atom.CHARMMAtom.setup_particle(self.m, pid, "O")
+        for pid in self.get_water_pids():
+            IMP.atom.CHARMMAtom.setup_particle(self.m, pid, "O")
 
         # Setup coordinates for md
         for h in self.hs:
@@ -142,10 +115,8 @@ class MultiStateMultiConditionModel:
 
         ## cctbx setup
         self.perform_checks()
-
         self.create_lookup_table()
-
-        self.multi_xray_structure = self.merge_xray_h.extract_xray_structure(crystal_symmetry=self.crystal_symmetry)
+        self.multi_xray_structure = self.multi_xray_h.extract_xray_structure(crystal_symmetry=self.crystal_symmetry)
 
         self.multi_xray_structure.scatterers().flags_set_grads(
             state=False
@@ -169,63 +140,47 @@ class MultiStateMultiConditionModel:
     def get_w_mat(self):
         return self.w_mat
 
-    def get_u_anisos(self):
-        return self.u_anisos
+    def get_pids_in_state(self, state):
+        return IMP.atom.Selection(self.hs[state]).get_selected_particle_indexes()
 
-    def get_all_pids(self):
-        return self.all_pids
+    def get_ca_pids_in_state(self, state):
+        return IMP.atom.Selection(self.hs[state], atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()
 
-    def get_pids_in_state(self, i):
-        return self.pids_dict[i]
+    def get_water_pids_in_state(self, state):
+        return IMP.atom.Selection(self.hs[state], atom_type=self.water_at_type).get_selected_particle_indexes()
 
-    def get_ca_pids(self, i):
-        return self.ca_pids_dict[i]
-
-    def get_pids_in_res_range(self, start, end):
+    def get_pids(self):
         pids = list()
-        for h in self.hs:
-            pids.extend(IMP.atom.Selection(h, residue_indexes=range(start, end)).get_selected_particle_indexes())
+        for state in range(self.n_state):
+            pids.extend(self.get_pids_in_state(state))
 
         return pids
 
-    def get_all_ca_pids(self):
-        ca_pids = list()
-        for i in range(self.n_state):
-            ca_pids.extend(self.ca_pids_dict[i])
+    def get_ca_pids(self):
+        pids = list()
+        for state in range(self.n_state):
+            pids.extend(self.get_ca_pids_in_state(state))
 
-        return ca_pids
+        return pids
 
-    def get_all_side_pids(self):
-        side_pids = list()
-        for i in range(self.n_state):
-            side_pids.extend(self.side_pids_dict[i])
+    def get_water_pids(self):
+        pids = list()
+        for state in range(self.n_state):
+            pids.extend(self.get_water_pids_in_state(state))
 
-        return side_pids
+        return pids
 
-    def get_all_protein_pids(self):
-        prot_pids = list()
-        for i in range(self.n_state):
-            prot_pids.extend(self.prot_pids_dict[i])
+    def get_atoms(self):
+        atoms = list()
+        for state in range(self.n_state):
+            atoms.extend(self.get_atoms_in_state(state))
 
-        return prot_pids
+        return atoms
 
-    def get_all_solvent_pids(self):
-        solvent_pids = list()
-        for i in range(self.n_state):
-            solvent_pids.extend(self.water_pids_dict[i])
+    def get_atoms_in_state(self, state):
+        return self.multi_xray_h.models()[state].atoms()
 
-        return solvent_pids
-
-    def get_xray_hierarchy(self, i):
-        return self.xray_hs[i]
-
-    def get_all_atoms(self):
-        return self.all_atoms
-
-    def get_atoms_in_state(self, i):
-        return self.state_atoms[i]
-
-    def get_cryustal_symmetry(self):
+    def get_crystal_symmetry(self):
         return self.crystal_symmetry
 
     def get_atom(self, pid):
@@ -238,7 +193,7 @@ class MultiStateMultiConditionModel:
         ## ConterOfMass does not dynamically update so need to reinstatiant
         self.com = IMP.atom.CenterOfMass.setup_particle(
             IMP.Particle(self.m),
-            self.get_all_ca_pids()
+            self.get_ca_pids()
         )
         return self.com
 
@@ -264,11 +219,11 @@ class MultiStateMultiConditionModel:
     def create_lookup_table(self):
         self.pid_to_atom = dict()
         self.atom_to_pid = dict()
-        for i in range(self.n_state):
-            h = self.hs[i]
-            h_xray = self.xray_hs[i]
+        for state in range(self.n_state):
+            h = self.hs[state]
+            # h_xray = self.xray_hs[i]
 
-            for pid in self.get_pids_in_state(i):
+            for pid in self.get_pids_in_state(state):
                 at = IMP.atom.Atom(self.m, pid)
                 atom_type = at.get_atom_type()
                 atom_type = str(atom_type).strip("\"")
@@ -279,10 +234,10 @@ class MultiStateMultiConditionModel:
                 res = IMP.atom.Residue(at.get_parent())
                 res_id = res.get_index()
 
-                asc = h_xray.atom_selection_cache()
-                sel_str = "resseq {} and name {}".format(res_id, atom_type)
+                asc = self.multi_xray_h.atom_selection_cache()
+                sel_str = "model {} and resseq {} and name {}".format(state+1, res_id, atom_type)
                 sel = asc.selection(sel_str)
-                sel_atoms = h_xray.select(sel).atoms()
+                sel_atoms = self.multi_xray_h.select(sel).atoms()
 
                 if len(sel_atoms) != 1:
                     raise RuntimeError("{} atoms found for {}".format(len(sel_atoms), sel_str))
@@ -298,12 +253,6 @@ class MultiStateMultiConditionModel:
                 coords = (d.get_x(), d.get_y(), d.get_z())
                 atom.set_xyz(coords)
 
-        xyzs = list()
-        for state in range(self.n_state):
-            xyzs.extend(self.get_xray_hierarchy(state).atoms().extract_xyz())
-        xyzs = flex.vec3_double(xyzs)
-        self.merge_xray_h.atoms().set_xyz(xyzs)
-
     ## update the individual xray structures then get the multi xray structure which updates automatically
     def get_multi_xray_structure(self, cond):
         if cond == 0:
@@ -311,7 +260,7 @@ class MultiStateMultiConditionModel:
             self.update_xray_hs()
 
         ## update the coordinates of the multi xray structure from the merged xray hierarchy
-        self.multi_xray_structure.set_sites_cart(self.merge_xray_h.atoms().extract_xyz())
+        self.multi_xray_structure.set_sites_cart(self.multi_xray_h.atoms().extract_xyz())
 
         ## update the occs of the multi xray structure from the w_mat directly
         occs = list()
@@ -333,11 +282,24 @@ class MultiStateMultiConditionModel:
             if n_pids != n_atoms:
                 raise RuntimeError("Number of atoms in state {} xray structure ({}) does not match the number of atoms in the hierarchy ({})".format(i, n_pids, n_atoms))
 
+    def write_state_pdb_file(self, state, pdb_file):
+        ## update the positions before writing
+        self.update_xray_hs()
+
+        # need to create a temporary root hierarchy
+        tmp_hierarchy = pdb.hierarchy.root()
+        tmp_hierarchy.append_model(self.multi_xray_h.models()[state].detached_copy())
+
+        pdb_content = tmp_hierarchy.as_pdb_string(crystal_symmetry=self.get_crystal_symmetry())
+
+        with open(pdb_file, 'w') as f:
+            f.write(pdb_content)
+
     def write_pdb_file(self, pdb_file):
         ## update the positions before writing
         self.update_xray_hs()
 
-        pdb_content = self.merge_xray_h.as_pdb_string(crystal_symmetry=self.get_cryustal_symmetry())
+        pdb_content = self.multi_xray_h.as_pdb_string(crystal_symmetry=self.get_crystal_symmetry())
 
         with open(pdb_file, 'w') as f:
             f.write(pdb_content)

@@ -100,8 +100,19 @@ def read_job_csv(
     for col in ["w_xray", "xray_freq", "weight_thermo", "vel_thermo", "sample_sched_str", "refine"]:
         param_dict[col] = job_df.loc[job_id][col]
 
+    start_pdb_files = job_df.loc[job_id]["start_pdb_file"].split(",")
+    start_pdb_files = [Path(pdb_file) for pdb_file in start_pdb_files]
+    n_state_pdb_file = get_n_state_from_pdb_file(start_pdb_files[0])
+
+    if n_state_pdb_file == N:
+        param_dict["start_pdb_file"] = [start_pdb_files[0]]
+    elif n_state_pdb_file == 1 and N > 1 and len(start_pdb_files) == 1:
+        param_dict["start_pdb_file"] = [Path(start_pdb_files[0])]*N
+    else:
+        param_dict["start_pdb_file"] = start_pdb_files
+
     # Optional params
-    for param in ["start_pdb_file", "init_weights"]:
+    for param in ["init_weights"]:
         if param in job_df.columns:
             param_dict[param] = job_df.loc[job_id, param]
         else:

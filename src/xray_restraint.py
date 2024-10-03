@@ -27,7 +27,7 @@ class XtalRestraint(IMP.Restraint):
         self.msmc_m = msmc_m
         self.hs = msmc_m.get_hs()
         self.n_state = len(self.hs)
-        self.pids = msmc_m.get_all_pids()
+        self.pids = msmc_m.get_pids()
         self.cond = cond
         self.update_freq = update_freq
         self.n_evals = 0
@@ -161,8 +161,9 @@ class XtalRestraint(IMP.Restraint):
 
                 ## create dictionary for the derivatives
                 ## derivatives are stored in the order of atoms/scatterers
-                for i in range(len(self.msmc_m.get_all_atoms())):
-                    atom = self.msmc_m.get_all_atoms()[i]
+                atoms = self.msmc_m.get_atoms()
+                for i in range(len(atoms)):
+                    atom = atoms[i]
                     atom_grads = grads_site[i]
                     atom_grads = IMP.algebra.Vector3D(atom_grads[0], atom_grads[1], atom_grads[2])
 
@@ -182,19 +183,6 @@ class XtalRestraint(IMP.Restraint):
 
                     dxray_avg_mag = dxray_avg_mag + atom_grads.get_magnitude()
 
-            # # Calculate and save the weights gradients.
-            # n_atoms = len(grads_occ) // self.n_state
-            # for i in range(self.n_state):
-            #     state_grad_occs = grads_occ[i*n_atoms:(i+1)*n_atoms]
-            #     # state_grad_w = state_grad_occs[0]
-            #     state_grad_w = sum(state_grad_occs)
-            #     self.w_grads[i] = state_grad_w
-
-                # dff_avg_mag = dff_avg_mag / len(self.pids)
-                # dxray_avg_mag = dxray_avg_mag / len(self.pids)
-
-                # df_mag_ratio = dff_avg_mag / dxray_avg_mag
-                # self.df_mag_ratio = df_mag_ratio
                 df_mag_ratio = 1
 
                 for pid in self.pids:

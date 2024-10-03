@@ -117,7 +117,7 @@ class SimulatedAnnealingSchedule:
         dof = self.get_degrees_of_freedom(sa_step)
 
         if dof == "A":
-            pids_dof = msmc_m.get_all_pids()
+            pids_dof = msmc_m.get_pids()
         elif dof == "S":
             pids_dof = msmc_m.get_all_side_pids()
         elif dof[0].isnumeric():
@@ -180,7 +180,7 @@ class SimulatedAnnealing:
         self.hs = msmc_m.get_hs()
         self.m = msmc_m.get_m()
 
-        self.pids = msmc_m.get_all_pids()
+        self.pids = msmc_m.get_pids()
         self.ps = [self.m.get_particle(pid) for pid in self.pids]
 
         # Setup the md
@@ -198,8 +198,8 @@ class SimulatedAnnealing:
 
         # setup velocity thermostat but only on non solvent atoms
         ## this doesn't work bc the particle stack on the thermostat and md must be the same
-        self.prot_pids = msmc_m.get_all_protein_pids()
-        self.prot_ps = [self.m.get_particle(pid) for pid in self.prot_pids]
+        # self.prot_pids = msmc_m.get_all_protein_pids()
+        # self.prot_ps = [self.m.get_particle(pid) for pid in self.prot_pids]
 
         if vel_thermo:
             self.vel_thermo_o_state = IMP.atom.BerendsenThermostatOptimizerState(

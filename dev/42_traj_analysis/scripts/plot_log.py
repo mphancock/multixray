@@ -8,13 +8,13 @@ import matplotlib.colors as mcolors
 
 if __name__ == "__main__":
     log_dfs = list()
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/247_res")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/251_temp_er_state")
     exp_num = exp_dir.stem.split("_")[0]
     # for job_dir in Path(exp_dir, "logs").glob("*"):
 
-    for start in [12, 36, 60]:
+    for start,end in [(0,11),(12,23),(24,35),(36,47),(48,59),(60,71)]:
         log_dfs = list()
-        job_ids = list(range(start,start+12))
+        job_ids = list(range(start, end+1))
         xray_name = "3k0n"
 
         for job_id in job_ids:
