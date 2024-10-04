@@ -37,13 +37,14 @@ class MultiStateMultiConditionModel:
     def __init__(
             self,
             pdb_files,
-            w_mat
+            w_mat,
+            crystal_symmetries
     ):
         self.m = IMP.Model()
         self.set_w_mat(w_mat)
 
         ## pdb files needs to be a list of pdb files or contain a single multi state pdb file
-        if not ( len(pdb_files) == 1 or len(pdb_files) == self.n_state ):
+        if not (len(pdb_files) == 1 or len(pdb_files) == self.n_state):
             raise RuntimeError("Invalid number of pdb files ({}) for the number of states ({})".format(len(pdb_files), self.n_state))
 
         try:
@@ -68,7 +69,7 @@ class MultiStateMultiConditionModel:
                 pdb_file = pdb_files[state]
                 self.hs.append(IMP.atom.read_pdb(str(pdb_file), self.m, sel))
                 xray_h, crystal_symmetry = read_non_altloc_structure(pdb_file)
-                self.crystal_symmetry = crystal_symmetry
+                # self.crystal_symmetry = crystal_symmetry
 
                 ## merge the xray hierarchies as well into the multi state xray hierarchy
                 model = xray_h.only_model()
@@ -80,7 +81,7 @@ class MultiStateMultiConditionModel:
             self.hs.extend(IMP.atom.read_multimodel_pdb(str(pdb_file), self.m, sel))
             pdb_inp = pdb.input(file_name=str(pdb_file))
             self.multi_xray_h = pdb_inp.construct_hierarchy()
-            self.crystal_symmetry = pdb_inp.crystal_symmetry()
+            # self.crystal_symmetry = pdb_inp.crystal_symmetry()
         else:
             raise RuntimeError("Number of states in pdb file ({}) does not match the number of states in the model ({}).".format(pdb_file_n_state, self.n_state))
 
@@ -91,15 +92,10 @@ class MultiStateMultiConditionModel:
 
         print("SETTING UP MODEL", pdb_files)
         print("NO STATES: ", len(self.hs))
+        print("NO CONDITIONS: ", self.n_cond)
         pids = IMP.atom.Selection(self.hs[0]).get_selected_particle_indexes()
         print("NO OF ATOMS PER STATE: ", len(pids))
 
-        self.pids_dict = dict()
-        self.prot_pids_dict = dict()
-        self.water_pids_dict = dict()
-        self.backbone_pids_dict = dict()
-        self.side_pids_dict = dict()
-        self.ca_pids_dict = dict()
         self.water_at_type = IMP.atom.AtomType("HET: O  ")
 
         for pid in self.get_water_pids():
@@ -116,17 +112,23 @@ class MultiStateMultiConditionModel:
         ## cctbx setup
         self.perform_checks()
         self.create_lookup_table()
-        self.multi_xray_structure = self.multi_xray_h.extract_xray_structure(crystal_symmetry=self.crystal_symmetry)
 
-        self.multi_xray_structure.scatterers().flags_set_grads(
-            state=False
-        )
-        self.multi_xray_structure.scatterers().flags_set_grad_site(
-            iselection=self.multi_xray_structure.all_selection().iselection()
-        )
-        self.multi_xray_structure.scatterers().flags_set_grad_occupancy(
-            iselection=self.multi_xray_structure.all_selection().iselection()
-        )
+        self.multi_xray_structures = list()
+        self.crystal_symmetries = crystal_symmetries
+        for i in range(self.n_cond):
+            multi_xray_structure = self.multi_xray_h.extract_xray_structure(crystal_symmetry=crystal_symmetries[i])
+
+            multi_xray_structure.scatterers().flags_set_grads(
+                state=False
+            )
+            multi_xray_structure.scatterers().flags_set_grad_site(
+                iselection=multi_xray_structure.all_selection().iselection()
+            )
+            multi_xray_structure.scatterers().flags_set_grad_occupancy(
+                iselection=multi_xray_structure.all_selection().iselection()
+            )
+
+            self.multi_xray_structures.append(multi_xray_structure)
 
     def get_m(self):
         return self.m
@@ -255,12 +257,11 @@ class MultiStateMultiConditionModel:
 
     ## update the individual xray structures then get the multi xray structure which updates automatically
     def get_multi_xray_structure(self, cond):
-        if cond == 0:
-            ## this is the relatively expensive step
-            self.update_xray_hs()
+        ## this is the relatively expensive step and theoretically only needs to be done for cond 0
+        self.update_xray_hs()
 
         ## update the coordinates of the multi xray structure from the merged xray hierarchy
-        self.multi_xray_structure.set_sites_cart(self.multi_xray_h.atoms().extract_xyz())
+        self.multi_xray_structures[cond].set_sites_cart(self.multi_xray_h.atoms().extract_xyz())
 
         ## update the occs of the multi xray structure from the w_mat directly
         occs = list()
@@ -268,10 +269,10 @@ class MultiStateMultiConditionModel:
             occs.extend([self.w_mat[state, cond]]*len(self.get_pids_in_state(state)))
         occs = flex.double(occs)
 
-        self.multi_xray_structure.set_occupancies(occs)
+        self.multi_xray_structures[cond].set_occupancies(occs)
 
-        ## build the multi xray structure
-        return self.multi_xray_structure
+        ## return the multi xray structure
+        return self.multi_xray_structures[cond]
 
     def perform_checks(self):
         ## check for each state the number of pids and the number of atoms are equal
@@ -290,7 +291,7 @@ class MultiStateMultiConditionModel:
         tmp_hierarchy = pdb.hierarchy.root()
         tmp_hierarchy.append_model(self.multi_xray_h.models()[state].detached_copy())
 
-        pdb_content = tmp_hierarchy.as_pdb_string(crystal_symmetry=self.get_crystal_symmetry())
+        pdb_content = tmp_hierarchy.as_pdb_string(crystal_symmetry=self.crystal_symmetries[0])
 
         with open(pdb_file, 'w') as f:
             f.write(pdb_content)
@@ -299,7 +300,7 @@ class MultiStateMultiConditionModel:
         ## update the positions before writing
         self.update_xray_hs()
 
-        pdb_content = self.multi_xray_h.as_pdb_string(crystal_symmetry=self.get_crystal_symmetry())
+        pdb_content = self.multi_xray_h.as_pdb_string(crystal_symmetry=self.crystal_symmetries[0])
 
         with open(pdb_file, 'w') as f:
             f.write(pdb_content)

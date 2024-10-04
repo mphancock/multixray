@@ -13,8 +13,10 @@ import IMP.core
 import IMP.isd
 import IMP.algebra
 
+from cctbx.crystal import symmetry
+
 sys.path.append(str(Path(Path.home(), "xray/src")))
-import charmm
+from charmm import CHARMMRestraint
 import xray_restraint
 import trackers
 import com_restraint
@@ -70,51 +72,59 @@ if __name__ == "__main__":
 
     # write_params_csv(param_dict=params_dict, param_file=Path(out_dir, "params.csv"))
 
+    # Setup the multi state multi condition model
+    crystal_symmetries = list()
+
+    for cond in range(J):
+        ## may need to create a fake crystal symmetry if there are no cif files
+        if not cif_files[cond]:
+            crystal_symmetry = symmetry([100, 100, 100, 90, 90, 90], "P1")
+            crystal_symmetries.append(crystal_symmetry)
+        else:
+            crystal_symmetries.append(miller_ops.get_crystal_symmetry(
+                f_obs_file=cif_files[cond],
+                label="_refln.intensity_meas"
+            ))
+
     # Setup ref models.
     pdb_sel = IMP.atom.NonAlternativePDBSelector()
     ref_msmc_ms = list()
     for cond in range(J):
         ref_msmc_m = multi_state_multi_condition_model.MultiStateMultiConditionModel(
             pdb_files=[ref_pdb_files[cond]],
-            w_mat=ref_w_mat
+            w_mat=np.array([[1]]),
+            crystal_symmetries=[crystal_symmetries[cond]]
         )
 
         ref_msmc_ms.append(ref_msmc_m)
 
     ### REPRESENTATION
-    # if start_pdb_file:
-    #     pdb_file = Path(start_pdb_file)
-    # else:
-    #     pdb_file = random.choice(ref_pdb_files)
-
-    # Setup the multi state multi condition model
     msmc_m = multi_state_multi_condition_model.MultiStateMultiConditionModel(
         pdb_files=params_dict["start_pdb_file"],
-        w_mat=w_mat
+        w_mat=w_mat,
+        crystal_symmetries=crystal_symmetries
     )
 
     ### SCORING
     m, hs = msmc_m.get_m(), msmc_m.get_hs()
     rset_charmm = IMP.RestraintSet(m, 1.0)
-    for h in hs:
-        charmm_rs = charmm.charmm_restraints(
-            m,
-            h,
-            eps=False
-        )
-        rset_charmm.add_restraints(charmm_rs)
 
-        if params_dict["refine"]:
-            print("REFINING STARTING MODEL")
+    # for h in hs:
+        # charmm_rs = charmm.charmm_restraints(
+        #     m,
+        #     h,
+        #     eps=False
+        # )
+        # rset_charmm.add_restraints(charmm_rs)
 
-            sf_refine = IMP.core.RestraintsScoringFunction([rset_charmm])
-            cg = IMP.core.ConjugateGradients(m)
-            cg.set_scoring_function(sf_refine)
-            cg.optimize(25)
+    r_charmm = CHARMMRestraint(msmc_m=msmc_m)
+    if params_dict["refine"]:
+        print("REFINING STARTING MODEL")
 
-
-    # Is turning this off going to be really bad?
-    # rset_charmm.set_weight(1/N)
+        sf_refine = IMP.core.RestraintsScoringFunction([rset_charmm])
+        cg = IMP.core.ConjugateGradients(msmc_m.get_m())
+        cg.set_scoring_function(sf_refine)
+        cg.optimize(25)
 
     # cif file here is a string.
     rset_xray = IMP.RestraintSet(m, 1.0)
@@ -152,6 +162,8 @@ if __name__ == "__main__":
             update_k1=True,
             update_freq=xray_freq,
             # ref_com=com
+            # shadow_restraint=r_tracker_charmm,
+            r_charmm=r_charmm,
             ref_com=None
         )
 
@@ -184,7 +196,7 @@ if __name__ == "__main__":
 
     ff_tracker = trackers.fTracker(
         name="ff",
-        r=rset_charmm
+        r=r_charmm
     )
     all_trackers.append(ff_tracker)
 
@@ -455,7 +467,7 @@ if __name__ == "__main__":
     sa = SimulatedAnnealing(
         msmc_m=msmc_m,
         rset_xray=rset_xray,
-        rset_charmm=rset_charmm,
+        r_charmm=r_charmm,
         t_step=2,
         n_step=2,
         sa_sched=sa_sched,

@@ -157,7 +157,7 @@ class SimulatedAnnealing:
         self,
         msmc_m,
         rset_xray,
-        rset_charmm,
+        r_charmm,
         t_step,
         n_step,
         sa_sched,
@@ -169,7 +169,7 @@ class SimulatedAnnealing:
     ):
         self.msmc_m = msmc_m
         self.rset_xray = rset_xray
-        self.rset_charmm = rset_charmm
+        self.r_charmm = r_charmm
         self.t_step = t_step
         self.n_step = n_step
         self.sa_sched = sa_sched
@@ -192,8 +192,10 @@ class SimulatedAnnealing:
         # self.s_v.set_period(10)
         self.md.set_particles(self.ps)
 
-        sf = IMP.core.RestraintsScoringFunction([rset_charmm])
-        self.md.set_scoring_function(sf)
+        self.ff_sf = IMP.core.RestraintsScoringFunction([r_charmm])
+        self.xray_sf = IMP.core.RestraintsScoringFunction([r_charmm, rset_xray])
+
+        self.md.set_scoring_function(self.ff_sf)
         self.md.set_has_required_score_states(True)
 
         # setup velocity thermostat but only on non solvent atoms
@@ -261,21 +263,27 @@ class SimulatedAnnealing:
                 for i in range(self.rset_xray.get_number_of_restraints()):
                     r_xray = self.rset_xray.get_restraint(i)
                     r_xray.set_d_min(res)
-                sf = IMP.core.RestraintsScoringFunction([self.rset_xray, self.rset_charmm])
+
+                ## need to evaluate in this order
+                # sf = IMP.core.RestraintsScoringFunction([self.rset_charmm, self.shadow_restraint, self.rset_xray])
 
                 ## turn on the xray related trackers (eg, r free)
                 for tracker in self.log_o_state.get_trackers():
                     if tracker.get_xray_only():
                         tracker.set_on()
+
+                self.md.set_scoring_function(self.xray_sf)
             else:
-                sf = IMP.core.RestraintsScoringFunction([rset_charmm])
+                # sf = IMP.core.RestraintsScoringFunction([rset_charmm])
 
                 ## turn off the xray related trackers (eg, r free)
                 for tracker in self.log_o_state.get_trackers():
                     if tracker.get_xray_only():
                         tracker.set_off()
 
-            self.md.set_scoring_function(sf)
+                self.md.set_scoring_function(self.ff_sf)
+
+            # self.md.set_scoring_function(sf)
 
             ## set the pids for degrees of freedom
             self.md.set_particles([self.m.get_particle(pid) for pid in self.sa_sched.get_pids_for_degrees_of_freedom(cur_sa_step, self.msmc_m)])

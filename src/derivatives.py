@@ -78,33 +78,30 @@ def get_df_mag_ratio(
         r1,
         r2
 ):
-    dx_dict_1 = get_df_dict(
-        m=m,
-        pids=pids,
-        r=r1
-    )
-    avg_mag_1 = 0
+    df_dict_1 = r1.get_df_dict()
+    df_dict_2 = r2.get_df_dict()
 
-    dx_dict_2 = get_df_dict(
-        m=m,
-        pids=pids,
-        r=r2
-    )
-    avg_mag_2 = 0
+    # dx_dict_1 = get_df_dict(
+    #     m=m,
+    #     pids=pids,
+    #     r=r1
+    # )
+    # dx_dict_2 = get_df_dict(
+    #     m=m,
+    #     pids=pids,
+    #     r=r2
+    # )
+    avg_mag_1, avg_mag_2 = 0, 0
 
     for pid in pids:
-        dx_1 = dx_dict_1[pid]
-        dx_2 = dx_dict_2[pid]
+        df_1 = df_dict_1[pid]
+        df_2 = df_dict_2[pid]
 
-        avg_mag_1 = avg_mag_1 + dx_1.get_magnitude()
-        avg_mag_2 = avg_mag_2 + dx_2.get_magnitude()
+        avg_mag_1 = avg_mag_1 + df_1.get_magnitude()
+        avg_mag_2 = avg_mag_2 + df_2.get_magnitude()
 
-    avg_mag_1 = avg_mag_1 / len(pids)
-    avg_mag_2 = avg_mag_2 / len(pids)
-
+    ## divide by the sums
     mag_ratio = avg_mag_1 / avg_mag_2
-
-    # print(mag_ratio)
 
     return mag_ratio
 

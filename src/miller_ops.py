@@ -3,6 +3,14 @@ from pathlib import Path
 import iotbx.reflection_file_reader as cif_input
 
 
+def get_crystal_symmetry(
+    f_obs_file,
+    label
+):
+    f_obs = get_miller_array(f_obs_file, label)
+    return f_obs.crystal_symmetry()
+
+
 def get_miller_array(
         f_obs_file,
         label

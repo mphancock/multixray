@@ -11,6 +11,68 @@ sys.path.append(str(Path(Path.home(), "xray/src")))
 import align_imp
 
 
+import IMP
+import IMP.core
+import IMP.algebra
+
+import miller_ops
+import cctbx_score
+import update_weights_optimizer_state
+from derivatives import get_df_mag_ratio
+
+
+## we can't create a wrapper around restraints (cant call evaluate or do_score_add_derviatives) so need to create a fake restraint to track the derivatives
+class CHARMMRestraint(IMP.Restraint):
+    def __init__(
+            self,
+            msmc_m
+    ):
+        IMP.Restraint.__init__(self, msmc_m.get_m(), "CHARMMShadowRestraint%1%")
+        self.msmc_m = msmc_m
+        self.hs = msmc_m.get_hs()
+        self.n_state = len(self.hs)
+        self.pids = msmc_m.get_pids()
+
+        # Gradients and scores
+        self.df_dxs = dict()
+        for pid in self.pids:
+            self.df_dxs[pid] = IMP.algebra.Vector3D(0,0,0)
+        self.score = 0
+
+        # setup the charmm restraints
+        self.charmm_rs = list()
+        for state in range(self.n_state):
+            self.charmm_rs.extend(charmm_restraints(
+                m=self.get_model(),
+                h=self.hs[state],
+                eps=False
+            ))
+
+
+    def get_df_dict(self):
+        return self.df_dxs
+
+    def get_f(self):
+        return self.score
+
+    def do_add_score_and_derivatives(self, sa):
+        self.score = 0
+        for r in self.charmm_rs:
+            r.add_score_and_derivatives(sa)
+            self.score += r.get_last_score()
+
+        ## create dictionary for the derivatives
+        ## derivatives are stored in the order of atoms/scatterers
+        # print(sa.get_score())
+        for pid in self.pids:
+            d = IMP.core.XYZR(self.get_model(), pid)
+            self.df_dxs[pid] = d.get_derivatives()
+
+    def do_get_inputs(self):
+        return [self.get_model().get_particle(pid) for pid in self.pids]
+
+
+
 # Return a list of restraints rs on the IMP model m (with hierarchy h) based on potential energy terms from the CHARMM force-field/parameterization.
 def charmm_restraints(
         m,
@@ -100,41 +162,3 @@ def charmm_restraints(
     rs.append(IMP.container.PairsRestraint(ljps, nbl, "nbd"))
 
     return rs
-
-
-def get_ff_score(
-        hs,
-        term
-):
-    score_tot = 0
-    m = hs[0].get_model()
-
-    for i in range(len(hs)):
-        h = hs[i]
-        # w = align_imp.get_pdb_weight(h)
-        # w = 1 / len(hs)
-
-        ff_scores = dict()
-        ff_scores["ff"] = 0
-
-        charmm_rs = charmm_restraints(
-            m=m,
-            h=h,
-            eps=False
-        )
-
-        for j in range(len(charmm_rs)):
-            term_score = charmm_rs[j].evaluate(
-                calc_derivs=False
-            )
-
-            ff_scores[charmm_rs[j].get_name()] = term_score
-            ff_scores["ff"] = ff_scores["ff"] + term_score
-
-        score = ff_scores[term]
-
-        score_tot = score_tot + score
-        # score_tot = score_tot + score*w
-
-    return score_tot
-

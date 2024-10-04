@@ -5,7 +5,7 @@ import IMP.algebra
 import miller_ops
 import cctbx_score
 import update_weights_optimizer_state
-
+from derivatives import get_df_mag_ratio
 
 """
 pids may only be a subset of the total pids (eg, only the pids in the main chain).
@@ -21,6 +21,7 @@ class XtalRestraint(IMP.Restraint):
             update_scale,
             update_k1,
             update_freq,
+            r_charmm=None,
             ref_com=None
     ):
         IMP.Restraint.__init__(self, msmc_m.get_m(), "XrayRestraint%1%")
@@ -41,12 +42,8 @@ class XtalRestraint(IMP.Restraint):
         self.set_d_min(d_min=self.d_min)
 
         self.target = "ml"
-        self.w_xray = None
-        self.df_mag_ratio = None
-
-        self.set_weight(
-            w_xray=w_xray
-        )
+        self.w_xray = w_xray
+        self.r_charmm = r_charmm
 
         self.ref_com = ref_com
 
@@ -183,11 +180,32 @@ class XtalRestraint(IMP.Restraint):
 
                     dxray_avg_mag = dxray_avg_mag + atom_grads.get_magnitude()
 
-                df_mag_ratio = 1
+
+                ## this needs to be called after df dict is built
+                if self.r_charmm:
+
+                #     shadow_restraint = None
+                #     for r in self.rset_charmm.get_restraints():
+                #         if r.get_name() == "CHARMMShadowRestraint":
+                #             shadow_restraint = r
+                #             break
+
+                    ## use the shadow derivative
+                    self.df_mag_ratio = get_df_mag_ratio(
+                        m=self.get_model(),
+                        pids=self.pids,
+                        r1=self.r_charmm,
+                        r2=self
+                    )
+                    self.w_xray = self.df_mag_ratio
+                else:
+                    self.df_mag_ratio = 1
+
+                # print(self.w_xray)
 
                 for pid in self.pids:
                     d = IMP.core.XYZR(self.get_model(), pid)
-                    dxray_dx_scaled = self.w_xray * df_mag_ratio * self.df_dxs[pid]
+                    dxray_dx_scaled = self.w_xray * self.df_dxs[pid]
 
                     d.add_to_derivatives(dxray_dx_scaled, sa.get_derivative_accumulator())
 

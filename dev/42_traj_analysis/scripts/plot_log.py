@@ -8,14 +8,13 @@ import matplotlib.colors as mcolors
 
 if __name__ == "__main__":
     log_dfs = list()
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/251_temp_er_state")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/252_auto_wxray")
     exp_num = exp_dir.stem.split("_")[0]
     # for job_dir in Path(exp_dir, "logs").glob("*"):
 
-    for start,end in [(0,11),(12,23),(24,35),(36,47),(48,59),(60,71)]:
+    for start,end in [(5,9)]:
         log_dfs = list()
         job_ids = list(range(start, end+1))
-        xray_name = "3k0n"
 
         for job_id in job_ids:
         # for job_id in job_ids:
@@ -44,18 +43,22 @@ if __name__ == "__main__":
 
         print(len(log_dfs))
 
+        colors = ["tab:blue", "tab:orange", "tab:red"]
+        n_fields = 10
+
+
+        xray_name = "3k0n"
 
         all_fields = [["ff"], ["r_free_{}".format(xray_name)], ["r_work_{}".format(xray_name)], ["dcharmm_mag"], ["dxray_{}_mag".format(xray_name)], ["temp"], ["vel_mag"], ["wxray"], ["rmsd_0"], ["com_delta_mag"]]
 
-        colors = ["tab:blue", "tab:orange", "tab:red"]
-
-        fig, axs = plt.subplots(len(all_fields),len(log_dfs), figsize=(len(log_dfs)*10, 5*len(all_fields)))
+        fig, axs = plt.subplots(n_fields, len(log_dfs), figsize=(len(log_dfs)*10, 5*n_fields))
         start, end, offset = 0, 100000, 1
 
-        for i in range(len(all_fields)):
-            for job_id in range(len(log_dfs)):
-                if len(log_dfs[job_id]) == 0:
-                    continue
+        for job_id in range(len(log_dfs)):
+            if len(log_dfs[job_id]) == 0:
+                continue
+
+            for i in range(len(all_fields)):
 
                 fields = all_fields[i]
 
