@@ -153,7 +153,6 @@ class dfMagnitudeTracker(Tracker):
             pids,
             r,
             scale
-
     ):
         Tracker.__init__(self, name=name, m=m, n=1)
         # self.r can be a restraint or a restraint set.

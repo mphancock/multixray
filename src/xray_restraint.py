@@ -211,6 +211,12 @@ class XtalRestraint(IMP.Restraint):
 
         sa.add_score(self.score)
         self.n_evals += 1
+
+        # rbs = self.msmc_m.get_ligands()
+        # for rb in rbs:
+        #     rotation = IMP.algebra.get_random_rotation_3d()
+        #     IMP.core.transform(rb, rotation)
+
         # Store the score.
 
 

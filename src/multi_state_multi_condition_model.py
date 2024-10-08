@@ -14,6 +14,7 @@ from scitbx.array_family import flex
 
 sys.path.append(str(Path(Path.home(), "xray/src")))
 import utility
+from utility import get_residue_indexes
 
 
 
@@ -42,6 +43,14 @@ class MultiStateMultiConditionModel:
     ):
         self.m = IMP.Model()
         self.set_w_mat(w_mat)
+
+        ## for testing purposes
+        if not crystal_symmetries:
+            self.crystal_symmetries = [cctbx.crystal.symmetry(
+                unit_cell=(100, 100, 100, 90, 90, 90),
+                space_group_symbol="P 1"
+            )]
+
 
         ## pdb files needs to be a list of pdb files or contain a single multi state pdb file
         if not (len(pdb_files) == 1 or len(pdb_files) == self.n_state):
@@ -97,9 +106,43 @@ class MultiStateMultiConditionModel:
         print("NO OF ATOMS PER STATE: ", len(pids))
 
         self.water_at_type = IMP.atom.AtomType("HET: O  ")
+        # for pid in pids:
+        #     if IMP.atom.Atom(self.m, pid).get_atom_type() == self.water_at_type:
+        #         IMP.atom.CHARMMAtom.setup_particle(self.m, pid, "O")
+        #     # elif IMP.atom.Atom(self.m, pid).get_atom_type() == IMP.atom.AtomType("HET:ZN"):
+        #         # IMP.atom.Atom(self.m, pid).set_element(IMP.atom.AtomType("ZN"))
+        #         # IMP.atom.CHARMMAtom.setup_particle(self.m, pid, "ZN")
 
-        for pid in self.get_water_pids():
-            IMP.atom.CHARMMAtom.setup_particle(self.m, pid, "O")
+        ## if ligand then create rigid body
+        self.ligands = list()
+        for h in self.hs:
+            ress = IMP.atom.get_by_type(h, IMP.atom.RESIDUE_TYPE)
+            for res in ress:
+                ## if the res 3 letter code not in the list of standard amino acids and more than 1 atom then it is a ligand
+                if res.get_name() not in ["ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL", "HOH"] and len(IMP.atom.Selection(res).get_selected_particle_indexes()) > 1:
+                    ## setup rigid body
+                    res_pids = IMP.atom.Selection(res).get_selected_particle_indexes()
+                    print("LIGAND: ", res.get_name(), len(res_pids))
+
+                    atoms = IMP.core.get_leaves(res)
+                    rb = IMP.core.RigidBody.setup_particle(res, atoms)
+                    rb.set_coordinates_are_optimized(True)
+
+                    # prb = IMP.core.RigidBody.setup_particle(IMP.Particle(self.m), IMP.algebra.ReferenceFrame3D())
+
+                    # for pid in res_pids:
+                    #     d = IMP.core.XYZR(self.m, pid)
+                    #     prb.add_member(d)
+
+                    rb.set_coordinates_are_optimized(True)
+                    self.ligands.append(rb)
+                    # prb.add_to_rotational_derivatives(IMP.algebra.Vector4D(1,0,0,0), IMP.DerivativeAccumulator(1))
+                    # print(prb.get_rotational_derivatives())
+                # else:
+                #     for pid in IMP.atom.Selection(res).get_selected_particle_indexes():
+                #         d = IMP.core.XYZR(self.m, pid)
+                #         d.set_coordinates_are_optimized(True)
+
 
         # Setup coordinates for md
         for h in self.hs:
@@ -202,6 +245,9 @@ class MultiStateMultiConditionModel:
     def get_occs_for_condition_i(self, i):
         return self.w_mat[:,i]
 
+    def get_ligands(self):
+        return self.ligands
+
     def set_w_mat(self, w_mat):
         self.w_mat = w_mat
         self.normalize_w_mat()
@@ -232,6 +278,14 @@ class MultiStateMultiConditionModel:
 
                 if atom_type == "HET: O  ":
                     atom_type = "O"
+
+                if "HET: " in atom_type:
+                    atom_type = atom_type.split("HET: ")[1]
+                elif "HET:" in atom_type:
+                    atom_type = atom_type.split("HET:")[1]
+
+                # elif atom_type == "HET: S":
+                #     atom_type = "S"
 
                 res = IMP.atom.Residue(at.get_parent())
                 res_id = res.get_index()

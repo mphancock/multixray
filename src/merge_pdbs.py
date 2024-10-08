@@ -89,62 +89,75 @@ def write_merge_pdb_file(
     hs_all = list()
     ms_all = list()
 
-    pdb_files_order = list()
-    if order:
-        pdb_ids = [int(pdb_file.stem) for pdb_file in pdb_files]
-        pdb_min = np.min(pdb_ids)
-        pdb_max = np.max(pdb_ids)
+    # pdb_files_order = list()
+    # if order:
+    #     pdb_ids = [int(pdb_file.stem) for pdb_file in pdb_files]
+    #     pdb_min = np.min(pdb_ids)
+    #     pdb_max = np.max(pdb_ids)
 
-        if n < 0 or n > pdb_max:
-            max_it = pdb_max
-        else:
-            max_it = n
+    #     if n < 0 or n > pdb_max:
+    #         max_it = pdb_max
+    #     else:
+    #         max_it = n
 
-        pdb_dir = pdb_files[0].parents[0]
-        for i in range(pdb_min, max_it):
-            pdb_files_order.append(Path(pdb_dir, "{}.pdb".format(i)))
-    else:
-        pdb_files_order = pdb_files
+    #     pdb_dir = pdb_files[0].parents[0]
+    #     for i in range(pdb_min, max_it):
+    #         pdb_files_order.append(Path(pdb_dir, "{}.pdb".format(i)))
+    # else:
+    #     pdb_files_order = pdb_files
 
-    pool_obj = multiprocessing.Pool(multiprocessing.cpu_count())
-    pool_results = pool_obj.imap(read_pdb_pool, pdb_files_order)
+    # pool_obj = multiprocessing.Pool(multiprocessing.cpu_count())
+    # pool_results = pool_obj.imap(read_pdb_pool, pdb_files_order)
 
-    i = 0
-    for pool_result in pool_results:
-        m, hs = pool_result
+    # i = 0
+    # for pool_result in pool_results:
+    #     m, hs = pool_result
 
-        if state < 0:
-            hs = relabel_chains(hs, m)
-            h = hs[0]
-        else:
-            h = hs[state]
+    #     if state < 0:
+    #         hs = relabel_chains(hs, m)
+    #         h = hs[0]
+    #     else:
+    #         h = hs[state]
 
-        pids = IMP.atom.Selection(h).get_selected_particle_indexes()
-        if occs:
-            for pid in pids:
-                at = IMP.atom.Atom(m, pid)
-                at.set_occupancy(occs[i])
+    #     pids = IMP.atom.Selection(h).get_selected_particle_indexes()
+    #     if occs:
+    #         for pid in pids:
+    #             at = IMP.atom.Atom(m, pid)
+    #             at.set_occupancy(occs[i])
 
-        hs_all.append(h)
-        ms_all.append(m)
-        i = i+1
+    #     hs_all.append(h)
+    #     ms_all.append(m)
+    #     i = i+1
+
+    hs, ms = list(), list()
+    for pdb_file in pdb_files:
+        m = IMP.Model()
+        h = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())[0]
+        ms.append(m)
+        hs.append(h)
 
     # Cannot return hs, because the hierarchy objects will get deallocated.
-    IMP.atom.write_multimodel_pdb(hs_all, str(merge_pdb_file))
+    IMP.atom.write_multimodel_pdb(hs, str(merge_pdb_file))
 
 
 if __name__ == "__main__":
-    for i in range(12):
-        pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/202_no_wxray_auto/{}/output_0/pdbs".format(i))
-        pdb_files = list(pdb_dir.glob("*.pdb"))
-        print(pdb_files)
+    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/test/output_0/pdbs")
+    pdb_files = list(pdb_dir.glob("*.pdb"))
 
-        out_file = Path(Path.home(), "xray/tmp/traj_{}.pdb".format(i))
-        write_merge_pdb_file(
-            merge_pdb_file=out_file,
-            pdb_files=pdb_files,
-            occs=None,
-            n=-1,
-            order=True,
-            state=0
-        )
+    # m_0, m_1 = IMP.Model(), IMP.Model()
+    # h_0 = IMP.atom.read_pdb(str(pdb_files[0]), m_0, IMP.atom.AllPDBSelector())
+    # h_1 = IMP.atom.read_pdb(str(pdb_files[1]), m_1, IMP.atom.AllPDBSelector())
+
+    # IMP.atom.write_multimodel_pdb([h_0, h_1], str(Path(Path.home(), "xray/tmp/traj.pdb")))
+
+    print(pdb_files)
+
+    out_file = Path(Path.home(), "xray/tmp/traj.pdb")
+    write_merge_pdb_file(
+        merge_pdb_file=out_file,
+        pdb_files=pdb_files,
+        occs=None,
+        n=-1,
+        order=True,
+        state=0
+    )

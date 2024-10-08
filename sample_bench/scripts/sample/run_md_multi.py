@@ -28,7 +28,7 @@ import update_weights_optimizer_state
 import reset
 from simulated_annealing import SimulatedAnnealing, SimulatedAnnealingSchedule
 from params import write_params_txt, write_params_csv, read_job_csv
-import miller_ops
+from miller_ops import get_crystal_symmetry, get_f_obs, get_flags, clean_miller_array
 import weights
 import utility
 import multi_state_multi_condition_model
@@ -81,9 +81,8 @@ if __name__ == "__main__":
             crystal_symmetry = symmetry([100, 100, 100, 90, 90, 90], "P1")
             crystal_symmetries.append(crystal_symmetry)
         else:
-            crystal_symmetries.append(miller_ops.get_crystal_symmetry(
-                f_obs_file=cif_files[cond],
-                label="_refln.intensity_meas"
+            crystal_symmetries.append(get_crystal_symmetry(
+                cif_file=cif_files[cond]
             ))
 
     # Setup ref models.
@@ -107,7 +106,7 @@ if __name__ == "__main__":
 
     ### SCORING
     m, hs = msmc_m.get_m(), msmc_m.get_hs()
-    rset_charmm = IMP.RestraintSet(m, 1.0)
+    # rset_charmm = IMP.RestraintSet(m, 1.0)
 
     # for h in hs:
         # charmm_rs = charmm.charmm_restraints(
@@ -121,7 +120,7 @@ if __name__ == "__main__":
     if params_dict["refine"]:
         print("REFINING STARTING MODEL")
 
-        sf_refine = IMP.core.RestraintsScoringFunction([rset_charmm])
+        sf_refine = IMP.core.RestraintsScoringFunction([r_charmm])
         cg = IMP.core.ConjugateGradients(msmc_m.get_m())
         cg.set_scoring_function(sf_refine)
         cg.optimize(25)
@@ -133,30 +132,32 @@ if __name__ == "__main__":
         if not cif_file:
             continue
 
-        f_obs_array = miller_ops.get_miller_array(
-            f_obs_file=cif_file,
-            # label="_refln.F_meas_au"
-            label="_refln.intensity_meas"
-        )
-        f_obs_array = miller_ops.clean_miller_array(f_obs_array)
+        # f_obs_array = miller_ops.get_miller_array(
+        #     f_obs_file=cif_file,
+        #     # label="_refln.F_meas_au"
+        #     label="_refln.intensity_meas"
+        # )
+        f_obs = get_f_obs(cif_file=cif_file)
+        f_obs = clean_miller_array(f_obs)
 
         # Set flags from file.
-        status_array = miller_ops.get_miller_array(
-            f_obs_file=cif_file,
-            label="_refln.status"
-        )
-        flags_array = status_array.customized_copy(data=status_array.data()=="f")
-        f_obs_array, flags_array = f_obs_array.common_sets(other=flags_array)
+        # status_array = miller_ops.get_miller_array(
+        #     f_obs_file=cif_file,
+        #     label="_refln.status"
+        # )
+        # flags_array = status_array.customized_copy(data=status_array.data()=="f")
+        flags = get_flags(cif_file=cif_file)
+        f_obs, flags = f_obs.common_sets(other=flags)
 
-        # print("N_OBS: ", len(f_obs_array.data()), len(flags_array.data()))
+        # print("N_OBS: ", len(f_obs.data()), len(flags.data()))
         com = ref_msmc_ms[i].get_com()
 
         xray_freq = params_dict["xray_freq"]
         r_xray = xray_restraint.XtalRestraint(
             msmc_m=msmc_m,
             cond=i,
-            f_obs=f_obs_array,
-            free_flags=flags_array,
+            f_obs=f_obs,
+            free_flags=flags,
             w_xray=w_xray,
             update_scale=True,
             update_k1=True,
@@ -362,7 +363,7 @@ if __name__ == "__main__":
         name="dcharmm_mag",
         m=m,
         pids=msmc_m.get_pids(),
-        r=rset_charmm,
+        r=r_charmm,
         scale=1
     )
     all_trackers.append(dcharmm_mag_tracker)
@@ -376,7 +377,7 @@ if __name__ == "__main__":
                 m=m,
                 pids=msmc_m.get_pids(),
                 r=rset_xray.get_restraint(i),
-                scale=w_xray
+                scale=1000000
             )
             all_trackers.append(dxray_magnitude_tracker)
 
@@ -444,14 +445,14 @@ if __name__ == "__main__":
         write=args.write
     )
 
-    rset_charmm.evaluate(calc_derivs=True)
+    r_charmm.evaluate(calc_derivs=True)
     rset_xray.evaluate(calc_derivs=True)
 
-    evaluate_df_dict(
-        m=m,
-        pids=msmc_m.get_pids(),
-        r=rset_charmm
-    )
+    # evaluate_df_dict(
+    #     m=m,
+    #     pids=msmc_m.get_pids(),
+    #     r=rset_charmm
+    # )
 
     log_ostate.update()
 

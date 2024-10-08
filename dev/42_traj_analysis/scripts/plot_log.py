@@ -12,7 +12,7 @@ if __name__ == "__main__":
     exp_num = exp_dir.stem.split("_")[0]
     # for job_dir in Path(exp_dir, "logs").glob("*"):
 
-    for start,end in [(5,9)]:
+    for start,end,xray_name in [(0,4, "3k0m")]:
         log_dfs = list()
         job_ids = list(range(start, end+1))
 
@@ -44,39 +44,32 @@ if __name__ == "__main__":
         print(len(log_dfs))
 
         colors = ["tab:blue", "tab:orange", "tab:red"]
-        n_fields = 10
 
+        fields = ["ff", "r_free_{}".format(xray_name), "r_work_{}".format(xray_name), "dcharmm_mag", "dxray_{}_mag".format(xray_name), "temp", "vel_mag", "wxray", "rmsd_0", "com_delta_mag", "w_0_{}".format(xray_name)]
 
-        xray_name = "3k0n"
-
-        all_fields = [["ff"], ["r_free_{}".format(xray_name)], ["r_work_{}".format(xray_name)], ["dcharmm_mag"], ["dxray_{}_mag".format(xray_name)], ["temp"], ["vel_mag"], ["wxray"], ["rmsd_0"], ["com_delta_mag"]]
-
-        fig, axs = plt.subplots(n_fields, len(log_dfs), figsize=(len(log_dfs)*10, 5*n_fields))
+        fig, axs = plt.subplots(len(fields), len(log_dfs), figsize=(len(log_dfs)*10, 5*len(fields)))
         start, end, offset = 0, 100000, 1
 
         for job_id in range(len(log_dfs)):
             if len(log_dfs[job_id]) == 0:
                 continue
 
-            for i in range(len(all_fields)):
-
-                fields = all_fields[i]
-
+            for i in range(len(fields)):
                 ax = axs[i][job_id]
                 job_log_dfs = log_dfs[job_id]
 
                 lns = list()
 
-                for j in range(len(fields)):
-                    field = fields[j]
+                # fields = fields[i]
+                field = fields[i]
 
-                    for log_df in job_log_dfs:
-                        if field not in log_df.columns:
-                            continue
+                for log_df in job_log_dfs:
+                    if field not in log_df.columns:
+                        continue
 
-                        ln = ax.plot(log_df["step"][start:end:offset], log_df[fields[j]][start:end:offset], c=colors[j], label=fields[j], alpha=0.5)
+                    ln = ax.plot(log_df["step"][start:end:offset], log_df[field][start:end:offset], c=colors[0], label=field, alpha=0.5)
 
-                    lns.extend(ln)
+                lns.extend(ln)
 
                 labs = [l.get_label() for l in lns]
                 ax.legend(lns, labs)

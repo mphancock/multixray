@@ -72,6 +72,53 @@ class CHARMMRestraint(IMP.Restraint):
         return [self.get_model().get_particle(pid) for pid in self.pids]
 
 
+def patch_atom(
+    m, h,
+    topology,
+    atom_name,
+    charmm_type,
+    partner_name,
+    res_ids
+):
+    for res_id in res_ids:
+        pid = IMP.atom.Selection(h,residue_index=res_id,atom_type=IMP.atom.AtomType(atom_name)).get_selected_particle_indexes()[0]
+        IMP.atom.CHARMMAtom.setup_particle(m, pid, charmm_type)
+
+    at = IMP.atom.CHARMMAtom(m, pid)
+    print("PATCHING: ", at.get_name(), at.get_charmm_type())
+
+    segment = topology.get_segment(0)
+    res = segment.get_residue(res_id-1)
+    res.set_patched(False)
+
+    ## NEED TO USE PDB NAME NOT CHARMM NAME
+    bond = IMP.atom.CHARMMBond([atom_name, partner_name])
+    patch = IMP.atom.CHARMMPatch("TMP")
+    patch.add_bond(bond)
+    patch.apply(res)
+
+
+## need to change histidine from HIS to HSP
+def protonate_histidine(
+    m, h,
+    ff,
+    topology
+):
+    seg = topology.get_segments()[0]
+    ress = seg.get_residues()
+    for res_id in [41, 80, 163, 172, 246]:
+        ## change the charmm type of the N from NR2 (unprotonated) to NR3 (protonated)
+        pid = IMP.atom.Selection(h, residue_index=res_id, atom_type=IMP.atom.AtomType("NE2")).get_selected_particles()[0]
+        IMP.atom.CHARMMAtom(m, pid).set_charmm_type("NR3")
+
+        ## setup the HE2 (doesn't exist in CHARMM) atom as H
+        pid = IMP.atom.Selection(h,residue_index=res_id,atom_type=IMP.atom.AtomType("HE2")).get_selected_particle_indexes()[0]
+        IMP.atom.CHARMMAtom.setup_particle(m, pid, "H")
+        ress[res_id-1] = IMP.atom.CHARMMResidueTopology(ff.get_residue_topology(IMP.atom.ResidueType("HSP")))
+
+    seg.set_residues(ress)
+
+
 
 # Return a list of restraints rs on the IMP model m (with hierarchy h) based on potential energy terms from the CHARMM force-field/parameterization.
 def charmm_restraints(
@@ -90,18 +137,25 @@ def charmm_restraints(
     ff = IMP.atom.get_all_atom_CHARMM_parameters()
     topology = ff.create_topology(h)
 
-    # topology.apply_default_patches()
+    ## Why is this not fixing the NTER?
+    topology.apply_default_patches()
     # topology.setup_hierarchy(h)
     topology.add_atom_types(h)
     # topology.add_missing_atoms(h)
     # IMP.atom.remove_charmm_untyped_atoms(h)
     # topology.add_coordinates(h)
 
-    # pids = IMP.atom.Selection(h).get_selected_particle_indexes()
-    # print(len(pids))
+    patch_atom(m=m, h=h, topology=topology, atom_name="H1", charmm_type="HC", partner_name="N", res_ids=[1])
+    protonate_histidine(m=m, h=h, ff=ff, topology=topology)
 
+    ## setup waters
+    for pid in IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("HET: O  ")).get_selected_particle_indexes():
+        IMP.atom.CHARMMAtom.setup_particle(m, pid, "O")
 
-    # topology.add_missing_atoms(h)
+    ## setup zinc ions
+    for pid in IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("HET:ZN  ")).get_selected_particle_indexes():
+        IMP.atom.CHARMMAtom.setup_particle(m, pid, "ZN")
+
     bonds = topology.add_bonds(h)
     angles = ff.create_angles(bonds)
     dihedrals = ff.create_dihedrals(bonds)

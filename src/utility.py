@@ -30,6 +30,18 @@ def get_n_state_from_pdb_file(pdb_file):
     return len(hs)
 
 
+def get_residue_indexes(h): # h is a Hierarchy
+    res_ids = list()
+    for pid in res_ids:
+        if IMP.atom.Residue.get_is_setup(h.get_particle(pid)):
+            res = IMP.atom.Residue(h.get_particle(pid))
+            res_ids.append(res.get_index())
+
+    res_ids.sort()
+
+    return res_ids
+
+
 def pool_read_pdb(
     pdb_file
 ):

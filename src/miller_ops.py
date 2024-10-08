@@ -4,11 +4,40 @@ import iotbx.reflection_file_reader as cif_input
 
 
 def get_crystal_symmetry(
-    f_obs_file,
-    label
+    cif_file
 ):
-    f_obs = get_miller_array(f_obs_file, label)
+    f_obs = get_f_obs(cif_file)
     return f_obs.crystal_symmetry()
+
+
+def get_f_obs(
+        cif_file
+):
+    reader = cif_input.any_reflection_file(file_name=str(cif_file))
+    miller_arrays = reader.as_miller_arrays()
+
+    for i in range(len(miller_arrays)):
+        if "_refln.F_meas_au":
+            label = "_refln.F_meas_au"
+        else:
+            label = "_refln.intensity_meas"
+
+    f_obs = get_miller_array(cif_file, label)
+
+    if f_obs.is_xray_intensity_array():
+        f_obs = f_obs.f_sq_as_f()
+        f_obs.set_observation_type_xray_amplitude()
+
+    return f_obs
+
+
+def get_flags(
+        cif_file
+):
+    status_array = get_miller_array(cif_file, "_refln.status")
+    flags_array = status_array.customized_copy(data=status_array.data()=="f")
+
+    return flags_array
 
 
 def get_miller_array(
@@ -21,7 +50,6 @@ def get_miller_array(
     array_id = -1
     for i in range(len(miller_arrays)):
         miller_array = miller_arrays[i]
-        # if '_refln.F_meas_au' in miller_array.info().labels:
         if label in miller_array.info().labels:
             array_id = i
 
@@ -29,10 +57,6 @@ def get_miller_array(
 
     if array_id < 0:
         raise RuntimeError("{} was not found in {}".format(label, f_obs_file))
-
-    if label_array.is_xray_intensity_array():
-        label_array = label_array.f_sq_as_f()
-        label_array.set_observation_type_xray_amplitude()
 
     return label_array
 
@@ -61,5 +85,11 @@ def filter_f_obs_resolution(
     )
 
     return f_obs_filter
+
+
+if __name__ == "__main__":
+    f_obs_file = Path("/Users/matthew/Documents/xray/data/cifs/7mhf/7mhf.cif")
+    get_miller_array(f_obs_file, "_refln.F_meas_au")
+
 
 

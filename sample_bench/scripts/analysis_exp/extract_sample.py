@@ -15,14 +15,14 @@ from params import read_job_csv
 
 
 if __name__ == "__main__":
-    exp_name = "189_exp_ref_10000"
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", exp_name)
+    exp_name = "253_7mhf"
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out", exp_name)
 
-    job_csv_file = Path(Path.home(), "xray/sample_bench/data/params/exp.csv")
-    sample_file = Path(Path.home(), "xray/sample_bench/data/7mhf/{}/sample.csv".format(exp_name))
+    job_csv_file = Path(Path.home(), "xray/sample_bench/data/params/253.csv")
+    sample_file = Path(Path.home(), "xray/sample_bench/data/analysis/{}/sample.csv".format(exp_name))
     sample_df = pd.DataFrame()
 
-    for job_id in range(315):
+    for job_id in range(5):
         print(job_id)
         param_dict = read_job_csv(job_csv_file=job_csv_file, job_id=job_id)
         cif_files = param_dict["cifs"]
@@ -32,6 +32,8 @@ if __name__ == "__main__":
         job_cif_names = [Path(cif).stem for cif in cif_files]
 
         job_dir = Path(exp_dir, str(job_id))
+
+        print(job_dir)
         log_files = [Path(out_dir, "log.csv") for out_dir in job_dir.glob("*")]
 
         for cif_name in job_cif_names:
