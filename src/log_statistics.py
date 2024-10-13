@@ -83,6 +83,11 @@ class LogStatistics(IMP.OptimizerState):
         return self.all_trackers
 
     def do_update(self, call):
+        import time
+        tmp = time.time()
+        ## this is the only way I can figure out to update the nonbonded list
+        # self.m.update()
+
         entries = list()
         for tracker in self.all_trackers:
             # print(entry_list)
@@ -100,3 +105,5 @@ class LogStatistics(IMP.OptimizerState):
             # print("Log updating after {} steps".format(self.get_number_of_updates()))
             log_df = self.get_log()
             log_df.to_csv(self.log_file)
+
+        # print("LOGGING TIME", time.time() - tmp)

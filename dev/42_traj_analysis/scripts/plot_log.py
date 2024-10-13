@@ -8,11 +8,11 @@ import matplotlib.colors as mcolors
 
 if __name__ == "__main__":
     log_dfs = list()
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/252_auto_wxray")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/258_wxray")
     exp_num = exp_dir.stem.split("_")[0]
     # for job_dir in Path(exp_dir, "logs").glob("*"):
 
-    for start,end,xray_name in [(0,4, "3k0m")]:
+    for start,end,xray_name in [(0,10, "7mhf")]:
         log_dfs = list()
         job_ids = list(range(start, end+1))
 
@@ -63,11 +63,25 @@ if __name__ == "__main__":
                 # fields = fields[i]
                 field = fields[i]
 
+                all_ys = list()
                 for log_df in job_log_dfs:
                     if field not in log_df.columns:
                         continue
 
                     ln = ax.plot(log_df["step"][start:end:offset], log_df[field][start:end:offset], c=colors[0], label=field, alpha=0.5)
+
+                    all_ys.extend(log_df[field][start:end:offset])
+
+                all_ys = [x for x in all_ys if str(x) != 'nan']
+
+
+                print(len(all_ys))
+
+                if len(all_ys) == 0:
+                    continue
+
+                print(field, min(all_ys), max(all_ys))
+                # ax.set_ylim(, np.percentile(all_ys, 95)*2)
 
                 lns.extend(ln)
 

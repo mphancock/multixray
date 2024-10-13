@@ -9,7 +9,7 @@
 # Setup the conda environment.
 eval "$(conda shell.bash hook)"
 module load CBI conda-stage
-conda activate imp_220_cctbx
+conda activate imp_221_cctbx
 
 
 JOB_DIR="$1"

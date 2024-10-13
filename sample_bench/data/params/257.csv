@@ -1,0 +1,5 @@
+,start_pdb_file,N,J,cif_0,ref_0,w_xray,xray_freq,weight_thermo,vel_thermo,refine,sample_sched_str,init_weights
+0,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_no_het.pdb,1,1.0,/wynton/home/sali/mhancock/xray/data/cifs/7mhf/7mhf.cif,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_no_het.pdb,1,1,0,1,1,"s10000,t300,dA,p1,w0,r0",uni
+1,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_no_het.pdb,1,1.0,/wynton/home/sali/mhancock/xray/data/cifs/7mhf/7mhf.cif,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_no_het.pdb,1,1,0,0,1,"s10000,t300,dA,p1,w0,r0",uni
+2,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_no_het.pdb,1,1.0,/wynton/home/sali/mhancock/xray/data/cifs/7mhf/7mhf.cif,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_no_het.pdb,1,1,0,1,0,"s10000,t300,dA,p1,w0,r0",uni
+3,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_no_het.pdb,1,1.0,/wynton/home/sali/mhancock/xray/data/cifs/7mhf/7mhf.cif,/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhf_no_het.pdb,1,1,0,0,0,"s10000,t300,dA,p1,w0,r0",uni

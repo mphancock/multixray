@@ -43,6 +43,7 @@ class XtalRestraint(IMP.Restraint):
 
         self.target = "ml"
         self.w_xray = w_xray
+        self.w_xray_total = None
         self.r_charmm = r_charmm
 
         self.ref_com = ref_com
@@ -75,7 +76,6 @@ class XtalRestraint(IMP.Restraint):
 
         # if ref_hs:
 
-
     def set_weight(
             self,
             w_xray
@@ -88,8 +88,11 @@ class XtalRestraint(IMP.Restraint):
     def set_update_freq(self, update_freq):
         self.update_freq = update_freq
 
-    def get_weight(self):
+    def get_w_xray(self):
         return self.w_xray
+
+    def get_w_xray_total(self):
+        return self.w_xray_total
 
     def get_df_mag_ratio(self):
         return self.df_mag_ratio
@@ -155,7 +158,6 @@ class XtalRestraint(IMP.Restraint):
             self.r_all = r_all
 
             if sa.get_derivative_accumulator():
-
                 ## create dictionary for the derivatives
                 ## derivatives are stored in the order of atoms/scatterers
                 atoms = self.msmc_m.get_atoms()
@@ -173,39 +175,38 @@ class XtalRestraint(IMP.Restraint):
                     dff_avg_mag = dff_avg_mag + d.get_derivatives().get_magnitude()
 
                     # Store the derivative.
-                    # df_dx_vec_3d = IMP.algebra.Vector3D(grads_site[i][0], grads_site[i][1], grads_site[i][2])
-                    # self.df_dxs[pid] = df_dx_vec_3d
-
                     self.df_dxs[pid] = atom_grads
 
                     dxray_avg_mag = dxray_avg_mag + atom_grads.get_magnitude()
 
-
-                ## this needs to be called after df dict is built
-                if self.r_charmm:
-
-                #     shadow_restraint = None
-                #     for r in self.rset_charmm.get_restraints():
-                #         if r.get_name() == "CHARMMShadowRestraint":
-                #             shadow_restraint = r
-                #             break
-
-                    ## use the shadow derivative
-                    self.df_mag_ratio = get_df_mag_ratio(
-                        m=self.get_model(),
-                        pids=self.pids,
-                        r1=self.r_charmm,
-                        r2=self
-                    )
-                    self.w_xray = self.df_mag_ratio
-                else:
-                    self.df_mag_ratio = 1
-
+                # if self.r_charmm:
+                #     self.df_mag_ratio = get_df_mag_ratio(
+                #         m=self.get_model(),
+                #         pids=self.pids,
+                #         r1=self.r_charmm,
+                #         r2=self
+                #     )
+                #     self.w_xray = self.df_mag_ratio
+                # else:
+                #     self.df_mag_ratio = 1
                 # print(self.w_xray)
+
+                mean_mag_charmm = 0
+                mean_mag_xray = 0
+                for pid in self.pids:
+                    mean_mag_charmm += IMP.core.XYZ(self.get_model().get_particle(pid)).get_derivatives().get_magnitude()
+                    mean_mag_xray += self.df_dxs[pid].get_magnitude()
+                mean_mag_charmm /= len(self.pids)
+                mean_mag_xray /= len(self.pids)
+                mag_ratio = mean_mag_charmm / mean_mag_xray
+
+                self.w_xray_total = self.w_xray * mag_ratio
+
+                # w_xray_fit = self.r_work / self.r_free
 
                 for pid in self.pids:
                     d = IMP.core.XYZR(self.get_model(), pid)
-                    dxray_dx_scaled = self.w_xray * self.df_dxs[pid]
+                    dxray_dx_scaled = self.w_xray_total * self.df_dxs[pid]
 
                     d.add_to_derivatives(dxray_dx_scaled, sa.get_derivative_accumulator())
 

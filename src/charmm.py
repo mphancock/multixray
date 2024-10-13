@@ -5,127 +5,95 @@ Description: Implements a molecular mechanics force field as an IMP restraint th
 """
 import sys
 from pathlib import Path
+
 import IMP
 import IMP.atom
-sys.path.append(str(Path(Path.home(), "xray/src")))
-import align_imp
-
-
-import IMP
 import IMP.core
 import IMP.algebra
 
+import align_imp
 import miller_ops
 import cctbx_score
 import update_weights_optimizer_state
 from derivatives import get_df_mag_ratio
 
 
-## we can't create a wrapper around restraints (cant call evaluate or do_score_add_derviatives) so need to create a fake restraint to track the derivatives
-class CHARMMRestraint(IMP.Restraint):
-    def __init__(
-            self,
-            msmc_m
-    ):
-        IMP.Restraint.__init__(self, msmc_m.get_m(), "CHARMMShadowRestraint%1%")
-        self.msmc_m = msmc_m
-        self.hs = msmc_m.get_hs()
-        self.n_state = len(self.hs)
-        self.pids = msmc_m.get_pids()
-
-        # Gradients and scores
-        self.df_dxs = dict()
-        for pid in self.pids:
-            self.df_dxs[pid] = IMP.algebra.Vector3D(0,0,0)
-        self.score = 0
-
-        # setup the charmm restraints
-        self.charmm_rs = list()
-        for state in range(self.n_state):
-            self.charmm_rs.extend(charmm_restraints(
-                m=self.get_model(),
-                h=self.hs[state],
-                eps=False
-            ))
-
-
-    def get_df_dict(self):
-        return self.df_dxs
-
-    def get_f(self):
-        return self.score
-
-    def do_add_score_and_derivatives(self, sa):
-        self.score = 0
-        for r in self.charmm_rs:
-            r.add_score_and_derivatives(sa)
-            self.score += r.get_last_score()
-
-        ## create dictionary for the derivatives
-        ## derivatives are stored in the order of atoms/scatterers
-        # print(sa.get_score())
-        for pid in self.pids:
-            d = IMP.core.XYZR(self.get_model(), pid)
-            self.df_dxs[pid] = d.get_derivatives()
-
-    def do_get_inputs(self):
-        return [self.get_model().get_particle(pid) for pid in self.pids]
-
-
-def patch_atom(
+def add_H_to_N_ter(
     m, h,
-    topology,
-    atom_name,
-    charmm_type,
-    partner_name,
-    res_ids
+    topology
 ):
-    for res_id in res_ids:
-        pid = IMP.atom.Selection(h,residue_index=res_id,atom_type=IMP.atom.AtomType(atom_name)).get_selected_particle_indexes()[0]
-        IMP.atom.CHARMMAtom.setup_particle(m, pid, charmm_type)
+    res_id = 1
+    pid = IMP.atom.Selection(h,residue_index=res_id,atom_type=IMP.atom.AtomType("H1")).get_selected_particle_indexes()[0]
+    IMP.atom.CHARMMAtom.setup_particle(m, pid, "HC")
+    charge = IMP.atom.Charged.setup_particle(m, pid, 0.33)
 
-    at = IMP.atom.CHARMMAtom(m, pid)
-    print("PATCHING: ", at.get_name(), at.get_charmm_type())
+    at = IMP.atom.Atom(m, pid)
+    charmm_at = IMP.atom.CHARMMAtom(m, pid)
+    print("PATCHING: ", at.get_name(), charmm_at.get_charmm_type())
+
 
     segment = topology.get_segment(0)
     res = segment.get_residue(res_id-1)
     res.set_patched(False)
 
     ## NEED TO USE PDB NAME NOT CHARMM NAME
-    bond = IMP.atom.CHARMMBond([atom_name, partner_name])
+    bond = IMP.atom.CHARMMBond(["H1", "N"])
     patch = IMP.atom.CHARMMPatch("TMP")
     patch.add_bond(bond)
     patch.apply(res)
 
 
 ## need to change histidine from HIS to HSP
-def protonate_histidine(
+def convert_HIS_to_HSP(
     m, h,
     ff,
-    topology
+    topology,
+    res_id
 ):
     seg = topology.get_segments()[0]
     ress = seg.get_residues()
-    for res_id in [41, 80, 163, 172, 246]:
-        ## change the charmm type of the N from NR2 (unprotonated) to NR3 (protonated)
-        pid = IMP.atom.Selection(h, residue_index=res_id, atom_type=IMP.atom.AtomType("NE2")).get_selected_particles()[0]
-        IMP.atom.CHARMMAtom(m, pid).set_charmm_type("NR3")
+    # for res_id in [41, 80, 163, 172, 246]:
 
-        ## setup the HE2 (doesn't exist in CHARMM) atom as H
-        pid = IMP.atom.Selection(h,residue_index=res_id,atom_type=IMP.atom.AtomType("HE2")).get_selected_particle_indexes()[0]
-        IMP.atom.CHARMMAtom.setup_particle(m, pid, "H")
-        ress[res_id-1] = IMP.atom.CHARMMResidueTopology(ff.get_residue_topology(IMP.atom.ResidueType("HSP")))
+    ## check if the histidine contains an HE2 atom
+    pids = IMP.atom.Selection(h,residue_index=res_id,atom_type=IMP.atom.AtomType("HE2")).get_selected_particle_indexes()
+
+    if len(pids) == 0:
+        return
+
+    print("PATCHING HIS: ", res_id)
+
+    he2_pid = pids[0]
+    ## setup the HE2 (doesn't exist in CHARMM) atom as H
+    IMP.atom.CHARMMAtom.setup_particle(m, he2_pid, "H")
+    charge = IMP.atom.Charged.setup_particle(m, he2_pid, 0.09)
+
+    ## update the topology
+    ress[res_id-1] = IMP.atom.CHARMMResidueTopology(ff.get_residue_topology(IMP.atom.ResidueType("HSP")))
+
+    ## change the charmm type of the N from NR2 (unprotonated) to NR3 (protonated)
+    ne2_pid = IMP.atom.Selection(h, residue_index=res_id, atom_type=IMP.atom.AtomType("NE2")).get_selected_particles()[0]
+    IMP.atom.CHARMMAtom(m, ne2_pid).set_charmm_type("NR3")
 
     seg.set_residues(ress)
 
 
 
+def get_charmm_restraint_set(m, hs):
+    charmm_rs = list()
+    for state in range(len(hs)):
+        charmm_rs.extend(charmm_restraints(m, hs[state]))
+
+    charmm_r_set = IMP.RestraintSet(m, "CHARMMRestraintSet")
+    charmm_r_set.add_restraints(charmm_rs)
+
+    return charmm_r_set
+
+
 # Return a list of restraints rs on the IMP model m (with hierarchy h) based on potential energy terms from the CHARMM force-field/parameterization.
 def charmm_restraints(
         m,
-        h,
-        eps=False
-):
+        h
+    ):
 
     rs = list()
 
@@ -142,25 +110,34 @@ def charmm_restraints(
     # topology.setup_hierarchy(h)
     topology.add_atom_types(h)
     # topology.add_missing_atoms(h)
+
+    ## TMP
     # IMP.atom.remove_charmm_untyped_atoms(h)
+
     # topology.add_coordinates(h)
 
-    patch_atom(m=m, h=h, topology=topology, atom_name="H1", charmm_type="HC", partner_name="N", res_ids=[1])
-    protonate_histidine(m=m, h=h, ff=ff, topology=topology)
+    ## setup charges first
+    charges = topology.add_charges(h)
 
-    ## setup waters
+    # setup waters
     for pid in IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("HET: O  ")).get_selected_particle_indexes():
-        IMP.atom.CHARMMAtom.setup_particle(m, pid, "O")
+        charmm_at = IMP.atom.CHARMMAtom.setup_particle(m, pid, "O")
+        charge = IMP.atom.Charged.setup_particle(m, pid, -0.834)
 
     ## setup zinc ions
     for pid in IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("HET:ZN  ")).get_selected_particle_indexes():
         IMP.atom.CHARMMAtom.setup_particle(m, pid, "ZN")
+        charge = IMP.atom.Charged.setup_particle(m, pid, 2.0)
+
+    add_H_to_N_ter(m, h, topology)
+
+    for res_id in [41, 80, 163, 172, 246]:
+        convert_HIS_to_HSP(m, h, ff, topology, res_id)
 
     bonds = topology.add_bonds(h)
     angles = ff.create_angles(bonds)
     dihedrals = ff.create_dihedrals(bonds)
     impropers = topology.add_impropers(h)
-    charges = topology.add_charges(h)
 
     # Add a restraint on the bond lengths.
     cont = IMP.container.ListSingletonContainer(m, bonds, "bnd")
@@ -185,27 +162,19 @@ def charmm_restraints(
     bss = IMP.atom.ImproperSingletonScore(IMP.core.Harmonic(0, 1))
     rs.append(IMP.container.SingletonsRestraint(bss, cont, "imp"))
 
-    if eps:
-        # Add a restraint representing electrostatic forces.
-        atoms = IMP.atom.get_by_type(h, IMP.atom.ATOM_TYPE)
-        cont = IMP.container.ListSingletonContainer(m, atoms)
-        nbl = IMP.container.ClosePairContainer(cont, 10)
-        pair_filter = IMP.atom.StereochemistryPairFilter()
-        pair_filter.set_bonds(bonds)
-        pair_filter.set_angles(angles)
-        pair_filter.set_dihedrals(dihedrals)
-        nbl.add_pair_filter(pair_filter)
-        sf = IMP.atom.ForceSwitch(6.0, 7.0)
-        cps = IMP.atom.CoulombPairScore(sf)
-        r_cps = IMP.container.PairsRestraint(cps, nbl, "eps")
-        rs.append(r_cps)
+    slack = 1
+    dist = 3
 
     # Add a restraint on the non-bonded atoms (Lennard-Jones potential).
     ff.add_radii(h)
     ff.add_well_depths(h)
     atoms = IMP.atom.get_by_type(h, IMP.atom.ATOM_TYPE)
+
     cont = IMP.container.ListSingletonContainer(m, atoms)
-    nbl = IMP.container.ClosePairContainer(cont, 10)
+    nbl = IMP.container.ClosePairContainer(cont, dist, slack)
+
+    # print(len(nbl.get_indexes()))
+
     pair_filter = IMP.atom.StereochemistryPairFilter()
     pair_filter.set_bonds(bonds)
     pair_filter.set_angles(angles)
@@ -214,5 +183,19 @@ def charmm_restraints(
     sf = IMP.atom.ForceSwitch(6.0, 7.0)
     ljps = IMP.atom.LennardJonesPairScore(sf)
     rs.append(IMP.container.PairsRestraint(ljps, nbl, "nbd"))
+
+    # pids = IMP.atom.Selection(h).get_selected_particle_indexes()
+    # r_ljps = PairsRestraintWrapper(pids, ljps, nbl, "nbd")
+    # rs.append(r_ljps)
+
+    # sf = IMP.atom.ForceSwitch(6.0, 7.0)
+    # cps = IMP.atom.CoulombPairScore(sf)
+    # r_cps = IMP.container.PairsRestraint(cps, nbl, "eps")
+    # rs.append(r_cps)
+
+    # print("# scores states: ", m.get_number_of_score_states())
+
+    for r in rs:
+        print(r.get_name(), r.evaluate(False))
 
     return rs

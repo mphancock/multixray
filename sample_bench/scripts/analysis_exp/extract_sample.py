@@ -15,14 +15,14 @@ from params import read_job_csv
 
 
 if __name__ == "__main__":
-    exp_name = "253_7mhf"
+    exp_name = "255_7mhf"
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out", exp_name)
 
-    job_csv_file = Path(Path.home(), "xray/sample_bench/data/params/253.csv")
+    job_csv_file = Path(Path.home(), "xray/sample_bench/data/params/255.csv")
     sample_file = Path(Path.home(), "xray/sample_bench/data/analysis/{}/sample.csv".format(exp_name))
     sample_df = pd.DataFrame()
 
-    for job_id in range(5):
+    for job_id in range(30):
         print(job_id)
         param_dict = read_job_csv(job_csv_file=job_csv_file, job_id=job_id)
         cif_files = param_dict["cifs"]
@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
         for cif_name in job_cif_names:
             field = "r_free_{}".format(cif_name)
-            bonus_fields = ["ff", "pdb", "xray_{}".format(cif_name)]
+            bonus_fields = ["ff", "pdb", "r_work_{}".format(cif_name), "xray_{}".format(cif_name)]
 
             for state in range(N):
                 bonus_fields.append("w_{}_{}".format(state, cif_name))

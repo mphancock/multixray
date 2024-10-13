@@ -300,7 +300,7 @@ class SimulatedAnnealing:
 
             T = self.sa_sched.get_temperature(cur_sa_step)
             n_frames = self.sa_sched.get_steps(cur_sa_step)
-            t_step = 2
+            t_step = 1
 
             # self.s_v.set_temperature(T)
             self.md.set_temperature(T)

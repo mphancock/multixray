@@ -18,6 +18,6 @@ mkdir "$OUT_DIR"
 cd "$TMPDIR"
 cp ~/xray/sample_bench/scripts/sample/run_md_multi.py .
 
-python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --job_csv_file /wynton/home/sali/mhancock/xray/sample_bench/data/params/253.csv --job_id 0 --write
+python run_md_multi.py --out_dir "$OUT_DIR" --tmp_out_dir "$TMP_OUT_DIR" --job_csv_file /wynton/home/sali/mhancock/xray/sample_bench/data/params/257.csv --job_id 2 --write
 
 cd "$HOME/xray/sample_bench/scripts/sample"

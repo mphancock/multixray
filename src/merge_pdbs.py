@@ -132,7 +132,8 @@ def write_merge_pdb_file(
     hs, ms = list(), list()
     for pdb_file in pdb_files:
         m = IMP.Model()
-        h = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())[0]
+        h = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.NonWaterPDBSelector())[0]
+        # h = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())[0]
         ms.append(m)
         hs.append(h)
 
@@ -141,8 +142,11 @@ def write_merge_pdb_file(
 
 
 if __name__ == "__main__":
-    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/test/output_0/pdbs")
+    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/258_wxray/7/output_0/pdbs")
     pdb_files = list(pdb_dir.glob("*.pdb"))
+    pdb_files = sorted(pdb_files, key=lambda x: int(Path(x).stem))
+
+    pdb_files = pdb_files[::10]
 
     # m_0, m_1 = IMP.Model(), IMP.Model()
     # h_0 = IMP.atom.read_pdb(str(pdb_files[0]), m_0, IMP.atom.AllPDBSelector())

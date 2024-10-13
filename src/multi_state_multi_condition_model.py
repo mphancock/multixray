@@ -50,7 +50,8 @@ class MultiStateMultiConditionModel:
                 unit_cell=(100, 100, 100, 90, 90, 90),
                 space_group_symbol="P 1"
             )]
-
+        else:
+            self.crystal_symmetries = crystal_symmetries
 
         ## pdb files needs to be a list of pdb files or contain a single multi state pdb file
         if not (len(pdb_files) == 1 or len(pdb_files) == self.n_state):
@@ -152,14 +153,13 @@ class MultiStateMultiConditionModel:
 
                 IMP.atom.LinearVelocity.setup_particle(self.m, pid)
 
-        ## cctbx setup
+        # cctbx setup
         self.perform_checks()
         self.create_lookup_table()
 
         self.multi_xray_structures = list()
-        self.crystal_symmetries = crystal_symmetries
         for i in range(self.n_cond):
-            multi_xray_structure = self.multi_xray_h.extract_xray_structure(crystal_symmetry=crystal_symmetries[i])
+            multi_xray_structure = self.multi_xray_h.extract_xray_structure(crystal_symmetry=self.crystal_symmetries[i])
 
             multi_xray_structure.scatterers().flags_set_grads(
                 state=False

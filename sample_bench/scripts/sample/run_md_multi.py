@@ -16,7 +16,7 @@ import IMP.algebra
 from cctbx.crystal import symmetry
 
 sys.path.append(str(Path(Path.home(), "xray/src")))
-from charmm import CHARMMRestraint
+from charmm import get_charmm_restraint_set
 import xray_restraint
 import trackers
 import com_restraint
@@ -116,14 +116,16 @@ if __name__ == "__main__":
         # )
         # rset_charmm.add_restraints(charmm_rs)
 
-    r_charmm = CHARMMRestraint(msmc_m=msmc_m)
+    # r_charmm = CHARMMRestraint(msmc_m=msmc_m)
+    r_charmm = get_charmm_restraint_set(m, hs)
+
     if params_dict["refine"]:
         print("REFINING STARTING MODEL")
 
         sf_refine = IMP.core.RestraintsScoringFunction([r_charmm])
         cg = IMP.core.ConjugateGradients(msmc_m.get_m())
         cg.set_scoring_function(sf_refine)
-        cg.optimize(25)
+        cg.optimize(1000)
 
     # cif file here is a string.
     rset_xray = IMP.RestraintSet(m, 1.0)
@@ -429,7 +431,7 @@ if __name__ == "__main__":
         )
         all_trackers.append(wxray_tracker)
 
-    ## track the temperature but turn off until md is added
+    # track the temperature but turn off until md is added
     temp_tracker = trackers.TempTracker(
         name="temp",
         m=m

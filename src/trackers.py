@@ -620,4 +620,4 @@ class XrayWeightTracker(Tracker):
     def evaluate(
             self
     ):
-        return [self.r_xray.get_weight()]
+        return [self.r_xray.get_w_xray_total()]
