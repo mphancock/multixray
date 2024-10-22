@@ -18,6 +18,8 @@ import weights
 from multi_state_multi_condition_model import MultiStateMultiConditionModel
 from xray_restraint import XtalRestraint
 from utility import get_n_state_from_pdb_file
+from miller_ops import get_f_obs, get_flags
+from charmm import get_charmm_restraint_set
 
 
 """
@@ -44,8 +46,6 @@ def pool_score(
     decoy_occs = params["decoy_occs"]
     ref_file=params["ref_file"]
     ref_occs=params["ref_occs"]
-    adp_file=params["adp_file"]
-    adp_type=params["adp_type"]
     cif_file=params["cif_file"]
     score_fs=params["score_fs"]
 
@@ -61,43 +61,29 @@ def pool_score(
     decoy_w_mat = np.ndarray(shape=[len(decoy_occs), 1])
     decoy_w_mat[:,0] = decoy_occs
 
-    try:
-        decoy_msmc_m = MultiStateMultiConditionModel(
-            pdb_file=decoy_file,
-            w_mat=decoy_w_mat
-        )
-        h_decoys = decoy_msmc_m.get_hs()
+    crystal_symmetry = miller_ops.get_crystal_symmetry(cif_file)
+    decoy_msmc_m = MultiStateMultiConditionModel(
+        pdb_files=[decoy_file],
+        w_mat=decoy_w_mat,
+        crystal_symmetries=[crystal_symmetry]
+    )
+    h_decoys = decoy_msmc_m.get_hs()
 
-        ref_w_mat = np.ndarray(shape=[len(ref_occs), 1])
-        ref_w_mat[:,0] = ref_occs
-        ref_msmc_m = MultiStateMultiConditionModel(
-            pdb_file=ref_file,
-            w_mat=ref_w_mat
-        )
-    except RuntimeError as e:
-        print(e)
-        return None
+    ref_w_mat = np.ndarray(shape=[len(ref_occs), 1])
+    ref_w_mat[:,0] = ref_occs
+    ref_msmc_m = MultiStateMultiConditionModel(
+        pdb_files=[ref_file],
+        w_mat=ref_w_mat,
+        crystal_symmetries=[crystal_symmetry]
+    )
 
     for score_f in score_fs:
         if score_f in ["ff", "bnd", "ang", "dih", "imp", "eps", "nbd"]:
-            score = charmm.get_ff_score(
-                hs=h_decoys,
-                term=score_f
-            )
+            charmm_rset = get_charmm_restraint_set(decoy_msmc_m.get_m(), h_decoys)
+            score = charmm_rset.evaluate(False)
         elif score_f in ["ml", "ls"]:
-            # Set f_obs.
-            f_obs = miller_ops.get_miller_array(
-                f_obs_file=cif_file,
-                label="_refln.intensity_meas"
-            )
-            f_obs = miller_ops.clean_miller_array(f_obs)
-
-            # Set flags.
-            status_array = miller_ops.get_miller_array(
-                f_obs_file=cif_file,
-                label="_refln.status"
-            )
-            flags = status_array.customized_copy(data=status_array.data()=="f")
+            f_obs = get_f_obs(cif_file)
+            flags = get_flags(cif_file)
             f_obs, flags = f_obs.common_sets(other=flags)
 
             res = params["res"]
@@ -164,7 +150,6 @@ def pool_score(
             score = np.nan
 
         scores_dict[score_f] = score
-
 
     return scores_dict
 

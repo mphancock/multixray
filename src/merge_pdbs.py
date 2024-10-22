@@ -142,7 +142,7 @@ def write_merge_pdb_file(
 
 
 if __name__ == "__main__":
-    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/258_wxray/7/output_0/pdbs")
+    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/259_sb_temp/16/output_0/pdbs")
     pdb_files = list(pdb_dir.glob("*.pdb"))
     pdb_files = sorted(pdb_files, key=lambda x: int(Path(x).stem))
 

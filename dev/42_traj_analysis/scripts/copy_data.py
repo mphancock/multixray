@@ -14,8 +14,8 @@ if __name__ == "__main__":
     job_ids = list()
     out_ids = list()
 
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/258_wxray")
-    dest_dir = Path("../data/258")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/261_2_state_test")
+    dest_dir = Path("../data/261")
 
     # for job_id in range(14):
     for job_dir in exp_dir.glob("*"):

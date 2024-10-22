@@ -41,8 +41,11 @@ class MultiStateMultiConditionModel:
             w_mat,
             crystal_symmetries
     ):
+        print("setting up ", pdb_files, w_mat)
         self.m = IMP.Model()
         self.set_w_mat(w_mat)
+
+        print(self.n_state)
 
         ## for testing purposes
         if not crystal_symmetries:

@@ -124,15 +124,16 @@ def charmm_restraints(
         charmm_at = IMP.atom.CHARMMAtom.setup_particle(m, pid, "O")
         charge = IMP.atom.Charged.setup_particle(m, pid, -0.834)
 
-    ## setup zinc ions
-    for pid in IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("HET:ZN  ")).get_selected_particle_indexes():
-        IMP.atom.CHARMMAtom.setup_particle(m, pid, "ZN")
-        charge = IMP.atom.Charged.setup_particle(m, pid, 2.0)
+    ## for 7mhf
+    # ## setup zinc ions
+    # for pid in IMP.atom.Selection(h, atom_type=IMP.atom.AtomType("HET:ZN  ")).get_selected_particle_indexes():
+    #     IMP.atom.CHARMMAtom.setup_particle(m, pid, "ZN")
+    #     charge = IMP.atom.Charged.setup_particle(m, pid, 2.0)
 
-    add_H_to_N_ter(m, h, topology)
+    # add_H_to_N_ter(m, h, topology)
 
-    for res_id in [41, 80, 163, 172, 246]:
-        convert_HIS_to_HSP(m, h, ff, topology, res_id)
+    # for res_id in [41, 80, 163, 172, 246]:
+    #     convert_HIS_to_HSP(m, h, ff, topology, res_id)
 
     bonds = topology.add_bonds(h)
     angles = ff.create_angles(bonds)

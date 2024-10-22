@@ -77,20 +77,34 @@ def read_job_csv(
     ref_w_mat = np.ndarray([ref_n_state, J])
 
     # If the job csv file contains reference weights, use them. Otherwise, use uniform weights.
-    for cond in range(J):
-        for state in range(ref_n_state):
-            col = "w_{}_{}".format(state, cond)
-            if col in job_df.columns:
-                ref_w_mat[state, cond] = job_df.loc[job_id]["w_{}_{}".format(state, cond)]
-            else:
-                ref_w_mat[state, cond] = 1/ref_n_state
+    rows = str(job_df.loc[job_id]["ref_weights"]).split(';')
+    matrix = [list(map(float, row.split(','))) for row in rows]
+    ref_w_mat = np.array(matrix)
+    ref_w_mat = ref_w_mat.T
+    # for cond in range(J):
+        # for state in range(ref_n_state):
+        #     col = "w_{}_{}".format(state, cond)
+        #     if col in job_df.columns:
+        #         ref_w_mat[state, cond] = job_df.loc[job_id]["w_{}_{}".format(state, cond)]
+        #     else:
+        #         ref_w_mat[state, cond] = 1/ref_n_state
 
-    w_mat = np.ndarray([N, J])
-    for cond in range(J):
-        if job_df.loc[job_id]["init_weights"] == "uni":
-            w_mat[:, cond] = 1/N
-        else:
-            w_mat[:, cond] = weights.get_weights(floor=0.05, n_state=N)
+    rows = str(job_df.loc[job_id]["init_weights"]).split(';')
+    matrix = [list(map(float, row.split(','))) for row in rows]
+    w_mat = np.array(matrix)
+    w_mat = w_mat.T
+    # w_mat = np.ndarray([N, J])
+    # for cond in range(J):
+    #     if job_df.loc[job_id]["init_weights"] == "uni":
+    #         w_mat[:, cond] = 1/N
+    #     elif job_df.loc[job_id]["init_weights"]:
+    #         rows = job_df.loc[job_id]["init_weights"].split(';')
+    #         matrix = [list(map(float, row.split(','))) for row in rows]
+    #         w_mat = np.array(matrix)
+    #     else:
+    #         raise RuntimeError("No initial weights provided.")
+        # else:
+        #     w_mat[:, cond] = weights.get_weights(floor=0.05, n_state=N)
     param_dict["w_mat"] = w_mat
 
     param_dict["cifs"] = cif_files

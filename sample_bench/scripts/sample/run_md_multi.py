@@ -91,7 +91,7 @@ if __name__ == "__main__":
     for cond in range(J):
         ref_msmc_m = multi_state_multi_condition_model.MultiStateMultiConditionModel(
             pdb_files=[ref_pdb_files[cond]],
-            w_mat=np.array([[1]]),
+            w_mat=ref_w_mat,
             crystal_symmetries=[crystal_symmetries[cond]]
         )
 

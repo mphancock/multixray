@@ -1,16 +1,16 @@
 #! /bin/bash
 
 
-EXP_ID=258
-EXP_NAME="258_wxray"
+EXP_ID=261
+EXP_NAME="261_2_state_test"
 N_JOBS="1-10"
 OFFSET="0"
 H_RT="24:00:00"
-JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/258.csv"
+JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/261.csv"
 # JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/$EXP_ID.csv"
 
 
-for JOB_ID in {0..10}
+for JOB_ID in {0..19}
 do
     JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/$EXP_NAME/$JOB_ID"
 
