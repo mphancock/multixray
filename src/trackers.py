@@ -10,6 +10,7 @@ import IMP.core
 
 import derivatives
 import align_imp
+from align_imp import get_multi_state_multi_cond_rmsd
 
 
 class Tracker:
@@ -100,6 +101,9 @@ class Tracker:
             labels
     ):
         self.labels = labels
+
+        if len(self.labels) != self.n:
+            raise ValueError("Number of labels ({}) does not match n ({})".format(len(self.labels), self.n))
 
 
 class XYZTracker(Tracker):
@@ -212,46 +216,49 @@ class dXYZMagnitudeTracker(Tracker):
         return [dXYZ / len(self.pids)]
 
 
-class RMSDTracker(Tracker):
-    def __init__(
-            self,
-            name,
-            rmsd_func,
-            hs_0,
-            hs_1,
-            pids_0,
-            pids_1,
-            occs_0,
-            occs_1
-    ):
-        Tracker.__init__(
-            self,
-            name=name,
-            m=hs_0[0].get_model(),
-            n=1
-        )
-        self.hs_0 = hs_0
-        self.hs_1 = hs_1
-        self.pids_0 = pids_0
-        self.pids_1 = pids_1
-        self.occs_0 = occs_0
-        self.occs_1 = occs_1
-        self.rmsd_func = rmsd_func
+class MultiStateMultiConditionRMSDTracker(Tracker):
+    def __init__(self, name, msmc_0, msmc_1):
+        Tracker.__init__(self, name=name, m=msmc_0.get_m(), n=1)
+        self.msmc_0 = msmc_0
+        self.msmc_1 = msmc_1
 
-
-    def evaluate(
-            self
-    ):
-        rmsd = self.rmsd_func(
-            h_0s=self.hs_0,
-            h_1s=self.hs_1,
-            pids_0=self.pids_0,
-            pids_1=self.pids_1,
-            occs_0=self.occs_0,
-            occs_1=self.occs_1
+    def evaluate(self):
+        rmsd = get_multi_state_multi_cond_rmsd(
+            self.msmc_0,
+            self.msmc_1
         )
 
-        return [float(rmsd)]
+        return [rmsd]
+
+
+# class RMSDTracker(Tracker):
+#     def __init__(
+#             self,
+#             name,
+#             rmsd_func,
+#             msmc_0,
+#             msmc_1
+#     ):
+#         Tracker.__init__(
+#             self,
+#             name=name,
+#             m=msmc_m_0.get_m(),
+#             n=1
+#         )
+
+#         self.msmc_0 = msmc_0
+#         self.msmc_1 = msmc_1
+
+
+#     def evaluate(
+#             self
+#     ):
+#         rmsd = self.rmsd_func(
+#             self.msmc_0,
+#             self.msmc_1
+#         )
+
+#         return [float(rmsd)]
 
 
 ## tracker between 2 center of masses to track translational shift of protein during trajectories
