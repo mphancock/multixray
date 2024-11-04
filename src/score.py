@@ -132,18 +132,16 @@ def pool_score(
                 f = align_imp.compute_rmsd_dom_state
             elif score_f == "avg_delta_w":
                 f = align_imp.compute_avg_delta_weight
+
+            ## NEED TO FIX
             score = f(
                     h_0s=h_decoys,
                     h_1s=ref_msmc_m.get_hs(),
-                    pids_0=decoy_msmc_m.get_ca_pids(0),
-                    pids_1=ref_msmc_m.get_ca_pids(0),
+                    pids_0=decoy_msmc_m.get_ca_pids(),
+                    pids_1=ref_msmc_m.get_ca_pids(),
                     occs_0=decoy_msmc_m.get_occs_for_condition_i(0),
                     occs_1=ref_msmc_m.get_occs_for_condition_i(0),
                 )
-        elif score_f == "dom_weight":
-            hs_ordered = align_imp.get_ordered_hs(h_0s=h_decoys)
-            pid_tmp = IMP.atom.Selection(hs_ordered[0]).get_selected_particle_indexes()[0]
-            score = IMP.atom.Atom(m, pid_tmp).get_occupancy()
         elif score_f == "w":
             score = list(w.get_weights())
         else:
@@ -153,58 +151,3 @@ def pool_score(
 
     return scores_dict
 
-
-def score(
-        pdb_files,
-        native_pdb_file,
-        native_cif_file,
-        flags_file,
-        min_res,
-        score_fs,
-        scores_file
-):
-    pool_params = list()
-
-    n_state_decoy = get_n_state_from_pdb_file(pdb_files[0])
-    n_state_ref = get_n_state_from_pdb_file(native_pdb_file)
-
-    for pdb_file in pdb_files:
-        param_dict = dict()
-        param_dict["decoy_file"] = pdb_file
-        param_dict["decoy_occs"] = [1/n_state_decoy]*n_state_decoy
-        param_dict["ref_file"] = native_pdb_file
-        param_dict["ref_occs"] = [1/n_state_ref]*n_state_ref
-        param_dict["cif_file"] = native_cif_file
-        param_dict["flags_file"] = flags_file
-        param_dict["res"] = min_res
-        param_dict["score_fs"] = score_fs
-        param_dict["adp_file"] = None
-        param_dict["ab_file"] = None
-        param_dict["adp_file"] = None
-        param_dict["scale_k1"] = True
-        param_dict["scale"] = True
-
-        pool_params.append(param_dict)
-
-    print("CPUs: {}".format(multiprocessing.cpu_count()))
-    pool_obj = multiprocessing.Pool(
-        multiprocessing.cpu_count()
-    )
-
-    pool_results = pool_obj.imap(
-        pool_score,
-        pool_params
-    )
-
-    columns = ["pdb_file", "native"]
-    columns.extend(score_fs)
-    all_scores_df = pd.DataFrame(columns=columns)
-    i = 0
-    for score_dict in pool_results:
-        print(score_dict)
-        for key in score_dict.keys():
-            all_scores_df.loc[i, key] = score_dict[key]
-
-        i = i+1
-
-    all_scores_df.to_csv(scores_file)
