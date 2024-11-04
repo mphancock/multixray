@@ -200,3 +200,26 @@ def charmm_restraints(
         print(r.get_name(), r.evaluate(False))
 
     return rs
+
+
+class CHARMMDerivHolder():
+    def __init__(self):
+        self.df_dxs = dict()
+
+    def get_df_dxs(self):
+        return self.df_dxs
+
+    def get_mean_magnitude(self):
+        mean_mag = 0
+        for pid in self.df_dxs.keys():
+            mean_mag += self.df_dxs[pid].get_magnitude()
+        mean_mag /= len(self.df_dxs.keys())
+
+        return mean_mag
+
+    def set_df_dxs(self, df_dxs):
+        self.df_dxs = df_dxs
+
+
+
+
