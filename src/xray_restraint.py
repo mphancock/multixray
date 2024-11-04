@@ -21,7 +21,8 @@ class XtalRestraint(IMP.Restraint):
             update_scale,
             update_k1,
             update_freq,
-            r_charmm=None,
+            charmm_holder=None,
+            # r_charmm=None,
             ref_com=None
     ):
         IMP.Restraint.__init__(self, msmc_m.get_m(), "XrayRestraint%1%")
@@ -44,7 +45,8 @@ class XtalRestraint(IMP.Restraint):
         self.target = "ml"
         self.w_xray = w_xray
         self.w_xray_total = None
-        self.r_charmm = r_charmm
+
+        self.charmm_holder = charmm_holder
 
         self.ref_com = ref_com
 
@@ -117,6 +119,14 @@ class XtalRestraint(IMP.Restraint):
 
     def get_update_freq(self):
         return self.update_freq
+
+    def get_mean_magnitude(self):
+        mean_mag = 0
+        for pid in self.df_dxs.keys():
+            mean_mag += self.df_dxs[pid].get_magnitude()
+        mean_mag /= len(self.df_dxs.keys())
+
+        return mean_mag
 
     def do_add_score_and_derivatives(self, sa):
         # Get the reference COM.
@@ -191,16 +201,37 @@ class XtalRestraint(IMP.Restraint):
                 #     self.df_mag_ratio = 1
                 # print(self.w_xray)
 
-                mean_mag_charmm = 0
-                mean_mag_xray = 0
-                for pid in self.pids:
-                    mean_mag_charmm += IMP.core.XYZ(self.get_model().get_particle(pid)).get_derivatives().get_magnitude()
-                    mean_mag_xray += self.df_dxs[pid].get_magnitude()
-                mean_mag_charmm /= len(self.pids)
-                mean_mag_xray /= len(self.pids)
-                mag_ratio = mean_mag_charmm / mean_mag_xray
+                if self.cond == 0:
+                    charmm_df_dxs = dict()
+                    for pid in self.pids:
+                        charmm_df_dxs[pid] = IMP.core.XYZ(self.get_model().get_particle(pid)).get_derivatives()
+
+                    self.charmm_holder.set_df_dxs(charmm_df_dxs)
+
+                charmm_mag = self.charmm_holder.get_mean_magnitude()
+                xray_mag = self.get_mean_magnitude()
+
+                mag_ratio = charmm_mag / xray_mag
+
+                    # mean_mag_charmm = 0
+                    # mean_mag_xray = 0
+                    # for pid in self.pids:
+                    #     mean_mag_charmm += IMP.core.XYZ(self.get_model().get_particle(pid)).get_derivatives().get_magnitude()
+                    #     mean_mag_xray += self.df_dxs[pid].get_magnitude()
+                    # mean_mag_charmm /= len(self.pids)
+                    # mean_mag_xray /= len(self.pids)
+                    # mag_ratio = mean_mag_charmm / mean_mag_xray
+
+                # mag_ratio = get_df_mag_ratio(
+                #     m=self.get_model(),
+                #     pids=self.pids,
+                #     r1=self.r_charmm,
+                #     r2=self
+                # )
 
                 self.w_xray_total = self.w_xray * mag_ratio
+
+                # print(self.w_xray_total)
 
                 # w_xray_fit = self.r_work / self.r_free
 
@@ -212,6 +243,8 @@ class XtalRestraint(IMP.Restraint):
 
         sa.add_score(self.score)
         self.n_evals += 1
+
+        # print("eval")
 
         # rbs = self.msmc_m.get_ligands()
         # for rb in rbs:
