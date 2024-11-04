@@ -59,7 +59,9 @@ def read_job_csv(
     param_dict = dict()
 
     N = int(job_df.loc[job_id]["N"])
+    ref_N = int(job_df.loc[job_id]["ref_N"])
     J = int(job_df.loc[job_id]["J"])
+
     param_dict["N"] = N
     param_dict["J"] = J
 
@@ -71,65 +73,65 @@ def read_job_csv(
             cif_files.append(Path(job_df.loc[job_id]["cif_{}".format(cond)]))
         else:
             cif_files.append(None)
-        ref_files.append(Path(job_df.loc[job_id]["ref_{}".format(cond)]))
 
-    ref_n_state = get_n_state_from_pdb_file(ref_files[0])
-    ref_w_mat = np.ndarray([ref_n_state, J])
+    param_dict["init_pdbs"] = pdb_str_to_msmc_input(job_df.loc[job_id]["init_pdbs"], N)
+    param_dict["ref_pdbs"] = pdb_str_to_msmc_input(job_df.loc[job_id]["ref_pdbs"], ref_N)
 
-    # If the job csv file contains reference weights, use them. Otherwise, use uniform weights.
-    rows = str(job_df.loc[job_id]["ref_weights"]).split(';')
-    matrix = [list(map(float, row.split(','))) for row in rows]
-    ref_w_mat = np.array(matrix)
-    ref_w_mat = ref_w_mat.T
-    # for cond in range(J):
-        # for state in range(ref_n_state):
-        #     col = "w_{}_{}".format(state, cond)
-        #     if col in job_df.columns:
-        #         ref_w_mat[state, cond] = job_df.loc[job_id]["w_{}_{}".format(state, cond)]
-        #     else:
-        #         ref_w_mat[state, cond] = 1/ref_n_state
+    param_dict["init_w_mat"] = build_weights_matrix(job_df, job_id, "init", N, [i for i in range(J)])
+    param_dict["ref_w_mat"] = build_weights_matrix(job_df, job_id, "ref", ref_N, [i for i in range(J)])
 
-    rows = str(job_df.loc[job_id]["init_weights"]).split(';')
-    matrix = [list(map(float, row.split(','))) for row in rows]
-    w_mat = np.array(matrix)
-    w_mat = w_mat.T
-    # w_mat = np.ndarray([N, J])
-    # for cond in range(J):
-    #     if job_df.loc[job_id]["init_weights"] == "uni":
-    #         w_mat[:, cond] = 1/N
-    #     elif job_df.loc[job_id]["init_weights"]:
-    #         rows = job_df.loc[job_id]["init_weights"].split(';')
-    #         matrix = [list(map(float, row.split(','))) for row in rows]
-    #         w_mat = np.array(matrix)
-    #     else:
-    #         raise RuntimeError("No initial weights provided.")
-        # else:
-        #     w_mat[:, cond] = weights.get_weights(floor=0.05, n_state=N)
-    param_dict["w_mat"] = w_mat
 
     param_dict["cifs"] = cif_files
-    param_dict["refs"] = ref_files
-    param_dict["ref_w_mat"] = ref_w_mat
 
     for col in ["w_xray", "xray_freq", "weight_thermo", "vel_thermo", "sample_sched_str", "refine"]:
         param_dict[col] = job_df.loc[job_id][col]
 
-    start_pdb_files = job_df.loc[job_id]["start_pdb_file"].split(",")
-    start_pdb_files = [Path(pdb_file) for pdb_file in start_pdb_files]
-    n_state_pdb_file = get_n_state_from_pdb_file(start_pdb_files[0])
-
-    if n_state_pdb_file == N:
-        param_dict["start_pdb_file"] = [start_pdb_files[0]]
-    elif n_state_pdb_file == 1 and N > 1 and len(start_pdb_files) == 1:
-        param_dict["start_pdb_file"] = [Path(start_pdb_files[0])]*N
-    else:
-        param_dict["start_pdb_file"] = start_pdb_files
-
-    # Optional params
-    for param in ["init_weights"]:
-        if param in job_df.columns:
-            param_dict[param] = job_df.loc[job_id, param]
-        else:
-            param_dict[param] = None
-
     return param_dict
+
+
+## msmc_m takes a list of pdb files and will read all states from all pdbs
+def pdb_str_to_msmc_input(
+    pdb_str,
+    N
+):
+    ## 3 possibilities:
+    ## 1) single N state pdb file
+    ## 2) 1 state pdb file
+    ## 3) N 1 state pdb file
+    pdbs = [Path(pdb) for pdb in pdb_str.split(",")]
+    pdb_n_state = get_n_state_from_pdb_file(pdbs[0])
+
+    msmc_inputs = list()
+    if pdb_n_state == N:
+        msmc_inputs.append(pdbs[0])
+    elif pdb_n_state == 1 and N > 1:
+        for i in range(N):
+            msmc_inputs.append(pdbs[0])
+    else:
+        for i in range(N):
+            msmc_inputs.append(pdbs[i])
+
+    return msmc_inputs
+
+
+def build_weights_matrix(
+    df,
+    row,
+    prefix,
+    N,
+    col_ids
+):
+    w_mat = np.ndarray([N, len(col_ids)])
+
+    for state in range(N):
+        for cond in range(len(col_ids)):
+        # for col_id in col_ids:
+            col_id = col_ids[cond]
+
+            col = "{}_{}_{}".format(prefix, state, col_id)
+            if col not in df.columns:
+                raise RuntimeError("{} not in df columns.".format(col))
+
+            w_mat[state, cond] = df.loc[row, col]
+
+    return w_mat
