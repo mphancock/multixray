@@ -29,23 +29,27 @@ Returns
     rmsd: the rmsd between the average structures of h_1s and h_2s.
 
 """
-def compute_rmsd_between_average(
-        h_0s,
-        h_1s,
-        pids_0,
-        pids_1,
-        occs_0,
-        occs_1
+def get_multi_state_rmsd(
+    h_0s,
+    h_1s,
+    pids_0,
+    pids_1,
+    occs_0,
+    occs_1
 ):
-    avg_dict_1 = average_structure.get_coord_avg_dict(
+    avg_dict_0 = average_structure.get_coord_avg_dict(
         hs=h_0s,
         occs=occs_0
     )
 
-    avg_dict_2 = average_structure.get_coord_avg_dict(
+    avg_dict_1 = average_structure.get_coord_avg_dict(
         hs=h_1s,
         occs=occs_1
     )
+
+    ## check that the length of the dictionaries is equal
+    if len(avg_dict_0) != len(avg_dict_1):
+        raise RuntimeError("The number of atoms in the average structures are not equal: {} and {}".format(len(avg_dict_0), len(avg_dict_1)))
 
     rmsd = 0
     for i in range(len(pids_0)):
@@ -58,9 +62,8 @@ def compute_rmsd_between_average(
         if name_0 != name_1:
             raise RuntimeError("Particle names not equal: {} and {}".format(name_0, name_1))
 
-        # print(h_0s[0].get_model().get_particle_name(pids_0[i]), h_1s[0].get_model().get_particle_name(pids_1[i]))
-        xyz_1 = avg_dict_1[pids_0[i]]
-        xyz_2 = avg_dict_2[pids_1[i]]
+        xyz_1 = avg_dict_0[pids_0[i]]
+        xyz_2 = avg_dict_1[pids_1[i]]
         mag = (xyz_1-xyz_2).get_magnitude()
         rmsd = rmsd+mag**2
 
@@ -68,6 +71,24 @@ def compute_rmsd_between_average(
     rmsd = np.sqrt(rmsd)
 
     return rmsd
+
+
+def get_multi_state_multi_cond_rmsd(
+    msmc_0,
+    msmc_1
+):
+    rmsd = 0
+    for cond in range(msmc_0.get_n_cond()):
+        rmsd += get_multi_state_rmsd(
+            h_0s=msmc_0.get_hs(),
+            h_1s=msmc_1.get_hs(),
+            pids_0=msmc_0.get_pids_in_state(0),
+            pids_1=msmc_1.get_pids_in_state(0),
+            occs_0=msmc_0.get_occs_for_condition(cond).tolist(),
+            occs_1=msmc_1.get_occs_for_condition(cond).tolist()
+        )
+
+    return rmsd / msmc_0.get_n_cond()
 
 
 def compute_rmsd_between_average_pdb(
@@ -318,34 +339,25 @@ def compute_avg_delta_weight(
 
 
 if __name__ == "__main__":
-    pdb_selector = IMP.atom.NonAlternativePDBSelector()
+    from multi_state_multi_condition_model import MultiStateMultiConditionModel
 
-    pdb_file = Path(Path.home(), "xray/dev/29_synthetic_native_3/data/pdbs/7mhf_30/0.pdb")
-    m = IMP.Model()
-    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, pdb_selector)
-    pids = IMP.atom.Selection(hs[0], atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()
-    occs = np.array([0.510587948937655,0.489412051062345])
+    w_mat_0 = np.array([[0.5, 0.5], [0.5, 0.5]])
+    w_mat_1 = np.array([[0.5, 0.5], [0.5, 0.5]])
 
-    ref_pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/121_native_decoys/0/output_24/pdbs/7.pdb")
-    ref_m = IMP.Model()
-    ref_hs = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), ref_m, IMP.atom.AllPDBSelector())
-    ref_pids = IMP.atom.Selection(ref_hs[0], atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()
-    ref_occs = np.array([0.4098692178088230, 0.5901307821911770])
+    msmc_0 = MultiStateMultiConditionModel(
+        pdb_files=[Path(Path.home(), "xray/dev/45_synthetic_native_4/data/pdbs/native.pdb")],
+        w_mat=w_mat_0,
+        crystal_symmetries=None
+    )
 
-    # ref_pdb_file = Path("/wynton/home/sali/mhancock/xray/data/pdbs/7mhf/7mhk.pdb")
-    # ref_m = IMP.Model()
-    # ref_hs = IMP.atom.read_multimodel_pdb(str(ref_pdb_file), ref_m, pdb_selector)
-    # ref_pids = IMP.atom.Selection(ref_hs[0], atom_type=IMP.atom.AtomType("CA")).get_selected_particle_indexes()
-    # ref_occs = np.array([1])
+    msmc_1 = MultiStateMultiConditionModel(
+        pdb_files=[Path(Path.home(), "xray/dev/45_synthetic_native_4/data/pdbs/native.pdb")],
+        w_mat=w_mat_1,
+        crystal_symmetries=None
+    )
 
-    # rmsd = compute_rmsd_between_average(
-    #     h_0s=hs,
-    #     h_1s=ref_hs,
-    #     pids_0=pids,
-    #     pids_1=ref_pids,
-    #     occs_0=occs,
-    #     occs_1=ref_occs
-    # )
-
-    print(len(pids), len(ref_pids))
+    rmsd = get_multi_state_multi_cond_rmsd(
+        msmc_0=msmc_0,
+        msmc_1=msmc_1
+    )
     print(rmsd)
