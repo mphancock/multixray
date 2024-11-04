@@ -233,7 +233,7 @@ class SimulatedAnnealing:
                 self.md.add_optimizer_state(o_state)
 
         ## turn off center of mass adjustment
-        self.com_o_state.turn_off()
+        # self.com_o_state.turn_off()
 
         self.md.setup(self.ps)
         self.md.set_temperature(T_0)

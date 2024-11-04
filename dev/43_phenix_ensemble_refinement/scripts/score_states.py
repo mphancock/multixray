@@ -1,67 +1,65 @@
 from pathlib import Path
+import multiprocessing
+
+import pandas as pd
 
 import IMP
 import IMP.atom
 
 import sys
 sys.path.append(str(Path(Path.home(), "xray/src")))
-from cctbx_score import get_score
+# from cctbx_score import get_score
+from score import pool_score
 from miller_ops import get_miller_array, clean_miller_array
 
 if __name__ == "__main__":
-    pdb_file = Path("../data/pdbs/7mhf.pdb")
+    pool_params = list()
 
-    m = IMP.Model()
-    hs = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())
+    pdb_name = "3k0n"
+    scores_file = Path("../data/scores/{}.csv".format(pdb_name))
 
-    pids = list()
-    for h in hs:
-        pids.extend(IMP.atom.Selection(h).get_selected_particle_indexes())
+    pdb_dir = Path("../data/pdbs_state/{}".format(pdb_name))
+    pdb_files = list(pdb_dir.glob("*.pdb"))
+    for pdb_file in pdb_files:
+        param_dict = dict()
+        param_dict["decoy_file"] = pdb_file
+        param_dict["decoy_occs"] = [1]
+        param_dict["ref_file"] = Path(Path.home(), "xray/data/pdbs/3k0m/3k0m_clean.pdb")
+        param_dict["ref_occs"] = [1]
+        param_dict["cif_file"] = Path(Path.home(), "xray/data/cifs/3k0m/{}.cif".format(pdb_name))
+        param_dict["res"] = 0
+        param_dict["score_fs"] = ["ml", "rmsd_avg", "ff"]
+        param_dict["adp_file"] = None
+        param_dict["scale_k1"] = True
+        param_dict["scale"] = True
 
-    print(len(hs))
+        pool_params.append(param_dict)
 
-    f_obs_file = Path(Path.home(), "xray/data/cifs/3k0m/3k0m.cif")
+    # for param in pool_params:
+    #     print(pool_score(param))
 
-    f_obs = get_miller_array(
-            f_obs_file=f_obs_file,
-            label="_refln.intensity_meas"
+    #     break
+
+    print("CPUs: {}".format(multiprocessing.cpu_count()))
+    pool_obj = multiprocessing.Pool(
+        multiprocessing.cpu_count()
     )
-    print(f_obs.indices()[0], f_obs.data()[0])
 
-    f_obs = clean_miller_array(f_obs)
-    status_array = get_miller_array(
-        f_obs_file=f_obs_file,
-        label="_refln.status"
+    pool_results = pool_obj.imap(
+        pool_score,
+        pool_params
     )
-    flags = status_array.customized_copy(data=status_array.data()=="f")
-    f_obs, flags = f_obs.common_sets(other=flags)
 
-    # d_min = 2.0
-    # f_obs = miller_ops.filter_f_obs_resolution(
-    #         f_obs=f_obs,
-    #         d_max=None,
-    #         d_min=d_min
-    # )
-    # flags = miller_ops.filter_f_obs_resolution(
-    #         f_obs=flags,
-    #         d_max=None,
-    #         d_min=d_min
-    # )
+    # columns = ["pdb_file", "native"]
+    # columns.extend(score_fs)
+    # columns = score_dict.keys()
+    all_scores_df = pd.DataFrame()
+    i = 0
+    for score_dict in pool_results:
+        print(score_dict)
+        for key in score_dict.keys():
+            all_scores_df.loc[i, key] = score_dict[key]
 
-    print(f_obs.indices()[0], f_obs.data()[0])
+        i = i+1
 
-    for h in hs:
-        score_dict = get_score(
-            hs=[h],
-            occs=[1],
-            pids=pids,
-            f_obs=f_obs,
-            r_free_flags=flags,
-            target="ml",
-            ab_file=None,
-            update_scale=True,
-            update_k1=False,
-            u_aniso_file=pdb_file,
-            delta=None
-        )
-        print(score_dict["r_free"], score_dict["r_work"], score_dict["score"], score_dict["ff"])
+    all_scores_df.to_csv(scores_file)

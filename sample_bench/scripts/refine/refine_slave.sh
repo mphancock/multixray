@@ -20,6 +20,7 @@ RUN_ID=$((SGE_TASK_ID-1+OFFSET))
 OUT_DIR="$JOB_DIR/output_$RUN_ID"
 
 python ~/xray/sample_bench/scripts/refine/refine_all_models.py --out_dir "$OUT_DIR" $3
+# python refine_output.py --out_dir "$OUT_DIR" $3
 
 [[ -n "$TMPDIR" ]] && qstat -j "$JOB_ID"
 trap 'conda deactivate' EXIT

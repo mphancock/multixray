@@ -85,7 +85,7 @@ def pool_get_stat_info_df(
             if "+" in bonus_field:
                 merge_log_df[bonus_field] = merge_log_df[bonus_field.split("+")].sum(axis=1)
 
-        if len(merge_log_df) > (equil+N):
+        if len(merge_log_df) >= (equil+N):
             stat_df = merge_log_df.nsmallest(N, field)
             stat_df = stat_df[columns]
         else:

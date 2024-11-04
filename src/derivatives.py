@@ -26,6 +26,16 @@ def evaluate_df_dict(
 
     # don't need to 0 because calling the top-level evaluate method which sets derivatives to 0 first
     r.evaluate(True)
+    # for pid in pids:
+    #     set_df(m, pid, IMP.algebra.Vector3D(0, 0, 0))
+
+    # sa = IMP.ScoreAccumulator()
+    # da = IMP.DerivativeAccumulator()
+    # for r in r.get_restraints():
+    #     r.unprotected_evaluate(da)
+
+    # da = IMP.DerivativeAccumulator()
+    # r.unprotected_evaluate(da)
 
     ## get the restraint derivatives and reset to the original derivatives
     for pid in pids:
@@ -78,19 +88,19 @@ def get_df_mag_ratio(
         r1,
         r2
 ):
-    df_dict_1 = r1.get_df_dict()
-    df_dict_2 = r2.get_df_dict()
+    # df_dict_1 = r1.get_df_dict()
+    # df_dict_2 = r2.get_df_dict()
 
-    # dx_dict_1 = get_df_dict(
-    #     m=m,
-    #     pids=pids,
-    #     r=r1
-    # )
-    # dx_dict_2 = get_df_dict(
-    #     m=m,
-    #     pids=pids,
-    #     r=r2
-    # )
+    dx_dict_1 = get_df_dict(
+        m=m,
+        pids=pids,
+        r=r1
+    )
+    dx_dict_2 = get_df_dict(
+        m=m,
+        pids=pids,
+        r=r2
+    )
     avg_mag_1, avg_mag_2 = 0, 0
 
     for pid in pids:

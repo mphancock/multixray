@@ -16,11 +16,18 @@ def get_f_obs(
     reader = cif_input.any_reflection_file(file_name=str(cif_file))
     miller_arrays = reader.as_miller_arrays()
 
+    label = None
     for i in range(len(miller_arrays)):
-        if "_refln.F_meas_au":
+        miller_array = miller_arrays[i]
+        if "_refln.F_meas_au" in miller_array.info().labels:
             label = "_refln.F_meas_au"
-        else:
+            break
+        elif "_refln.intensity_meas" in miller_array.info().labels:
             label = "_refln.intensity_meas"
+            break
+
+    if not label:
+        raise RuntimeError("No F_meas_au or intensity_meas found in {}".format(cif_file))
 
     f_obs = get_miller_array(cif_file, label)
 
@@ -88,8 +95,8 @@ def filter_f_obs_resolution(
 
 
 if __name__ == "__main__":
-    f_obs_file = Path("/Users/matthew/Documents/xray/data/cifs/7mhf/7mhf.cif")
-    get_miller_array(f_obs_file, "_refln.F_meas_au")
+    f_obs_file = Path("/wynton/home/sali/mhancock/xray/dev/45_synthetic_native_4/data/cifs/native_0.cif")
+    get_f_obs(f_obs_file)
 
 
 

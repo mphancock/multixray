@@ -16,7 +16,7 @@ import IMP.algebra
 from cctbx.crystal import symmetry
 
 sys.path.append(str(Path(Path.home(), "xray/src")))
-from charmm import get_charmm_restraint_set
+from charmm import get_charmm_restraint_set, CHARMMDerivHolder
 import xray_restraint
 import trackers
 import com_restraint
@@ -62,13 +62,7 @@ if __name__ == "__main__":
     N = params_dict["N"]
     J = params_dict["J"]
     cif_files = params_dict["cifs"]
-    ref_pdb_files = params_dict["refs"]
-    ref_w_mat = params_dict["ref_w_mat"]
     w_xray = params_dict["w_xray"]
-    w_mat = params_dict["w_mat"]
-
-    # Optional params
-    init_weights = params_dict["init_weights"]
 
     # write_params_csv(param_dict=params_dict, param_file=Path(out_dir, "params.csv"))
 
@@ -85,38 +79,21 @@ if __name__ == "__main__":
                 cif_file=cif_files[cond]
             ))
 
-    # Setup ref models.
-    pdb_sel = IMP.atom.NonAlternativePDBSelector()
-    ref_msmc_ms = list()
-    for cond in range(J):
-        ref_msmc_m = multi_state_multi_condition_model.MultiStateMultiConditionModel(
-            pdb_files=[ref_pdb_files[cond]],
-            w_mat=ref_w_mat,
-            crystal_symmetries=[crystal_symmetries[cond]]
-        )
-
-        ref_msmc_ms.append(ref_msmc_m)
-
-    ### REPRESENTATION
+    ## REPRESENTATION
     msmc_m = multi_state_multi_condition_model.MultiStateMultiConditionModel(
-        pdb_files=params_dict["start_pdb_file"],
-        w_mat=w_mat,
+        pdb_files=params_dict["init_pdbs"],
+        w_mat=params_dict["init_w_mat"],
+        crystal_symmetries=crystal_symmetries
+    )
+
+    ref_msmc_m = multi_state_multi_condition_model.MultiStateMultiConditionModel(
+        pdb_files=params_dict["ref_pdbs"],
+        w_mat=params_dict["ref_w_mat"],
         crystal_symmetries=crystal_symmetries
     )
 
     ### SCORING
     m, hs = msmc_m.get_m(), msmc_m.get_hs()
-    # rset_charmm = IMP.RestraintSet(m, 1.0)
-
-    # for h in hs:
-        # charmm_rs = charmm.charmm_restraints(
-        #     m,
-        #     h,
-        #     eps=False
-        # )
-        # rset_charmm.add_restraints(charmm_rs)
-
-    # r_charmm = CHARMMRestraint(msmc_m=msmc_m)
     r_charmm = get_charmm_restraint_set(m, hs)
 
     if params_dict["refine"]:
@@ -129,30 +106,19 @@ if __name__ == "__main__":
 
     # cif file here is a string.
     rset_xray = IMP.RestraintSet(m, 1.0)
+    charmm_deriv_holder = CHARMMDerivHolder()
     for i in range(len(cif_files)):
         cif_file = cif_files[i]
         if not cif_file:
             continue
 
-        # f_obs_array = miller_ops.get_miller_array(
-        #     f_obs_file=cif_file,
-        #     # label="_refln.F_meas_au"
-        #     label="_refln.intensity_meas"
-        # )
         f_obs = get_f_obs(cif_file=cif_file)
         f_obs = clean_miller_array(f_obs)
 
-        # Set flags from file.
-        # status_array = miller_ops.get_miller_array(
-        #     f_obs_file=cif_file,
-        #     label="_refln.status"
-        # )
-        # flags_array = status_array.customized_copy(data=status_array.data()=="f")
         flags = get_flags(cif_file=cif_file)
         f_obs, flags = f_obs.common_sets(other=flags)
 
-        # print("N_OBS: ", len(f_obs.data()), len(flags.data()))
-        com = ref_msmc_ms[i].get_com()
+        # com = ref_msmc_ms[i].get_com()
 
         xray_freq = params_dict["xray_freq"]
         r_xray = xray_restraint.XtalRestraint(
@@ -160,13 +126,11 @@ if __name__ == "__main__":
             cond=i,
             f_obs=f_obs,
             free_flags=flags,
-            w_xray=w_xray,
+            w_xray=w_xray/len(cif_files),
             update_scale=True,
             update_k1=True,
             update_freq=xray_freq,
-            # ref_com=com
-            # shadow_restraint=r_tracker_charmm,
-            r_charmm=r_charmm,
+            charmm_holder=charmm_deriv_holder,
             ref_com=None
         )
 
@@ -232,24 +196,12 @@ if __name__ == "__main__":
         )
         all_trackers.append(r_factor_tracker)
 
-    # for cond in range(J):
-    #     if cif_files[cond]:
-    #         ref_name = "rmsd_{}".format(cif_files[cond].stem)
-    #     else:
-    #         ref_name = "rmsd_{}".format(cond)
-
-    #     ref_msmc_m = ref_msmc_ms[cond]
-    #     rmsd_all_tracker = trackers.RMSDTracker(
-    #         name=ref_name,
-    #         rmsd_func=align_imp.compute_rmsd_between_average,
-    #         hs_0=msmc_m.get_hs(),
-    #         hs_1=ref_msmc_m.get_hs(),
-    #         pids_0=msmc_m.get_ca_pids(0),
-    #         pids_1=ref_msmc_m.get_ca_pids(0),
-    #         occs_0=msmc_m.get_w_mat()[:, cond],
-    #         occs_1=ref_msmc_m.get_w_mat()[:, 0]
-    #     )
-    #     all_trackers.append(rmsd_all_tracker)
+    rmsd_tracker = trackers.MultiStateMultiConditionRMSDTracker(
+        name="rmsd",
+        msmc_0=msmc_m,
+        msmc_1=ref_msmc_m
+    )
+    all_trackers.append(rmsd_tracker)
 
     weight_labels = list()
     for state in range(N):
@@ -392,19 +344,19 @@ if __name__ == "__main__":
 
     ## all other trackers
     ## track RMSD of each state
-    print(msmc_m.get_w_mat().shape)
-    for state in range(N):
-        rmsd_tracker = trackers.RMSDTracker(
-            name="rmsd_{}".format(state),
-            rmsd_func=align_imp.compute_rmsd_between_average,
-            hs_0=[msmc_m.get_hs()[state]],
-            hs_1=[ref_msmc_ms[0].get_hs()[0]],
-            pids_0=msmc_m.get_ca_pids_in_state(state),
-            pids_1=ref_msmc_ms[0].get_ca_pids_in_state(0),
-            occs_0=np.array([1]),
-            occs_1=np.array([1])
-        )
-        all_trackers.append(rmsd_tracker)
+    # print(msmc_m.get_w_mat().shape)
+    # for state in range(N):
+    #     rmsd_tracker = trackers.RMSDTracker(
+    #         name="rmsd_{}".format(state),
+    #         rmsd_func=align_imp.compute_rmsd_between_average,
+    #         hs_0=[msmc_m.get_hs()[state]],
+    #         hs_1=[ref_msmc_ms[0].get_hs()[0]],
+    #         pids_0=msmc_m.get_ca_pids_in_state(state),
+    #         pids_1=ref_msmc_ms[0].get_ca_pids_in_state(0),
+    #         occs_0=np.array([1]),
+    #         occs_1=np.array([1])
+    #     )
+    #     all_trackers.append(rmsd_tracker)
 
     # ## track the center of mass of the model
     # delta_tracker = trackers.DeltaTracker(
@@ -415,12 +367,12 @@ if __name__ == "__main__":
     # all_trackers.append(delta_tracker)
 
     ## track the magnitude of the center of mass of the model
-    delta_mag_tracker = trackers.DeltaMagnitudeTracker(
-        name="com_delta_mag",
-        msmc_1=msmc_m,
-        msmc_2=ref_msmc_ms[0]
-    )
-    all_trackers.append(delta_mag_tracker)
+    # delta_mag_tracker = trackers.DeltaMagnitudeTracker(
+    #     name="com_delta_mag",
+    #     msmc_1=msmc_m,
+    #     msmc_2=ref_msmc_ms[0]
+    # )
+    # all_trackers.append(delta_mag_tracker)
 
     ## track the weight of the xray restraints
     if len(r_xrays) > 0:
@@ -450,20 +402,15 @@ if __name__ == "__main__":
     r_charmm.evaluate(calc_derivs=True)
     rset_xray.evaluate(calc_derivs=True)
 
-    # evaluate_df_dict(
-    #     m=m,
-    #     pids=msmc_m.get_pids(),
-    #     r=rset_charmm
-    # )
-
     log_ostate.update()
 
     # Need one absolute center of mass
-    com_os = com_optimizer_state.CenterOfMassOptimizerState(
-        m=m,
-        pids=msmc_m.get_ca_pids(),
-        ref_com=ref_msmc_ms[0].get_com()
-    )
+    # com_os = com_optimizer_state.CenterOfMassOptimizerState(
+    #     m=m,
+    #     pids=msmc_m.get_ca_pids(),
+    #     ref_com=ref_msmc_ms[0].get_com()
+    # )
+    com_os = None
 
     ## Max step of 2 just to run 1 cycle of the sampling schedule
     sa_sched = SimulatedAnnealingSchedule(sa_string=params_dict["sample_sched_str"])

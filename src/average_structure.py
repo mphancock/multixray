@@ -94,8 +94,6 @@ def get_coord_avg_dict(
         hs,
         occs
 ):
-    occs = occs.tolist()
-
     if occs and len(occs) != len(hs):
         raise RuntimeError("The length of the weights list is not equal to the number of structures: {} and {}".format(len(occs), len(hs)))
 
