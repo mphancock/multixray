@@ -41,18 +41,16 @@ class MultiStateMultiConditionModel:
             w_mat,
             crystal_symmetries
     ):
-        print("setting up ", pdb_files, w_mat)
+        print("SETTING UP MULTI STATE MULTI CONDITION MODEL")
         self.m = IMP.Model()
         self.set_w_mat(w_mat)
-
-        print(self.n_state)
 
         ## for testing purposes
         if not crystal_symmetries:
             self.crystal_symmetries = [cctbx.crystal.symmetry(
                 unit_cell=(100, 100, 100, 90, 90, 90),
                 space_group_symbol="P 1"
-            )]
+            )]*self.n_cond
         else:
             self.crystal_symmetries = crystal_symmetries
 
@@ -67,43 +65,64 @@ class MultiStateMultiConditionModel:
 
         self.hs = list()
 
+        ## the selector the imp reader
         pdb_selectors = [IMP.atom.NonAlternativePDBSelector()]
         sel = pdb_selectors[0]
         for i in range(1, len(pdb_selectors)):
             sel = IMP.atom.AndPDBSelector(sel, pdb_selectors[i])
 
-        ## if it is a single state pdb file then need to deal with altlocs
-        if pdb_file_n_state == 1 and self.n_state >= 1:
-            ## create a tmp list to store the individual xray hierarchies
-            xray_hs = list()
-            self.multi_xray_h = root()
-
-            for state in range(self.n_state):
-                pdb_file = pdb_files[state]
-                self.hs.append(IMP.atom.read_pdb(str(pdb_file), self.m, sel))
-                xray_h, crystal_symmetry = read_non_altloc_structure(pdb_file)
-                # self.crystal_symmetry = crystal_symmetry
-
-                ## merge the xray hierarchies as well into the multi state xray hierarchy
-                model = xray_h.only_model()
-                model.id = str(state+1)
-                self.multi_xray_h.append_model(model.detached_copy())
-        ## there's an assumption that the multistate pdb file doesn't contain altlocs
-        elif pdb_file_n_state == self.n_state:
-            pdb_file = pdb_files[0]
+        model_id = 1
+        self.multi_xray_h = root()
+        for pdb_file in pdb_files:
+            print(pdb_file)
             self.hs.extend(IMP.atom.read_multimodel_pdb(str(pdb_file), self.m, sel))
+
             pdb_inp = pdb.input(file_name=str(pdb_file))
-            self.multi_xray_h = pdb_inp.construct_hierarchy()
-            # self.crystal_symmetry = pdb_inp.crystal_symmetry()
-        else:
-            raise RuntimeError("Number of states in pdb file ({}) does not match the number of states in the model ({}).".format(pdb_file_n_state, self.n_state))
+            hierarchy = pdb_inp.construct_hierarchy()
+
+            ## the selector for the cctbx reader
+            asc = hierarchy.atom_selection_cache()
+            xray_sel = asc.selection("not altloc 'B'")
+            hierarchy = hierarchy.select(xray_sel)
+
+            models = hierarchy.models()
+            for model in models:
+                model.id = str(model_id)
+                self.multi_xray_h.append_model(model.detached_copy())
+
+                model_id += 1
+
+        ## if it is a single state pdb file then need to deal with altlocs
+        # if pdb_file_n_state == 1 and self.n_state >= 1:
+        #     ## create a tmp list to store the individual xray hierarchies
+        #     xray_hs = list()
+        #     self.multi_xray_h = root()
+
+        #     for state in range(self.n_state):
+        #         pdb_file = pdb_files[state]
+        #         self.hs.append(IMP.atom.read_pdb(str(pdb_file), self.m, sel))
+        #         xray_h, crystal_symmetry = read_non_altloc_structure(pdb_file)
+        #         # self.crystal_symmetry = crystal_symmetry
+
+        #         ## merge the xray hierarchies as well into the multi state xray hierarchy
+        #         model = xray_h.only_model()
+        #         model.id = str(state+1)
+        #         self.multi_xray_h.append_model(model.detached_copy())
+        # ## there's an assumption that the multistate pdb file doesn't contain altlocs
+        # elif pdb_file_n_state == self.n_state:
+        #     pdb_file = pdb_files[0]
+        #     self.hs.extend(IMP.atom.read_multimodel_pdb(str(pdb_file), self.m, sel))
+        #     pdb_inp = pdb.input(file_name=str(pdb_file))
+        #     self.multi_xray_h = pdb_inp.construct_hierarchy()
+        #     # self.crystal_symmetry = pdb_inp.crystal_symmetry()
+        # else:
+        #     raise RuntimeError("Number of states in pdb file ({}) does not match the number of states in the model ({}).".format(pdb_file_n_state, self.n_state))
 
         ## the models can only be used to modify atoms but share references with the multi hierarchy
         ## not hierarchies and can't be used to write pdbs or make atom selections
         if len(self.hs) != len(self.multi_xray_h.models()):
             raise RuntimeError("Number of IMP hierarchies ({}) does not match the number of xray hierarchies ({})".format(len(self.hs), len(self.multi_xray_h.models())))
 
-        print("SETTING UP MODEL", pdb_files)
         print("NO STATES: ", len(self.hs))
         print("NO CONDITIONS: ", self.n_cond)
         pids = IMP.atom.Selection(self.hs[0]).get_selected_particle_indexes()
@@ -185,6 +204,9 @@ class MultiStateMultiConditionModel:
     def get_n_state(self):
         return self.n_state
 
+    def get_n_cond(self):
+        return self.n_cond
+
     def get_w_mat(self):
         return self.w_mat
 
@@ -245,7 +267,7 @@ class MultiStateMultiConditionModel:
         )
         return self.com
 
-    def get_occs_for_condition_i(self, i):
+    def get_occs_for_condition(self, i):
         return self.w_mat[:,i]
 
     def get_ligands(self):
