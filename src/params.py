@@ -5,6 +5,7 @@ import math
 from pathlib import Path
 
 from utility import get_n_state_from_pdb_file
+from weights import get_random_w_mat
 
 
 def write_params_txt(
@@ -65,11 +66,10 @@ def read_job_csv(
     param_dict["N"] = N
     param_dict["J"] = J
 
+    ## if there are no cif files then don't read in any cif files
     cif_files, ref_files = list(), list()
     for cond in range(J):
-        print(job_df.loc[job_id, "cif_0"], type(job_df.loc[job_id, "cif_0"]))
-
-        if type(job_df.loc[job_id, "cif_{}".format(cond)]) == str:
+        if "cif_{}".format(cond) in job_df.columns:
             cif_files.append(Path(job_df.loc[job_id]["cif_{}".format(cond)]))
         else:
             cif_files.append(None)
@@ -77,7 +77,15 @@ def read_job_csv(
     param_dict["init_pdbs"] = pdb_str_to_msmc_input(job_df.loc[job_id]["init_pdbs"], N)
     param_dict["ref_pdbs"] = pdb_str_to_msmc_input(job_df.loc[job_id]["ref_pdbs"], ref_N)
 
-    param_dict["init_w_mat"] = build_weights_matrix(job_df, job_id, "init", N, [i for i in range(J)])
+    ## if the init_w column is in the job_df, then we will build the weights matrix from the job_df
+    ## else we will generate a random matrix
+    if "init_w_0_0" in job_df.columns:
+        init_w_mat = build_weights_matrix(job_df, job_id, "init_w", N, [i for i in range(J)])
+    else:
+        init_w_mat = get_random_w_mat(N, J)
+
+    param_dict["init_w_mat"] = init_w_mat
+
     param_dict["ref_w_mat"] = build_weights_matrix(job_df, job_id, "ref", ref_N, [i for i in range(J)])
 
 
