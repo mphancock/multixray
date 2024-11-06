@@ -36,6 +36,14 @@ def get_weights_from_hs(hs):
     return weights
 
 
+def get_random_w_mat(N, J):
+    w_mat = np.random.rand(N, J)
+    column_sums = w_mat.sum(axis=0)
+    w_mat = w_mat / column_sums[np.newaxis, :]
+
+    return w_mat
+
+
 def get_weights(
     floor,
     n_state,
