@@ -9,7 +9,7 @@ import IMP
 import IMP.atom
 import IMP.isd
 
-import align_imp
+from align_imp import get_multi_state_multi_cond_rmsd
 import cctbx_score
 import charmm
 import miller_ops
@@ -43,11 +43,15 @@ def pool_score(
         params
 ):
     decoy_file=params["decoy_file"]
-    decoy_occs = params["decoy_occs"]
+    decoy_w_mat = params["decoy_w_mat"]
     ref_file=params["ref_file"]
-    ref_occs=params["ref_occs"]
-    cif_file=params["cif_file"]
+    ref_w_mat=params["ref_w_mat"]
     score_fs=params["score_fs"]
+
+    if "cif_files" in params:
+        cif_files=params["cif_files"]
+    else:
+        cif_files=None
 
     scores_dict = dict()
     # Indicate the native structure.
@@ -58,30 +62,39 @@ def pool_score(
 
     scores_dict["pdb_file"] = str(decoy_file)
 
-    decoy_w_mat = np.ndarray(shape=[len(decoy_occs), 1])
-    decoy_w_mat[:,0] = decoy_occs
+    # decoy_w_mat = np.ndarray(shape=[len(decoy_occs), 1])
+    # decoy_w_mat[:,0] = decoy_occs
 
-    crystal_symmetry = miller_ops.get_crystal_symmetry(cif_file)
+    if cif_files:
+        crystal_symmetries = list()
+        for cif_file in cif_files:
+            crystal_symmetries.append(miller_ops.get_crystal_symmetry(cif_file))
+    else:
+        crystal_symmetries = None
+
     decoy_msmc_m = MultiStateMultiConditionModel(
         pdb_files=[decoy_file],
         w_mat=decoy_w_mat,
-        crystal_symmetries=[crystal_symmetry]
+        crystal_symmetries=crystal_symmetries
     )
     h_decoys = decoy_msmc_m.get_hs()
 
-    ref_w_mat = np.ndarray(shape=[len(ref_occs), 1])
-    ref_w_mat[:,0] = ref_occs
+    # ref_w_mat = np.ndarray(shape=[len(ref_occs), 1])
+    # ref_w_mat[:,0] = ref_occs
     ref_msmc_m = MultiStateMultiConditionModel(
         pdb_files=[ref_file],
         w_mat=ref_w_mat,
-        crystal_symmetries=[crystal_symmetry]
+        crystal_symmetries=None
     )
 
     for score_f in score_fs:
         if score_f in ["ff", "bnd", "ang", "dih", "imp", "eps", "nbd"]:
             charmm_rset = get_charmm_restraint_set(decoy_msmc_m.get_m(), h_decoys)
             score = charmm_rset.evaluate(False)
-        elif score_f in ["ml", "ls"]:
+        elif "xray" in score_f:
+            cond = int(score_f.split("_")[1])
+            cif_file = cif_files[cond]
+
             f_obs = get_f_obs(cif_file)
             flags = get_flags(cif_file)
             f_obs, flags = f_obs.common_sets(other=flags)
@@ -107,7 +120,7 @@ def pool_score(
 
             xray_r = XtalRestraint(
                 msmc_m=decoy_msmc_m,
-                cond=0,
+                cond=cond,
                 f_obs=f_obs,
                 free_flags=flags,
                 w_xray=1,
@@ -118,30 +131,41 @@ def pool_score(
             )
             xray_r.evaluate(False)
             score = xray_r.get_f()
-            scores_dict["r_free"] = xray_r.get_r_free()
-            scores_dict["r_work"] = xray_r.get_r_work()
-            scores_dict["r_all"] = xray_r.get_r_all()
+            scores_dict["r_free_{}".format(cond)] = xray_r.get_r_free()
+            scores_dict["r_work_{}".format(cond)] = xray_r.get_r_work()
 
-            scores_dict["cif_file"] = cif_file
-        elif score_f in ["rmsd_avg", "rmsd_ord", "rmsd_dom", "avg_delta_w"]:
-            if score_f == "rmsd_avg":
-                f = align_imp.compute_rmsd_between_average
-            elif score_f == "rmsd_ord":
-                f = align_imp.compute_rmsd_ordered
-            elif score_f == "rmsd_dom":
-                f = align_imp.compute_rmsd_dom_state
-            elif score_f == "avg_delta_w":
-                f = align_imp.compute_avg_delta_weight
+            scores_dict["cif_files"] = cif_files
+        elif "rmsd" == score_f:
+            score = get_multi_state_multi_cond_rmsd(
+                decoy_msmc_m,
+                ref_msmc_m
+            )
+        elif "rmsd" in score_f:
+            cond = int(score_f.split("_")[1])
+            score = get_multi_state_multi_cond_rmsd(
+                decoy_msmc_m,
+                ref_msmc_m,
+                cond
+            )
 
-            ## NEED TO FIX
-            score = f(
-                    h_0s=h_decoys,
-                    h_1s=ref_msmc_m.get_hs(),
-                    pids_0=decoy_msmc_m.get_ca_pids(),
-                    pids_1=ref_msmc_m.get_ca_pids(),
-                    occs_0=decoy_msmc_m.get_occs_for_condition_i(0),
-                    occs_1=ref_msmc_m.get_occs_for_condition_i(0),
-                )
+            # if score_f == "rmsd_avg":
+            #     f = align_imp.compute_rmsd_between_average
+            # elif score_f == "rmsd_ord":
+            #     f = align_imp.compute_rmsd_ordered
+            # elif score_f == "rmsd_dom":
+            #     f = align_imp.compute_rmsd_dom_state
+            # elif score_f == "avg_delta_w":
+            #     f = align_imp.compute_avg_delta_weight
+
+            # ## NEED TO FIX
+            # score = f(
+            #         h_0s=h_decoys,
+            #         h_1s=ref_msmc_m.get_hs(),
+            #         pids_0=decoy_msmc_m.get_ca_pids(),
+            #         pids_1=ref_msmc_m.get_ca_pids(),
+            #         occs_0=decoy_msmc_m.get_occs_for_condition_i(0),
+            #         occs_1=ref_msmc_m.get_occs_for_condition_i(0),
+            #     )
         elif score_f == "w":
             score = list(w.get_weights())
         else:
