@@ -65,30 +65,43 @@ def get_multi_state_rmsd(
         xyz_1 = avg_dict_0[pids_0[i]]
         xyz_2 = avg_dict_1[pids_1[i]]
         mag = (xyz_1-xyz_2).get_magnitude()
+
         rmsd = rmsd+mag**2
 
     rmsd = rmsd/len(pids_0)
     rmsd = np.sqrt(rmsd)
 
-    return rmsd
+    return float(rmsd)
 
 
 def get_multi_state_multi_cond_rmsd(
     msmc_0,
-    msmc_1
+    msmc_1,
+    cond=None # None means all conditions
 ):
+    if msmc_0.get_n_cond() != msmc_1.get_n_cond():
+        raise RuntimeError("Number of conditions not equal: {} and {}".format(msmc_0.get_n_cond(), msmc_1.get_n_cond()))
+
     rmsd = 0
-    for cond in range(msmc_0.get_n_cond()):
-        rmsd += get_multi_state_rmsd(
+    # for cond in range(msmc_0.get_n_cond()):
+
+    if cond is None:
+        conds = range(msmc_0.get_n_cond())
+    else:
+        conds = [cond]
+
+    for cond in conds:
+        cond_rmsd = get_multi_state_rmsd(
             h_0s=msmc_0.get_hs(),
             h_1s=msmc_1.get_hs(),
-            pids_0=msmc_0.get_pids_in_state(0),
-            pids_1=msmc_1.get_pids_in_state(0),
+            pids_0=msmc_0.get_ca_pids_in_state(0),
+            pids_1=msmc_1.get_ca_pids_in_state(0),
             occs_0=msmc_0.get_occs_for_condition(cond).tolist(),
             occs_1=msmc_1.get_occs_for_condition(cond).tolist()
         )
+        rmsd += cond_rmsd
 
-    return rmsd / msmc_0.get_n_cond()
+    return rmsd / len(conds)
 
 
 def compute_rmsd_between_average_pdb(
@@ -341,11 +354,11 @@ def compute_avg_delta_weight(
 if __name__ == "__main__":
     from multi_state_multi_condition_model import MultiStateMultiConditionModel
 
-    w_mat_0 = np.array([[0.5, 0.5], [0.5, 0.5]])
-    w_mat_1 = np.array([[0.5, 0.5], [0.5, 0.5]])
+    w_mat_0 = np.array([[0.9, 0.1], [0.2, 0.8]])
+    w_mat_1 = np.array([[0.9, 0.1], [0.1, 0.9]])
 
     msmc_0 = MultiStateMultiConditionModel(
-        pdb_files=[Path(Path.home(), "xray/dev/45_synthetic_native_4/data/pdbs/native.pdb")],
+        pdb_files=[Path("/wynton/group/sali/mhancock/xray/sample_bench/out/263_sb_sa_ref/38/output_18/pdbs/499.pdb")],
         w_mat=w_mat_0,
         crystal_symmetries=None
     )
