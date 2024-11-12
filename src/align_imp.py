@@ -8,6 +8,7 @@ import IMP.algebra
 import IMP.isd
 
 import average_structure
+from utility import get_ordered_hs
 
 
 """
@@ -143,3 +144,23 @@ def get_multi_state_rmsd_from_pdbs(
     )
 
     return rmsd
+
+
+def compute_rmsd_between_ordered_states(
+        msmc_0,
+        msmc_1,
+        cond
+):
+    if msmc_0.get_n_state() != msmc_1.get_n_state():
+        raise RuntimeError("Number of states not equal: {} and {}".format(len(h_0s), len(h_1s)))
+
+    h_0s = get_ordered_hs(msmc_0.get_hs(), msmc_0.get_occs_for_condition(cond))
+    h_1s = get_ordered_hs(msmc_1.get_hs(), msmc_1.get_occs_for_condition(cond))
+
+    rmsd = 0
+    for i in range(len(h_0s)):
+        sel_0 = IMP.atom.Selection(h_0s[i], atom_type=IMP.atom.AtomType("CA"))
+        sel_1 = IMP.atom.Selection(h_1s[i], atom_type=IMP.atom.AtomType("CA"))
+        rmsd += IMP.atom.get_rmsd(sel_0, sel_1)
+
+    return rmsd / len(h_0s)
