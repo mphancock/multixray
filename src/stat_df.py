@@ -9,28 +9,30 @@ def pool_get_stat_info_df(
 ):
     log_files = params_dict["log_files"]
     equil = params_dict["equil"]
+
+    ## field and bonus field are the orignal field and bonus field passed in the parameters dict and may include sum fields (eg, xray_0+xray_1)
     field = params_dict["field"]
     bonus_fields = params_dict["bonus_fields"]
 
     if "+" in field:
-        fields = field.split("+")
+        tmp_fields = field.split("+")
     else:
-        fields = [field]
+        tmp_fields = [field]
 
-    # Check the bonus field for +.
-    bonus_fields = list()
-    for bonus_field in params_dict["bonus_fields"]:
+    ## tmp fields and tmp bonus fields are the fields that are actually present in the log files (eg, xray_0, xray_1)
+    tmp_bonus_fields = list()
+    for bonus_field in bonus_fields:
         if "+" in bonus_field:
-            bonus_fields.extend(bonus_field.split("+"))
+            tmp_bonus_fields.extend(bonus_field.split("+"))
         else:
-            bonus_fields.append(bonus_field)
+            tmp_bonus_fields.append(bonus_field)
 
     N = params_dict["N"]
     pdb_only = params_dict["pdb_only"]
     max_rmsd = params_dict["max_rmsd"]
     max_ff = params_dict["max_ff"]
 
-    # Merge the log files into a single dataframe.
+    # merge the log files into a single dataframe.
     log_dfs = []
     for log_file in log_files:
         try:
@@ -43,9 +45,8 @@ def pool_get_stat_info_df(
             continue
 
         invalid = False
-        check_fields = list()
-        check_fields.extend(bonus_fields)
-        check_fields.extend(fields)
+        check_fields = tmp_fields.copy()
+        check_fields.extend(tmp_bonus_fields)
 
         for i in range(len(check_fields)):
             tmp_field = check_fields[i]
@@ -69,25 +70,20 @@ def pool_get_stat_info_df(
 
         log_dfs.append(log_df)
 
-    columns = [field]
-    columns.extend(params_dict["bonus_fields"])
-    columns = list(set(columns))
-    merge_log_df = pd.DataFrame(columns=columns)
-
+    merge_log_df = pd.DataFrame()
     if len(log_dfs) > 0:
         merge_log_df = pd.concat(log_dfs)
 
-        # Merge back + fields and bonus fields.
-        if len(fields) > 1:
-            merge_log_df[field] = merge_log_df[fields].sum(axis=1)
+        # compute the sum fields
+        if len(tmp_fields) > 1:
+            merge_log_df[field] = merge_log_df[tmp_fields].sum(axis=1)
 
-        for bonus_field in params_dict["bonus_fields"]:
+        for bonus_field in bonus_fields:
             if "+" in bonus_field:
                 merge_log_df[bonus_field] = merge_log_df[bonus_field.split("+")].sum(axis=1)
 
         if len(merge_log_df) >= (equil+N):
             stat_df = merge_log_df.nsmallest(N, field)
-            stat_df = stat_df[columns]
         else:
             print("Not enough entries to compute stat: {}".format(log_files))
             stat_df = merge_log_df
@@ -95,9 +91,12 @@ def pool_get_stat_info_df(
         print("No valid log dfs")
         stat_df = merge_log_df
 
-    all_fields = [field]
-    all_fields.extend(bonus_fields)
-    stat_df = stat_df[all_fields]
+    ## columns to ask for in the final stat_df
+    columns = [field]
+    columns.extend(bonus_fields)
+    columns = list(set(columns))
+
+    stat_df = stat_df[columns]
 
     return stat_df
 
@@ -141,7 +140,7 @@ def get_stat_df(
         pool_params.append(pool_param)
 
     # Collect all of the field stat dfs and log file groups that are returned by get_stat_from_log_files. The field stat dfs will be used to populate the final stat df. The format of the field stat dfs has the following columns: field, stat, value, log, id. The df will only have more than one row if the stat is either "max" or "min" and N>1.
-    pool_results = list()
+    # pool_results = list()
     # for pool_param in pool_params:
     #     pool_results.append(pool_get_stat_info_df(pool_param))
 
@@ -163,24 +162,18 @@ def get_stat_df(
 
 
 if __name__ == "__main__":
-    job_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/166_N1/6")
-    # log_files = [Path(out_dir, "log.csv") for out_dir in job_dir.glob("*/")]
+    job_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/267_full_ref/0")
     log_files = [Path(job_dir, "output_0/log.csv")]
     print(log_files)
 
     stat_df = get_stat_df(
         log_files=log_files,
-        field="xray_0+xray_1",
+        field="xray_native_0+xray_native_1",
         N=1,
-        bonus_fields=["pdb", "ff"],
-        equil=1,
+        bonus_fields=["pdb", "ff", "rmsd_native_0+rmsd_native_1"],
+        equil=0,
         pdb_only=True
     )
 
     print(stat_df.columns)
     print(stat_df.head())
-
-    # print(stat_df.columns)
-    # print(stat_df.iloc[0, 0])
-    # print(stat_df.iloc[0, 1])
-    # print(stat_df.iloc[0, 2])
