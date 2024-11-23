@@ -180,16 +180,9 @@ def refine_posterior(
     pdb_file,
     cif_files,
     w_mat,
-    ref_pdb_file
+    ref_pdb_file,
+    n_step
 ):
-    ### REPRESENTATION
-    # w_mat = np.array([
-    #     [0.9, 0.1],
-    #     [0.1, 0.9]
-    # ])
-
-    # cif_files = [Path(Path.home(), "xray/dev/45_synthetic_native_4/data/cifs/native_0.cif"), Path(Path.home(), "xray/dev/45_synthetic_native_4/data/cifs/native_1.cif")]
-
     N, J = w_mat.shape
 
     crystal_symmetries = []
@@ -206,17 +199,6 @@ def refine_posterior(
 
     ### SCORING
     m, hs = msmc_m.get_m(), msmc_m.get_hs()
-    # rset_charmm = IMP.RestraintSet(m, 1.0)
-
-    # for h in hs:
-        # charmm_rs = charmm.charmm_restraints(
-        #     m,
-        #     h,
-        #     eps=False
-        # )
-        # rset_charmm.add_restraints(charmm_rs)
-
-    # r_charmm = CHARMMRestraint(msmc_m=msmc_m)
     r_charmm = get_charmm_restraint_set(m, hs)
 
     # cif file here is a string.
@@ -227,24 +209,12 @@ def refine_posterior(
         if not cif_file:
             continue
 
-        # f_obs_array = miller_ops.get_miller_array(
-        #     f_obs_file=cif_file,
-        #     # label="_refln.F_meas_au"
-        #     label="_refln.intensity_meas"
-        # )
         f_obs = get_f_obs(cif_file=cif_file)
         f_obs = clean_miller_array(f_obs)
 
-        # Set flags from file.
-        # status_array = miller_ops.get_miller_array(
-        #     f_obs_file=cif_file,
-        #     label="_refln.status"
-        # )
-        # flags_array = status_array.customized_copy(data=status_array.data()=="f")
         flags = get_flags(cif_file=cif_file)
         f_obs, flags = f_obs.common_sets(other=flags)
 
-        # print("N_OBS: ", len(f_obs.data()), len(flags.data()))
         r_xray = xray_restraint.XtalRestraint(
             msmc_m=msmc_m,
             cond=i,
@@ -254,9 +224,6 @@ def refine_posterior(
             update_scale=True,
             update_k1=True,
             update_freq=1,
-            # ref_com=com
-            # shadow_restraint=r_tracker_charmm,
-            # r_charmm=r_charmm,
             charmm_holder=charmm_deriv_holder,
             ref_com=None
         )
@@ -272,14 +239,13 @@ def refine_posterior(
     sf_refine = IMP.core.RestraintsScoringFunction([r_charmm, rset_xray])
     cg = IMP.core.ConjugateGradients(msmc_m.get_m())
     cg.set_scoring_function(sf_refine)
-    cg.optimize(50)
+    cg.optimize(n_step)
 
     IMP.atom.write_multimodel_pdb(hs, str(ref_pdb_file))
 
     score_dict = dict()
     score_dict["ff"] = r_charmm.evaluate(True)
 
-    # for cif_file in cif_files:
     for i in range(J):
         cif_name = cif_files[i].stem
         score_dict["r_free_{}".format(cif_name)] = r_xrays[i].get_r_free()
@@ -287,11 +253,3 @@ def refine_posterior(
         score_dict["xray_{}".format(cif_name)] = r_xrays[i].get_score()
 
     return score_dict
-
-    # score_dict["r_free_0"] = r_xrays[0].get_r_free()
-    # score_dict["r_free_1"] = r_xrays[1].get_r_free()
-    # score_dict["r_work_0"] = r_xrays[0].get_r_work()
-    # score_dict["r_work_1"] = r_xrays[1].get_r_work()
-    # score_dict["pdb_file"] = pdb_file
-
-    # return score_dict

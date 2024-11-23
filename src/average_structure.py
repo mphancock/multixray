@@ -181,20 +181,3 @@ def get_average_pdb_file_from_pdb_files(
 
     # print(rmsd_df.head())
     return rmsd_df.idxmin()["rmsd"]
-
-
-# if __name__ == "__main__":
-#     data_dir = Path(Path.home(), "xray/sample_bench/unit_tests/data")
-#     pdb_files=[Path(data_dir, "0.pdb"), Path(data_dir, "1.pdb"), Path(data_dir, "2.pdb")]
-#     coord_avg_dict = get_coord_avg_dict_from_pdb_files(
-#         pdb_files=pdb_files
-#     )
-
-#     print(coord_avg_dict.values())
-
-#     avg_pdb_file = get_average_pdb_file_from_pdb_files(
-#         pdb_files=pdb_files,
-#     )
-#     print(avg_pdb_file)
-
-#     # print(avg_rmsd_df.head())

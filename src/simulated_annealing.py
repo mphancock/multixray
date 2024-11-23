@@ -10,7 +10,6 @@ import IMP.atom
 
 sys.path.append(str(Path(Path.home(), "xray/src")))
 import params
-import reset
 import pdb_writer
 import log_statistics
 from trackers import TempTracker
@@ -120,9 +119,12 @@ class SimulatedAnnealingSchedule:
             pids_dof = msmc_m.get_pids()
         elif dof == "S":
             pids_dof = msmc_m.get_all_side_pids()
-        elif dof[0].isnumeric():
-            start, end = dof.split("-")
-            pids_dof = msmc_m.get_pids_in_res_range(int(start), int(end))
+        elif dof.isnumeric():
+            state = int(dof)
+            pids_dof = msmc_m.get_pids_in_state(state)
+        # elif dof[0].isnumeric():
+        #     start, end = dof.split("-")
+        #     pids_dof = msmc_m.get_pids_in_res_range(int(start), int(end))
         else:
             raise ValueError("Invalid dof: {}".format(dof))
 
@@ -158,7 +160,6 @@ class SimulatedAnnealing:
         msmc_m,
         rset_xray,
         r_charmm,
-        t_step,
         n_step,
         sa_sched,
         log_o_state,
@@ -170,7 +171,7 @@ class SimulatedAnnealing:
         self.msmc_m = msmc_m
         self.rset_xray = rset_xray
         self.r_charmm = r_charmm
-        self.t_step = t_step
+        self.t_step = 1
         self.n_step = n_step
         self.sa_sched = sa_sched
         self.log_o_state = log_o_state
@@ -190,7 +191,9 @@ class SimulatedAnnealing:
 
         # self.s_v = IMP.atom.VelocityScalingOptimizerState(self.m, self.ps, T_0)
         # self.s_v.set_period(10)
-        self.md.set_particles(self.ps)
+        # self.md.set_particles(self.ps)
+        dof_pids_0 = sa_sched.get_pids_for_degrees_of_freedom(0, msmc_m)
+        self.md.set_particles([self.m.get_particle(pid) for pid in dof_pids_0])
 
         self.ff_sf = IMP.core.RestraintsScoringFunction([r_charmm])
         self.xray_sf = IMP.core.RestraintsScoringFunction([r_charmm, rset_xray])
@@ -264,9 +267,6 @@ class SimulatedAnnealing:
                     r_xray = self.rset_xray.get_restraint(i)
                     r_xray.set_d_min(res)
 
-                ## need to evaluate in this order
-                # sf = IMP.core.RestraintsScoringFunction([self.rset_charmm, self.shadow_restraint, self.rset_xray])
-
                 ## turn on the xray related trackers (eg, r free)
                 for tracker in self.log_o_state.get_trackers():
                     if tracker.get_xray_only():
@@ -274,8 +274,6 @@ class SimulatedAnnealing:
 
                 self.md.set_scoring_function(self.xray_sf)
             else:
-                # sf = IMP.core.RestraintsScoringFunction([rset_charmm])
-
                 ## turn off the xray related trackers (eg, r free)
                 for tracker in self.log_o_state.get_trackers():
                     if tracker.get_xray_only():
@@ -286,7 +284,9 @@ class SimulatedAnnealing:
             # self.md.set_scoring_function(sf)
 
             ## set the pids for degrees of freedom
-            self.md.set_particles([self.m.get_particle(pid) for pid in self.sa_sched.get_pids_for_degrees_of_freedom(cur_sa_step, self.msmc_m)])
+            dof_pids = self.sa_sched.get_pids_for_degrees_of_freedom(cur_sa_step, self.msmc_m)
+            print(len(dof_pids))
+            self.md.set_particles([self.m.get_particle(pid) for pid in dof_pids])
 
             ## turn on/off the weight optimizer states
             self.weight_o_state.set_on(self.sa_sched.get_weight_on(cur_sa_step))
@@ -300,14 +300,13 @@ class SimulatedAnnealing:
 
             T = self.sa_sched.get_temperature(cur_sa_step)
             n_frames = self.sa_sched.get_steps(cur_sa_step)
-            t_step = 1
 
             # self.s_v.set_temperature(T)
             self.md.set_temperature(T)
-            self.md.set_maximum_time_step(t_step)
+            self.md.set_maximum_time_step(self.t_step)
             self.md.set_velocity_cap(.25)
 
-            self.md.simulate(n_frames*t_step)
+            self.md.simulate(n_frames*self.t_step)
 
             cur_step = cur_step + n_frames
             cur_sa_step = (cur_sa_step + 1) % sa_sched.get_n_sa_steps()

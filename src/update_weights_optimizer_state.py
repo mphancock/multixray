@@ -61,7 +61,7 @@ class UpdateWeightsOptimizerState(IMP.OptimizerState):
         all_tmp_occs = [cur_occs]
         for _ in range(self.n_proposals):
             tmp_occs = weights.get_weights(
-                floor=.05,
+                floor=.001,
                 n_state=len(cur_occs),
                 occs_cur=cur_occs,
                 sigma=.05
