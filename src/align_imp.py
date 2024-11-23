@@ -146,7 +146,7 @@ def get_multi_state_rmsd_from_pdbs(
     return rmsd
 
 
-def compute_rmsd_between_ordered_states(
+def compute_rmsds_between_ordered_states(
         msmc_0,
         msmc_1,
         cond
@@ -157,10 +157,72 @@ def compute_rmsd_between_ordered_states(
     h_0s = get_ordered_hs(msmc_0.get_hs(), msmc_0.get_occs_for_condition(cond))
     h_1s = get_ordered_hs(msmc_1.get_hs(), msmc_1.get_occs_for_condition(cond))
 
-    rmsd = 0
+    rmsds = list()
     for i in range(len(h_0s)):
         sel_0 = IMP.atom.Selection(h_0s[i], atom_type=IMP.atom.AtomType("CA"))
         sel_1 = IMP.atom.Selection(h_1s[i], atom_type=IMP.atom.AtomType("CA"))
-        rmsd += IMP.atom.get_rmsd(sel_0, sel_1)
+        rmsds.append(IMP.atom.get_rmsd(sel_0, sel_1))
 
-    return rmsd / len(h_0s)
+    return rmsds
+
+
+def compute_weight_errors_between_ordered_states(
+        msmc_0,
+        msmc_1,
+        cond
+):
+    if msmc_0.get_n_state() != msmc_1.get_n_state():
+        raise RuntimeError("Number of states not equal: {} and {}".format(len(h_0s), len(h_1s)))
+
+    h_0s = get_ordered_hs(msmc_0.get_hs(), msmc_0.get_occs_for_condition(cond))
+    h_1s = get_ordered_hs(msmc_1.get_hs(), msmc_1.get_occs_for_condition(cond))
+
+    occs_0 = msmc_0.get_occs_for_condition(cond).tolist()
+    occs_0.sort(reverse=True)
+    occs_1 = msmc_1.get_occs_for_condition(cond).tolist()
+    occs_1.sort(reverse=True)
+
+    errors = list()
+    for i in range(len(h_0s)):
+        occ_0 = occs_0[i]
+        occ_1 = occs_1[i]
+
+        errors.append((occ_0-occ_1)**2)
+
+    return errors
+
+
+if __name__ == "__main__":
+    from multi_state_multi_condition_model import MultiStateMultiConditionModel
+
+    decoy_msmc_m = MultiStateMultiConditionModel(
+        pdb_files=[Path("/wynton/home/sali/mhancock/xray/dev/45_synthetic_native_4/data/pdbs/native.pdb")],
+        w_mat=np.array([[1, 0], [0, 1]]),
+        crystal_symmetries=None
+    )
+    h_decoys = decoy_msmc_m.get_hs()
+
+    # ref_w_mat = np.ndarray(shape=[len(ref_occs), 1])
+    # ref_w_mat[:,0] = ref_occs
+    # ref_msmc_m = MultiStateMultiConditionModel(
+    #     pdb_files=[Path("/wynton/home/sali/mhancock/xray/dev/45_synthetic_native_4/data/pdbs/native.pdb")],
+    #     w_mat=np.array([[.9, .1], [.1, 0.9]]),
+    #     crystal_symmetries=None
+    # )
+
+    dict_0 = average_structure.get_coord_avg_dict(
+        hs=decoy_msmc_m.get_hs(),
+        occs=[1, 0]
+    )
+
+    dict_1 = average_structure.get_coord_avg_dict(
+        hs=decoy_msmc_m.get_hs(),
+        occs=[0, 1]
+    )
+
+    test_pid = decoy_msmc_m.get_ca_pids_in_state(0)[0]
+    print(dict_0[test_pid])
+    print(dict_1[test_pid])
+
+    # print(get_multi_state_multi_cond_rmsd(decoy_msmc_m, ref_msmc_m, 0))
+    # print(get_multi_state_multi_cond_rmsd(decoy_msmc_m, ref_msmc_m, 1))
