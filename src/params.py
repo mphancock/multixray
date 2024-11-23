@@ -112,7 +112,7 @@ def pdb_str_to_msmc_input(
     msmc_inputs = list()
     if pdb_n_state == N:
         msmc_inputs.append(pdbs[0])
-    elif pdb_n_state == 1 and N > 1:
+    elif pdb_n_state == 1 and N > 1 and len(pdbs) == 1:
         for i in range(N):
             msmc_inputs.append(pdbs[0])
     else:
