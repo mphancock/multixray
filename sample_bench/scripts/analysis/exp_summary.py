@@ -7,9 +7,8 @@ import multiprocessing
 import IMP
 import IMP.atom
 
-sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
-from get_stat_df_simple import get_stat_df
 sys.path.append(str(Path(Path.home(), "xray/src")))
+from stat_df import get_stat_df
 from utility import pool_read_pdb
 from params import read_job_csv
 sys.path.append(str(Path(Path.home(), "xray/sample_bench/scripts/analysis_exp")))
@@ -38,17 +37,28 @@ if __name__ == "__main__":
             continue
 
         ## Perform the analysis based on the first r free
-        field = "r_free_{}".format(cif_names[0])
-        bonus_fields = ["r_work_{}".format(cif_names[0])]
+        bonus_fields = list()
+        field = "xray_{}".format(cif_names[0])
         for j in range(1, len(cif_names)):
+            field += "+xray_{}".format(cif_names[j])
+
+        bonus_fields.append("rmsd")
+        for j in range(len(cif_names)):
             bonus_fields.append("r_free_{}".format(cif_names[j]))
             bonus_fields.append("r_work_{}".format(cif_names[j]))
+            bonus_fields.append("xray_{}".format(cif_names[j]))
+            bonus_fields.append("rmsd_{}".format(cif_names[j]))
+
         bonus_fields.extend(["ff", "pdb"])
+        if field in bonus_fields:
+            bonus_fields.remove(field)
 
         N, J = param_dict["N"], param_dict["J"]
         w_cols = list()
         for state in range(N):
-            w_cols.append("w_{}_{}".format(state, cif_names[0]))
+            for cond in range(J):
+                w_cols.append("w_{}_{}".format(state, cif_names[cond]))
+
         bonus_fields.extend(w_cols)
 
         # log_files = [Path(out_dir, "log.csv") for out_dir in job_dir.glob("*/")]
@@ -64,6 +74,7 @@ if __name__ == "__main__":
 
         print(i, len(log_files))
 
+        print(field, bonus_fields)
         stat_df = get_stat_df(
             log_files=log_files,
             field=field,
@@ -81,10 +92,7 @@ if __name__ == "__main__":
         w_xray_df.loc[i, "N"] = N
         w_xray_df.loc[i, "J"] = J
         w_xray_df.loc[i, "w_xray"] = param_dict["w_xray"]
-        w_xray_df.loc[i, "r_free"] = stat_df.loc[0, field]
-
-        for w_col in w_cols:
-            w_xray_df.loc[i, w_col] = stat_df.loc[0, w_col]
+        w_xray_df.loc[i, field] = stat_df.loc[0, field]
 
         for bonus_field in bonus_fields:
             w_xray_df.loc[i, bonus_field] = stat_df.loc[0, bonus_field]
@@ -92,4 +100,4 @@ if __name__ == "__main__":
         for j in range(len(cif_files)):
             w_xray_df.loc[i, "cif_{}".format(j)] = cif_files[j]
 
-    w_xray_df.to_csv(Path(analysis_dir, "w_xray.csv"))
+    w_xray_df.to_csv(Path(analysis_dir, "summary.csv"))

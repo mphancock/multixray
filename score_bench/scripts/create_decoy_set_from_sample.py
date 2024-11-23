@@ -8,8 +8,6 @@ import sys
 import multiprocessing
 import numpy as np
 
-sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
-import get_stat_df
 sys.path.append(str(Path(Path.home(), "xray/src")))
 import weights
 
@@ -18,8 +16,8 @@ def get_random_sample_df(
     log_dfs,
     N,
     equil,
-    rmsd_range,
-    rmsd_id
+    range,
+    field
 ):
     pdb_log_dfs = list()
 
@@ -28,7 +26,7 @@ def get_random_sample_df(
 
         # remove the first structure.
         pdb_log_df = pdb_log_df.iloc[equil:]
-        pdb_log_df = pdb_log_df[(pdb_log_df['rmsd_{}'.format(rmsd_id)] >= rmsd_range[0]) & (pdb_log_df['rmsd_{}'.format(rmsd_id)] <= rmsd_range[1])]
+        pdb_log_df = pdb_log_df[(pdb_log_df[field] >= range[0]) & (pdb_log_df[field] <= range[1])]
         pdb_log_dfs.append(pdb_log_df)
 
     merge_log_df = pd.concat(pdb_log_dfs)
@@ -91,24 +89,19 @@ def get_all_log_dfs(
 
 
 if __name__ == "__main__":
-    target = "7mhf"
-    job_name = "155_native_N4_decoys"
+    exp_name = "268_decoys_1_state"
 
-    rmsd_ranges = [[0,0.25],[.25,0.5],[0,0.25],[.25,0.5]]
-    rmsd_ids = [0,0,1,1]
-    n_decoys = [250, 250, 250, 250]
+    rmsd_ranges = [[0,0.25],[.25,1.0]]
+    n_decoys = [750, 250]
 
-    job_dir = Path(Path.home(), "xray/score_bench/data", target, job_name)
+    job_dir = Path(Path.home(), "xray/score_bench/data", exp_name)
     job_dir.mkdir(exist_ok=True)
 
-    sample_job_dirs = list()
-    for i in range(10):
-        sample_job_dirs.append(Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/{}/{}".format(job_name, i)))
-
-    n_state = 4
-    n_cond = 2
+    n_state = 1
+    n_cond = 1
     decoy_meta_file = Path(job_dir, "rand1000.csv")
 
+    sample_job_dirs = [Path("/wynton/group/sali/mhancock/xray/sample_bench/out/{}/0".format(exp_name)),Path("/wynton/group/sali/mhancock/xray/sample_bench/out/{}/1".format(exp_name))]
 
     out_dirs = get_valid_output_dirs(job_dirs=sample_job_dirs)
     log_files = [Path(out_dir, "log.csv") for out_dir in out_dirs]
@@ -124,16 +117,19 @@ if __name__ == "__main__":
             log_dfs=log_dfs,
             N=n_decoys[i],
             equil=1,
-            rmsd_range=rmsd_ranges[i],
-            rmsd_id=rmsd_ids[i]
+            range=rmsd_ranges[i],
+            field="rmsd"
         )
         sample_dfs.append(sample_df)
 
-    columns = ["pdb"]
-    for i in range(n_state):
-        columns.append("w_{}_".format(i))
-
     decoy_df = pd.concat(sample_dfs)
-    decoy_df.drop(columns=["time", "step", "copy"], inplace=True)
+
+    cols = ["pdb", "ff", "rmsd"]
+    for state in range(n_state):
+        for cond in range(n_cond):
+            cols.append("w_{}_{}".format(state, cond))
+    decoy_df = decoy_df[cols]
+
+    # decoy_df.drop(columns=["time", "step", "copy"], inplace=True)
     decoy_df.reset_index(drop=True, inplace=True)
     decoy_df.to_csv(decoy_meta_file)

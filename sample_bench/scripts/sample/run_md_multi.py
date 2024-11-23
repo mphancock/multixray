@@ -19,13 +19,11 @@ sys.path.append(str(Path(Path.home(), "xray/src")))
 from charmm import get_charmm_restraint_set, CHARMMDerivHolder
 import xray_restraint
 import trackers
-import com_restraint
 import log_statistics
 import align_imp
 import pdb_writer
 import com_optimizer_state
 import update_weights_optimizer_state
-import reset
 from simulated_annealing import SimulatedAnnealing, SimulatedAnnealingSchedule
 from params import write_params_txt, write_params_csv, read_job_csv
 from miller_ops import get_crystal_symmetry, get_f_obs, get_flags, clean_miller_array
@@ -171,10 +169,7 @@ if __name__ == "__main__":
     ## if there is 1 condition there may be 1 or 0 xray restraints
     ## else there must be an extra restraint for each condition
     n_xray_rs = rset_xray.get_number_of_restraints()
-    if J == 1:
-        assert n_xray_rs in [0, 1]
-    else:
-        assert n_xray_rs == J
+    assert n_xray_rs == 0 or n_xray_rs == J
 
     for cond in range(n_xray_rs):
         r_xray = rset_xray.get_restraint(cond)
@@ -418,7 +413,6 @@ if __name__ == "__main__":
         msmc_m=msmc_m,
         rset_xray=rset_xray,
         r_charmm=r_charmm,
-        t_step=2,
         n_step=2,
         sa_sched=sa_sched,
         log_o_state=log_ostate,

@@ -26,22 +26,12 @@ for JOB_ID in {0..9}
 do
     JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf/$JOB_NAME/$JOB_ID"
 
-    if [ $N_COND -eq 1 ]; then
-        FIELD="xray_0"
-        BONUS_FIELDS="rmsd_0"
-    else
-        FIELD="xray_0+xray_1"
-        BONUS_FIELDS="rmsd_0+rmsd_1,pdb"
-    fi
-
+    FIELD="xray_0+xray_1"
     echo $FIELD
     FILE="$SAMPLE_BENCH_DIR"/volume_"$FIELD"_"$JOB_ID".csv
     python sample_volume_bench.py --job_dir "$JOB_DIR" --field "$FIELD" --bonus_fields  "$BONUS_FIELDS" --file "$FILE"
 
-    if [ $N_COND -eq 1 ]; then
-        FIELD="rmsd_0"
-    else
-        FIELD="rmsd_0+rmsd_1"
+    FIELD="rmsd"
     fi
     BONUS_FIELDS="pdb"
 

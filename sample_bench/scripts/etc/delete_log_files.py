@@ -35,7 +35,7 @@ def should_delete_file(log_file):
     Returns a tuple of the file path and a boolean indicating if it should be deleted.
     """
     creation_time = get_creation_time(log_file)
-    delete_file = file_created_before_date(log_file, 2024, 9, 22)
+    delete_file = file_created_before_date(log_file, 2024, 11, 4)
     print(f"{log_file} {creation_time} {delete_file}")
     return log_file, delete_file
 
