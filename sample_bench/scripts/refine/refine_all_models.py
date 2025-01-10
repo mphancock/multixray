@@ -129,7 +129,7 @@ if __name__ == "__main__":
         decoy_w_mat = build_weights_matrix(refined_log_df, i, "w", N, cif_names)
 
         param_dict = dict()
-        param_dict["decoy_file"] = refined_pdb_file
+        param_dict["decoy_files"] = [refined_pdb_file]
         param_dict["decoy_w_mat"] = decoy_w_mat
 
         ## only 1 ref file for synthetic benchmark

@@ -1,14 +1,14 @@
 #! /bin/bash
 
 
-EXP_ID=267
-EXP_NAME="267_full"
-N_JOBS="1-1000"
+EXP_ID=271
+EXP_NAME="271_native_2_wxray"
+N_JOBS="1-25"
 OFFSET="0"
 
 H_RT="24:00:00"
 
-for JOB_ID in {0..2}
+for JOB_ID in {0..17}
 do
     JOB_NAME="$JOB_ID"
     JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/$EXP_NAME/$JOB_NAME"

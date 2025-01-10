@@ -14,7 +14,7 @@ module load CBI conda-stage
 conda activate imp_221_cctbx
 
 
-python /wynton/home/sali/mhancock/xray/score_bench/scripts/score_decoys_new.py --decoy_file /wynton/home/sali/mhancock/xray/score_bench/data/268_decoys_1_state/rand1000.csv
+python /wynton/home/sali/mhancock/xray/score_bench/scripts/score_decoys_new.py --decoy_file ~/xray/score_bench/data/268_decoys_1_state/rand1000_minor.csv --N 2 --J 1
 
 [[ -n "$TMPDIR" ]] && qstat -j "$JOB_ID"
 

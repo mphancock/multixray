@@ -229,6 +229,8 @@ class XtalRestraint(IMP.Restraint):
                 #     r2=self
                 # )
 
+                print(mag_ratio)
+
                 self.w_xray_total = self.w_xray * mag_ratio
 
                 # print(self.w_xray_total)

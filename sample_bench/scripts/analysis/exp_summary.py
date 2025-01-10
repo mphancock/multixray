@@ -16,8 +16,8 @@ sys.path.append(str(Path(Path.home(), "xray/sample_bench/scripts/analysis_exp"))
 
 
 if __name__ == "__main__":
-    exp_name = "263_sb_sa_ref"
-    job_csv_file = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/params/263.csv")
+    exp_name = "271_native_2_wxray"
+    job_csv_file = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/params/271.csv")
     params_df = pd.read_csv(job_csv_file, index_col=0)
 
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out", exp_name)
@@ -41,13 +41,14 @@ if __name__ == "__main__":
         field = "xray_{}".format(cif_names[0])
         for j in range(1, len(cif_names)):
             field += "+xray_{}".format(cif_names[j])
+        # field = "r_free_{}".format(cif_names[0])
 
         bonus_fields.append("rmsd")
         for j in range(len(cif_names)):
             bonus_fields.append("r_free_{}".format(cif_names[j]))
             bonus_fields.append("r_work_{}".format(cif_names[j]))
             bonus_fields.append("xray_{}".format(cif_names[j]))
-            bonus_fields.append("rmsd_{}".format(cif_names[j]))
+            # bonus_fields.append("rmsd_{}".format(cif_names[j]))
 
         bonus_fields.extend(["ff", "pdb"])
         if field in bonus_fields:

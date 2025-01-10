@@ -15,15 +15,15 @@ from utility import get_ordered_hs
 Function to compute the RMSD between 2 multi-state models. The function assumes that the 2 models contain compositionally identical states. The multi-state RMSD is computed by averaging the coordinates of the atoms in each state and then computing the RMSD between the two average structures.
 
 Params
-    h_0s: list of hierarchies for the first model.
-    h_1s: list of hierarchies for the second model.
-    pids_0: list of particle ids for one state of the first model.
-    pids_1: list of particle ids for one state of the second model.
-    occs_0: list of weights for the first model.
-    occs_1: list of weights for the second model.
+    h_0s (list): list of hierarchies for the first model.
+    h_1s (list): list of hierarchies for the second model.
+    pids_0 (list): list of particle ids for one state of the first model.
+    pids_1 (list): list of particle ids for one state of the second model.
+    occs_0 (list): list of weights for the first model.
+    occs_1 (list): list of weights for the second model.
 
 Returns
-    rmsd: the RMSD between the two models.
+    rmsd (float): the RMSD between the two models.
 """
 def get_multi_state_rmsd(
     h_0s,
@@ -111,41 +111,16 @@ def get_multi_state_multi_cond_rmsd(
 
 
 """
-Function to compute the RMSD between 2 pdb files containing multi-state models. The function assumes that the 2 models contain compositionally identical states.
+Function to compute the RMSDs between the states of 2 multi-state multi-condition models. The states are ordered based on whatever condition is being compared. The 2 multi-state multi-condition models must contain the same number of compositionally identical states.
 
 Params
-    pdb_0: the first pdb file.
-    pdb_1: the second pdb file.
+    msmc_0 (MultiStateMultiConditionModel): the first multi-state multi-condition model.
+    msmc_1 (MultiStateMultiConditionModel): the second multi-state multi-condition model.
+    cond (int): the condition to compare.
 
 Returns
-    rmsd: the RMSD between the two models.
+    rmsds (list): the RMSDs between the states of the two models.
 """
-def get_multi_state_rmsd_from_pdbs(
-        pdb_0,
-        pdb_1
-):
-    m, m_0 = IMP.Model(), IMP.Model()
-    hs_0 = IMP.atom.read_multimodel_pdb(str(pdb_0), m, IMP.atom.AllPDBSelector())
-    hs_1 = IMP.atom.read_multimodel_pdb(str(pdb_1), m_0, IMP.atom.AllPDBSelector())
-
-    pids_0 = IMP.atom.Selection(hs_0[0]).get_selected_particle_indexes()
-    pids_1 = IMP.atom.Selection(hs_1[0]).get_selected_particle_indexes()
-
-    occs_0 = np.array([1/len(hs_0)]*len(hs_0))
-    occs_1 = np.array([1/len(hs_1)]*len(hs_1))
-
-    rmsd = compute_rmsd_between_average(
-        h_0s=hs_0,
-        h_1s=hs_1,
-        pids_0=pids_0,
-        pids_1=pids_1,
-        occs_0=occs_0,
-        occs_1=occs_1
-    )
-
-    return rmsd
-
-
 def compute_rmsds_between_ordered_states(
         msmc_0,
         msmc_1,
@@ -166,6 +141,17 @@ def compute_rmsds_between_ordered_states(
     return rmsds
 
 
+"""
+Function to compute the weight errors between the states of 2 multi-state multi-condition models. The states are ordered based on whatever condition is being compared. The 2 multi-state multi-condition models must contain the same number of compositionally identical states.
+
+Params
+    msmc_0 (MultiStateMultiConditionModel): the first multi-state multi-condition model.
+    msmc_1 (MultiStateMultiConditionModel): the second multi-state multi-condition model.
+    cond (int): the condition to compare.
+
+Returns
+    errors (list): the weight errors between the states of the two models.
+"""
 def compute_weight_errors_between_ordered_states(
         msmc_0,
         msmc_1,
@@ -190,39 +176,3 @@ def compute_weight_errors_between_ordered_states(
         errors.append((occ_0-occ_1)**2)
 
     return errors
-
-
-if __name__ == "__main__":
-    from multi_state_multi_condition_model import MultiStateMultiConditionModel
-
-    decoy_msmc_m = MultiStateMultiConditionModel(
-        pdb_files=[Path("/wynton/home/sali/mhancock/xray/dev/45_synthetic_native_4/data/pdbs/native.pdb")],
-        w_mat=np.array([[1, 0], [0, 1]]),
-        crystal_symmetries=None
-    )
-    h_decoys = decoy_msmc_m.get_hs()
-
-    # ref_w_mat = np.ndarray(shape=[len(ref_occs), 1])
-    # ref_w_mat[:,0] = ref_occs
-    # ref_msmc_m = MultiStateMultiConditionModel(
-    #     pdb_files=[Path("/wynton/home/sali/mhancock/xray/dev/45_synthetic_native_4/data/pdbs/native.pdb")],
-    #     w_mat=np.array([[.9, .1], [.1, 0.9]]),
-    #     crystal_symmetries=None
-    # )
-
-    dict_0 = average_structure.get_coord_avg_dict(
-        hs=decoy_msmc_m.get_hs(),
-        occs=[1, 0]
-    )
-
-    dict_1 = average_structure.get_coord_avg_dict(
-        hs=decoy_msmc_m.get_hs(),
-        occs=[0, 1]
-    )
-
-    test_pid = decoy_msmc_m.get_ca_pids_in_state(0)[0]
-    print(dict_0[test_pid])
-    print(dict_1[test_pid])
-
-    # print(get_multi_state_multi_cond_rmsd(decoy_msmc_m, ref_msmc_m, 0))
-    # print(get_multi_state_multi_cond_rmsd(decoy_msmc_m, ref_msmc_m, 1))

@@ -198,10 +198,14 @@ def randomize_amplitude(
         mean = amp
 
         if dist == "norm":
-            f_obs.data()[i] = np.random.normal(
+            rand_amp = np.random.normal(
                 loc=mean,
-                scale=std
+                scale=mean*std
             )
+            if rand_amp < 0:
+                rand_amp = 0
+
+            f_obs.data()[i] = rand_amp
         elif dist == "uni":
             if mean-std < 0:
                 low = 0
