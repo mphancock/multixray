@@ -3,7 +3,7 @@
 
 EXP_ID=272
 EXP_NAME="272_correct_w_wxray"
-N_JOBS="1-100"
+N_JOBS="1-200"
 OFFSET="0"
 H_RT="24:00:00"
 JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/272.csv"

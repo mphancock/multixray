@@ -242,7 +242,8 @@ def refine_posterior(
         m=m,
         pids=msmc_m.get_pids(),
         charmm_holder=charmm_deriv_holder,
-        xray_rs=r_xrays
+        xray_rs=r_xrays,
+        w_xray=1
     )
     m.add_score_state(deriv_score_state)
 

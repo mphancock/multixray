@@ -78,13 +78,17 @@ if __name__ == "__main__":
     ## drop any rows that have pdb as nan
     refined_log_df.reset_index(drop=True, inplace=True)
 
+    ## if end only then only refine the last row
     if args.end_only:
         ## need to [[ ]] else it will return a series
         refined_log_df = refined_log_df.loc[[len(refined_log_df)-1]]
         refined_log_df.reset_index(drop=True, inplace=True)
+    ## else pick 10 random rows to refine
+    else:
+        refined_log_df = refined_log_df.sample(n=10)
+        refined_log_df.reset_index(drop=True, inplace=True)
 
     pdb_files = list(refined_log_df["pdb"])
-
     for i in range(len(pdb_files)):
         ## Refine pdb_file
         pdb_file = Path(pdb_files[i])
