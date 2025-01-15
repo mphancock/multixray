@@ -1,12 +1,12 @@
 #! /bin/bash
 
 
-EXP_ID=271
-EXP_NAME="271_native_2_wxray"
-N_JOBS="1-25"
+EXP_ID=272
+EXP_NAME="272_correct_w_wxray"
+N_JOBS="1-100"
 OFFSET="0"
 H_RT="24:00:00"
-JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/271.csv"
+JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/272.csv"
 
 
 for JOB_ID in {0..17}

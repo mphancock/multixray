@@ -15,6 +15,7 @@ import trackers
 import log_statistics
 import pdb_writer
 from utility import pool_read_pdb
+from derivatives import DerivScoreState
 
 
 def read_pdb_and_refine_to_max_ff(
@@ -235,6 +236,15 @@ def refine_posterior(
 
     for r_xray in r_xrays:
         r_xray.evaluate(True)
+
+    ## setup score state for updating derivatives
+    deriv_score_state = DerivScoreState(
+        m=m,
+        pids=msmc_m.get_pids(),
+        charmm_holder=charmm_deriv_holder,
+        xray_rs=r_xrays
+    )
+    m.add_score_state(deriv_score_state)
 
     sf_refine = IMP.core.RestraintsScoringFunction([r_charmm, rset_xray])
     cg = IMP.core.ConjugateGradients(msmc_m.get_m())

@@ -5,6 +5,72 @@ import IMP.core
 import IMP.algebra
 
 
+class DerivScoreState(IMP.ScoreState):
+    def __init__(
+        self,
+        m,
+        pids,
+        charmm_holder,
+        xray_rs,
+        w_xray,
+        name="DerivScoreState%1%"
+    ):
+        IMP.ScoreState.__init__(self, m, name)
+        self.m = m
+        self.pids = pids
+        self.charmm_holder = charmm_holder
+        self.xray_rs = xray_rs
+        self.updated = False
+        self.w_xray = w_xray
+
+    def do_before_evaluate(self):
+        self.updated = True
+
+    ## manage derivatives
+    def do_after_evaluate(self, da):
+        self.updated = True
+
+        d_xray_tot = dict()
+        for pid in self.pids:
+            d_xray_tot[pid] = IMP.algebra.Vector3D(0, 0, 0)
+
+        for xray_r in self.xray_rs:
+            d_xray = get_df_dict(
+                m=self.m,
+                pids=self.pids,
+                r=xray_r
+            )
+
+            d_xray_tot = {pid: d_xray_tot[pid] + d_xray[pid] for pid in self.pids}
+
+        ## compute the magnitude of the xray derivatives
+        xray_mag = 0
+        for pid in self.pids:
+            xray_mag += d_xray_tot[pid].get_magnitude()
+
+        xray_mag /= len(self.pids)
+
+        charmm_mag = self.charmm_holder.get_mean_magnitude()
+        charmm_deriv = self.charmm_holder.get_df_dxs()
+
+        mag_ratio = charmm_mag / xray_mag
+
+        total_deriv = {pid: d_xray_tot[pid] * mag_ratio * self.w_xray + charmm_deriv[pid] for pid in self.pids}
+
+        for pid in self.pids:
+            set_df(
+                m=self.m,
+                pid=pid,
+                df=total_deriv[pid]
+            )
+
+    def do_get_inputs(self):
+        return [self.get_model().get_particle(pid) for pid in self.pids]
+
+    def do_get_outputs(self):
+        return [self.get_model().get_particle(pid) for pid in self.pids]
+
+
 ## function to get the derivatives of a restraint r with respect to the position of pids
 def evaluate_df_dict(
         m,

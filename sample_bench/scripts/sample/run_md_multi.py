@@ -30,7 +30,7 @@ from miller_ops import get_crystal_symmetry, get_f_obs, get_flags, clean_miller_
 import weights
 import utility
 import multi_state_multi_condition_model
-from derivatives import evaluate_df_dict
+from derivatives import evaluate_df_dict, DerivScoreState
 
 
 if __name__ == "__main__":
@@ -124,7 +124,7 @@ if __name__ == "__main__":
             cond=i,
             f_obs=f_obs,
             free_flags=flags,
-            w_xray=w_xray/len(cif_files),
+            w_xray=w_xray,
             update_scale=True,
             update_k1=True,
             update_freq=xray_freq,
@@ -315,6 +315,16 @@ if __name__ == "__main__":
     rset_xray.evaluate(calc_derivs=True)
 
     log_ostate.update()
+
+    ## setup score state for updating derivatives
+    deriv_score_state = DerivScoreState(
+        m=m,
+        pids=msmc_m.get_pids(),
+        charmm_holder=charmm_deriv_holder,
+        xray_rs=r_xrays,
+        w_xray=w_xray
+    )
+    m.add_score_state(deriv_score_state)
 
     # Need one absolute center of mass
     # com_os = com_optimizer_state.CenterOfMassOptimizerState(
