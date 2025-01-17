@@ -1,8 +1,8 @@
 #! /bin/bash
 
 
-EXP_ID=273
-EXP_NAME="273_native_3_wxray"
+EXP_ID=274
+EXP_NAME="274_native_3_corr_w"
 N_JOBS="1-1000"
 OFFSET="0"
 H_RT="12:00:00"

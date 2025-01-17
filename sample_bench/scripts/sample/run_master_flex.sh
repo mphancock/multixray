@@ -1,19 +1,19 @@
 #! /bin/bash
 
 
-EXP_ID=274
-EXP_NAME="274_native_3_corr_w"
-N_JOBS="1-1000"
+EXP_ID=275
+EXP_NAME="275_visualization"
+N_JOBS="1-10"
 OFFSET="0"
 H_RT="12:00:00"
 JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/$EXP_ID.csv"
 
 
-for JOB_ID in {0..8}
+for JOB_ID in {0..5}
 do
     JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/$EXP_NAME/$JOB_ID"
 
     PARAMS="--job_csv_file $JOB_FILE --job_id $JOB_ID"
 
-    qsub -N f"$EXP_ID"_"$JOB_ID" -l h_rt=$H_RT -l mem_free=1G -l scratch=1G -t "$N_JOBS" "$HOME/xray/sample_bench/scripts/sample/run_slave.sh" "$JOB_DIR" "$OFFSET" "$PARAMS"
+    qsub -N s"$EXP_ID"_"$JOB_ID" -l h_rt=$H_RT -l mem_free=1G -l scratch=1G -t "$N_JOBS" "$HOME/xray/sample_bench/scripts/sample/run_slave.sh" "$JOB_DIR" "$OFFSET" "$PARAMS"
 done

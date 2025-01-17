@@ -139,29 +139,3 @@ def write_merge_pdb_file(
 
     # Cannot return hs, because the hierarchy objects will get deallocated.
     IMP.atom.write_multimodel_pdb(hs, str(merge_pdb_file))
-
-
-if __name__ == "__main__":
-    pdb_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/259_sb_temp/16/output_0/pdbs")
-    pdb_files = list(pdb_dir.glob("*.pdb"))
-    pdb_files = sorted(pdb_files, key=lambda x: int(Path(x).stem))
-
-    pdb_files = pdb_files[::10]
-
-    # m_0, m_1 = IMP.Model(), IMP.Model()
-    # h_0 = IMP.atom.read_pdb(str(pdb_files[0]), m_0, IMP.atom.AllPDBSelector())
-    # h_1 = IMP.atom.read_pdb(str(pdb_files[1]), m_1, IMP.atom.AllPDBSelector())
-
-    # IMP.atom.write_multimodel_pdb([h_0, h_1], str(Path(Path.home(), "xray/tmp/traj.pdb")))
-
-    print(pdb_files)
-
-    out_file = Path(Path.home(), "xray/tmp/traj.pdb")
-    write_merge_pdb_file(
-        merge_pdb_file=out_file,
-        pdb_files=pdb_files,
-        occs=None,
-        n=-1,
-        order=True,
-        state=0
-    )
