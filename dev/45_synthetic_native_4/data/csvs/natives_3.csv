@@ -1,2 +1,2 @@
-,pdb,cif_0,cif_1,w_0_0,w_0_1,w_1_0,w_1_1
-0,/Users/matthew/Documents/xray/dev/45_synthetic_native_4/data/pdbs/native.pdb,/Users/matthew/Documents/xray/dev/45_synthetic_native_4/data/cifs/native_3_0.cif,/Users/matthew/Documents/xray/dev/45_synthetic_native_4/data/cifs/native_3_1.cif,0.75,0.25,0.25,0.75
+,pdb,cif_0,cif_1,w_0_0,w_0_1,w_1_0,w_1_1,xray_native_0,r_free_native_0,r_work_native_0,rmsd_native_0,ff,xray_native_1,r_free_native_1,r_work_native_1,rmsd_native_1
+0,/Users/matthew/Documents/xray/dev/45_synthetic_native_4/data/pdbs/native.pdb,/Users/matthew/Documents/xray/dev/45_synthetic_native_4/data/cifs/native_3_0.cif,/Users/matthew/Documents/xray/dev/45_synthetic_native_4/data/cifs/native_3_1.cif,0.75,0.25,0.25,0.75,2.915760392426782,0.044437989716066294,0.04186133110595464,,18612.159295034035,2.9247550695283624,0.041296841069312105,0.04197371263585999,
