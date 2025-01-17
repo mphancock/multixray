@@ -5,7 +5,7 @@ import pandas as pd
 
 
 if __name__ == "__main__":
-    job_dir = Path(Path.home(), "xray/sample_bench/data/analysis/267_full_ref")
+    job_dir = Path(Path.home(), "xray/sample_bench/data/analysis/273_native_3_wxray_ref")
     pdb_df_file = Path(job_dir, "summary.csv")
     pdb_df = pd.read_csv(pdb_df_file)
     print(pdb_df.head())

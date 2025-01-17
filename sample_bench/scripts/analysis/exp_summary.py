@@ -38,9 +38,9 @@ if __name__ == "__main__":
 
         ## Perform the analysis based on the first r free
         bonus_fields = list()
-        field = "xray_{}".format(cif_names[0])
+        field = "r_free_{}".format(cif_names[0])
         for j in range(1, len(cif_names)):
-            field += "+xray_{}".format(cif_names[j])
+            field += "+r_free_{}".format(cif_names[j])
         # field = "r_free_{}".format(cif_names[0])
 
         bonus_fields.append("rmsd")
