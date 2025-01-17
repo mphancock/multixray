@@ -1,0 +1,2 @@
+,pdb,cif_0,cif_1,w_0_0,w_0_1,w_1_0,w_1_1,xray_native_0,r_free_native_0,r_work_native_0,rmsd_native_0,ff,xray_native_1,r_free_native_1,r_work_native_1,rmsd_native_1
+0,/Users/matthew/Documents/xray/dev/45_synthetic_native_4/data/pdbs/native.pdb,/Users/matthew/Documents/xray/dev/45_synthetic_native_4/data/cifs/native_2_0_test.cif,/Users/matthew/Documents/xray/dev/45_synthetic_native_4/data/cifs/native_2_1_test.cif,0.75,0.25,0.25,0.75,2.9384989921745652,0.041179496027488945,0.04239847324790509,,18612.159295034035,2.9356160693577658,0.0411412037370865,0.04213316216587529,

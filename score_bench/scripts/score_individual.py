@@ -9,12 +9,12 @@ from score import pool_score
 
 if __name__ == "__main__":
     param_dict = dict()
-    param_dict["decoy_files"] = [Path("/wynton/group/sali/mhancock/xray/sample_bench/out/272_correct_w_wxray_ref/2/output_19/pdbs/499.pdb")]
-    param_dict["decoy_w_mat"] = np.array([[0.25], [0.75]])
+    param_dict["decoy_files"] = [Path("/wynton/home/sali/mhancock/xray/data/pdbs/3k0m/3k0m_clean.pdb")]
+    param_dict["decoy_w_mat"] = np.array([[1.0]])
     param_dict["ref_file"] = Path("/wynton/home/sali/mhancock/xray/dev/45_synthetic_native_4/data/pdbs/native.pdb")
-    param_dict["ref_w_mat"] = np.array([[0.25], [0.75]])
+    param_dict["ref_w_mat"] = np.array([[0.5], [0.5]])
     param_dict["cif_files"] = [Path("/wynton/home/sali/mhancock/xray/dev/45_synthetic_native_4/data/cifs/native_2_1.cif")]
-    # param_dict["flags_file"] = param_dict["cif_file"]
+    # param_dict["flags_file"] = param_dict["cif_fil    e"]
     param_dict["ab_file"] = None
     param_dict["scale_k1"] = True
     param_dict["scale"] = True
