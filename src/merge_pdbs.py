@@ -89,7 +89,11 @@ def write_merge_pdb_file(
     hs_all = list()
     ms_all = list()
 
-    # pdb_files_order = list()
+
+    # Sort based on the numeric part of the filename
+    sorted_pdb_files = sorted(pdb_files, key=lambda x: int(x.stem))
+
+    print(sorted_pdb_files)
     # if order:
     #     pdb_ids = [int(pdb_file.stem) for pdb_file in pdb_files]
     #     pdb_min = np.min(pdb_ids)
@@ -130,7 +134,8 @@ def write_merge_pdb_file(
     #     i = i+1
 
     hs, ms = list(), list()
-    for pdb_file in pdb_files:
+    for pdb_file in sorted_pdb_files:
+        print(pdb_file)
         m = IMP.Model()
         h = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.NonWaterPDBSelector())[0]
         # h = IMP.atom.read_multimodel_pdb(str(pdb_file), m, IMP.atom.AllPDBSelector())[0]

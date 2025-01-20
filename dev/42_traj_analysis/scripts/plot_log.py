@@ -8,11 +8,11 @@ import matplotlib.colors as mcolors
 
 if __name__ == "__main__":
     log_dfs = list()
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/264_sb_sa_w")
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/275_visualization")
     exp_num = exp_dir.stem.split("_")[0]
     # for job_dir in Path(exp_dir, "logs").glob("*"):
 
-    for start,end,xray_name in [(0,5, "native_0"),(6,11, "native_0"),(12,17, "native_0"),(18,23, "native_0"),(24,29, "native_0"),(30,35, "native_0"),(36,41, "native_0"),(42,47, "native_0"),(48,53, "native_0")]:
+    for start,end,xray_name in [(0,2, "native_3_0"),(3,5, "native_3_0")]:
         log_dfs = list()
         job_ids = list(range(start, end+1))
 
