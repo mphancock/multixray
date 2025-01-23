@@ -1,20 +1,8 @@
 import os
 import datetime
 from pathlib import Path
-
-
-def file_created_before_date(file_path, year, month, day):
-    # Get the creation time of the file
-    creation_time_epoch = os.path.getctime(file_path)
-
-    # Convert the creation time to a datetime object
-    creation_time = datetime.datetime.fromtimestamp(creation_time_epoch)
-
-    # Define the specific date to compare against
-    specific_date = datetime.datetime(year, month, day)
-
-    # Compare the creation time with the specific date
-    return creation_time < specific_date
+import multiprocessing
+import random
 
 
 def get_creation_time(file_path):
@@ -26,59 +14,41 @@ def get_creation_time(file_path):
     return creation_time
 
 
-from multiprocessing import Pool
-from pathlib import Path
-
-def should_delete_file(log_file):
+def delete_file(log_file):
     """
     Determine if the file should be deleted based on its creation time.
     Returns a tuple of the file path and a boolean indicating if it should be deleted.
     """
-    creation_time = get_creation_time(log_file)
-    delete_file = file_created_before_date(log_file, 2024, 11, 4)
-    print(f"{log_file} {creation_time} {delete_file}")
-    return log_file, delete_file
+    year, month, day = 2025, 1, 22
 
-def delete_files(file_info):
-    """
-    Deletes the file if it should be deleted.
-    """
-    log_file, delete_file = file_info
-    if delete_file:
+    creation_time = get_creation_time(log_file)
+    delete_before_date = datetime.datetime(year, month, day)
+    ## YYYY, MM, DD
+
+    if creation_time < delete_before_date:
+        ## 1/1000 chance to print the file path and creation time
+        if random.random() < .001:
+            print(log_file, creation_time)
+
         log_file.unlink()
         return 1  # Increment count for deleted file
-    return 0  # No deletion
+    else:
+        return 0  # No deletion
 
 if __name__ == "__main__":
     # Example usage:
     data_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/tmp")
     log_files = list(data_dir.glob("*"))
+    # log_files = log_files[:10]
+    # print(log_files)
 
     print(len(log_files))
 
-    with Pool() as pool:
-        # Determine which files to delete in parallel
-        files_to_delete = pool.map(should_delete_file, log_files)
+    n_deleted = 0
+    pool_obj = multiprocessing.Pool(multiprocessing.cpu_count())
+    # Determine which files to delete in parallel
+    result = pool_obj.imap(delete_file, log_files)
+    for deleted in result:
+        n_deleted += deleted
 
-        # Delete files in parallel
-        deleted_counts = pool.map(delete_files, files_to_delete)
-
-    n_deleted = sum(deleted_counts)
     print(n_deleted)
-
-# if __name__ == "__main__":
-#     # Example usage:
-#     data_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/tmp")
-#     log_files = list(data_dir.glob("*"))
-
-#     print(len(log_files))
-#     n_deleted = 0
-#     for log_file in log_files:
-#         creation_time = get_creation_time(log_file)
-#         delete_file = file_created_before_date(log_file, 2024, 9, 3)
-#         print("{} {} {}".format(log_file, creation_time, delete_file))
-#         if delete_file:
-#             log_file.unlink()
-#             n_deleted += 1
-#     print(n_deleted)
-
