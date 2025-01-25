@@ -37,12 +37,12 @@ def get_best_from_out_dir(
 
 
 if __name__ == "__main__":
-    exp_name = "273_native_3_wxray_ref"
+    exp_name = "277_native_5_ref"
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out", exp_name)
-    job_id = 7
+    job_id = 2
     job_dir = Path(exp_dir, str(job_id))
 
-    job_csv_file = Path(Path.home(), "xray/sample_bench/data/params/273.csv")
+    job_csv_file = Path(Path.home(), "xray/sample_bench/data/params/277.csv")
     sample_file = Path(Path.home(), "xray/sample_bench/data/analysis/{}/all_outs_{}.csv".format(exp_name, job_id))
 
     job_df = read_job_csv(job_csv_file=job_csv_file, job_id=job_id)
@@ -55,8 +55,7 @@ if __name__ == "__main__":
     job_dir = Path(exp_dir, str(job_id))
     out_dirs = [out_dir for out_dir in job_dir.glob("output*")]
 
-    field = "r_free_native_3_1"
-    # field = "xray_native_0"
+    field = "xray_{}+xray_{}".format(cif_names[0], cif_names[1])
     bonus_fields = ["ff", "pdb", "rmsd"]
 
     for cif_name in cif_names:
