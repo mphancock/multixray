@@ -383,3 +383,12 @@ class MultiStateMultiConditionModel:
 
         with open(pdb_file, 'w') as f:
             f.write(pdb_content)
+
+
+if __name__ == "__main__":
+    import numpy as np
+    msmc_m = MultiStateMultiConditionModel(
+        pdb_files=[Path("/wynton/home/sali/mhancock/xray/tmp/out_multi.pdb")],
+        w_mat=np.array([[.35], [0.65]]),
+        crystal_symmetries=None
+    )

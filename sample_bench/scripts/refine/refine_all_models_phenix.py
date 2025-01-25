@@ -76,18 +76,20 @@ if __name__ == "__main__":
         for col_type in ["r_free", "r_work", "xray"]:
             refined_log_df["{}_{}".format(col_type, cif_name)] = np.nan
 
-    ## drop any rows that have pdb as nan
+    # ## drop any rows that have pdb as nan
     refined_log_df.reset_index(drop=True, inplace=True)
 
-    ## pick 10 random rows to refine
-    refined_log_df = refined_log_df.sample(n=1)
+    # ## pick 10 random rows to refine
+    # refined_log_df = refined_log_df.sample(n=1)
+    refined_log_df = refined_log_df.loc[[len(refined_log_df)-1]]
+
     refined_log_df.reset_index(drop=True, inplace=True)
 
     pdb_files = list(refined_log_df["pdb"])
-    # for i in range(len(pdb_files)):
-    #     ## convert the pdb_file to altconf but store in local scratch
-    #     pdb_file = Path(pdb_files[i])
-    for pdb_file in [Path(out_dir, "pdbs", "500.pdb")]:
+    for i in range(len(pdb_files)):
+        ## convert the pdb_file to altconf but store in local scratch
+        pdb_file = Path(pdb_files[i])
+    # for pdb_file in [Path(out_dir, "pdbs", "500.pdb")]:
         tmp_pdb_file = Path(tmp_dir, pdb_file.name)
         refined_pdb_file = Path(refined_pdb_dir, "{}.pdb".format(pdb_file.stem))
         print(pdb_file, tmp_pdb_file, refined_pdb_file)
@@ -110,12 +112,9 @@ if __name__ == "__main__":
             refine_command += "> /dev/null 2>&1"
 
         print(refine_command)
-        # os.system(refine_command)
+        os.system(refine_command)
 
         phenix_out_pdb_file = Path(tmp_dir, "{}_refine_001.pdb".format(pdb_file.stem))
-
-        ## copy the refined pdb file to the refined_pdb_dir
-        # refined_pdb_file = Path(tmp_dir, "refined.pdb")
 
         ## convert all models back to multistate
         altconf_to_multi(
@@ -123,6 +122,38 @@ if __name__ == "__main__":
             out_pdb_file=refined_pdb_file,
             n_state=N
         )
+        refined_log_df.loc[i, "pdb"] = refined_pdb_file
 
-        # shutil.copy(refined_pdb_file, refined_pdb_dir)
+    print(refined_log_df.head())
+    for i in range(len(refined_log_df)):
+        refined_pdb_file = Path(refined_log_df.loc[i, "pdb"])
+        refined_log_df.loc[i, "pdb"] = refined_pdb_file
+
+        cif_name = cif_names[0]
+        decoy_w_mat = build_weights_matrix(refined_log_df, i, "w", N, cif_names)
+
+        param_dict = dict()
+        param_dict["decoy_files"] = [refined_pdb_file]
+        param_dict["decoy_w_mat"] = decoy_w_mat
+
+        ## only 1 ref file for synthetic benchmark
+        param_dict["ref_file"] = ref_files[0]
+        param_dict["ref_w_mat"] = ref_w_mat
+        param_dict["score_fs"] = ["xray_0", "ff"]
+        param_dict["cif_files"] = cif_files
+        param_dict["scale_k1"] = True
+        param_dict["scale"] = True
+        param_dict["res"] = 0
+
+        score_dict = pool_score(param_dict)
+        refined_log_df.loc[i, "xray_{}".format(cif_name)] = score_dict["xray_0"]
+        refined_log_df.loc[i, "r_free_{}".format(cif_name)] = score_dict["r_free_0"]
+        refined_log_df.loc[i, "r_work_{}".format(cif_name)] = score_dict["r_work_0"]
+        # refined_log_df.loc[i, "rmsd_{}".format(cif_name)] = score_dict["rmsd_{}".format(cif_name)]
+        refined_log_df.loc[i, "ff"] = score_dict["ff"]
+
+        print(score_dict)
+
+    print(refined_log_df.head())
+    refined_log_df.to_csv(refined_log_file)
 
