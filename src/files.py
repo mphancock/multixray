@@ -72,21 +72,29 @@ def altconf_to_multi(
 
     # Iterate over each line and sort based on the conformation identifier (character at column 17)
     for line in lines:
-        if len(line) > 16:
+        if line.startswith('ATOM'):
             conformation_id = line[16]  # Character at column 17 (0-indexed position 16)
-
             mod_line = line[:16] + ' ' + line[17:]  # Replace the conformation identifier with a space
+            mod_line = mod_line.strip("\n")
+            conformation_dict[conformation_id].append(mod_line)
 
-            if conformation_id in conformation_dict:
-                conformation_dict[conformation_id].append(mod_line)
+    print(conformation_dict.keys())
+    print(len(conformation_dict['A']))
+    print(len(conformation_dict['B']))
+
+    print(conformation_dict['A'][0])
+    print(conformation_dict['B'][0])
 
     # Combine the sorted lines based on conformation order (A, B, C, D)
     sorted_entries = []
-    for i in range(1,n_state):
-        key = chr(ord('A') + i-1)
-        sorted_entries.append(f"MODEL    {i}")
+    for i in range(n_state):
+        key = chr(ord('A') + i)
+        print(key)
+        sorted_entries.append(f"MODEL    {i+1}")
         sorted_entries.extend(conformation_dict[key])
         sorted_entries.append("ENDMDL")
+
+    print(len(sorted_entries))
 
     # Join the sorted lines and return as a single string
     new_str = "\n".join(sorted_entries)
@@ -101,4 +109,4 @@ if __name__ == "__main__":
     # pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/280_exp_all_2/9/output_0/pdbs/500.pdb")
     # multi_to_altconf(pdb_file, Path(Path.home(), "xray/tmp/out.pdb"))
 
-    altconf_to_multi(Path(Path.home(), "xray/tmp/out.pdb"), Path(Path.home(), "xray/tmp/out_multi.pdb"), 4)
+    altconf_to_multi(Path(Path.home(), "xray/tmp/500_refine_001.pdb"), Path(Path.home(), "xray/tmp/out_multi.pdb"), 2)
