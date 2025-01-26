@@ -16,7 +16,7 @@ sys.path.append(str(Path(Path.home(), "xray/sample_bench/scripts/analysis_exp"))
 
 
 if __name__ == "__main__":
-    exp_name = "280_exp_all_2_ref"
+    exp_name = "280_exp_all_2_phenix_ref"
     job_csv_file = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/params/280.csv")
     params_df = pd.read_csv(job_csv_file, index_col=0)
 
