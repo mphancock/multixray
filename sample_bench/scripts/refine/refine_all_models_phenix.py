@@ -94,8 +94,10 @@ if __name__ == "__main__":
         refined_pdb_file = Path(refined_pdb_dir, "{}.pdb".format(pdb_file.stem))
         print(pdb_file, tmp_pdb_file, refined_pdb_file)
 
+        decoy_w_mat = build_weights_matrix(refined_log_df, i, "w", N, cif_names)
         multi_to_altconf(
             in_pdb_file=pdb_file,
+            occs=decoy_w_mat[:,0],
             out_pdb_file=tmp_pdb_file
         )
 

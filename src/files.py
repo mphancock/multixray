@@ -1,10 +1,11 @@
 
 
 """
-    IMP sampling produces a multi model pdb file but phenix.refine requires a single model pdb file with altconfs.
+    IMP sampling produces a multi model pdb file but phenix.refine requires a single model pdb file with altconfs. Need to fix the occupancies.
 """
 def multi_to_altconf(
     in_pdb_file,
+    occs,
     out_pdb_file
 ):
     with open(in_pdb_file, 'r') as file:
@@ -28,9 +29,12 @@ def multi_to_altconf(
             continue  # Proceed to the next line
 
         # Modify lines only if we are within the 'MODEL' and 'TER' section
+        ## Also modify the occupancies (56-59)
         if in_section and len(line) >= 17:
             # Replace the 17th character (index 16) with the replacement character
             line = line[:16] + chr(ord("A")+cnt) + line[17:]
+            occ = f"{occs[cnt]:.2f}"
+            line = line[:55] + occ + line[60:]
 
         # Append the modified or unmodified line to the list
         modified_lines.append(line)
@@ -126,7 +130,7 @@ def altconf_to_multi(
 if __name__ == "__main__":
     from pathlib import Path
 
-    # pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/280_exp_all_2/9/output_0/pdbs/500.pdb")
-    # multi_to_altconf(pdb_file, Path(Path.home(), "xray/tmp/out.pdb"))
+    pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/280_exp_all_2/9/output_0/pdbs/499.pdb")
+    multi_to_altconf(pdb_file, [0.35, 0.65], Path(Path.home(), "xray/tmp/out.pdb"))
 
-    altconf_to_multi(Path(Path.home(), "xray/tmp/499_refine_001.pdb"), Path(Path.home(), "xray/tmp/out_multi.pdb"), 2)
+    # altconf_to_multi(Path(Path.home(), "xray/tmp/499_refine_001.pdb"), Path(Path.home(), "xray/tmp/out_multi.pdb"), 2)
