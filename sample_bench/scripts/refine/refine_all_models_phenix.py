@@ -80,9 +80,8 @@ if __name__ == "__main__":
     refined_log_df.reset_index(drop=True, inplace=True)
 
     # ## pick 10 random rows to refine
-    # refined_log_df = refined_log_df.sample(n=1)
-    refined_log_df = refined_log_df.loc[[len(refined_log_df)-1]]
-
+    refined_log_df = refined_log_df.sample(n=10)
+    # refined_log_df = refined_log_df.loc[[len(refined_log_df)-1]]
     refined_log_df.reset_index(drop=True, inplace=True)
 
     pdb_files = list(refined_log_df["pdb"])
@@ -101,13 +100,6 @@ if __name__ == "__main__":
             out_pdb_file=tmp_pdb_file
         )
 
-        ## refine
-        ## folder for all phenix logging
-        # tmp_phenix_dir = Path(tmp_dir, "phenix")
-        # if tmp_phenix_dir.exists():
-        #     shutil.rmtree(tmp_phenix_dir)
-        # tmp_phenix_dir.mkdir(parents=True, exist_ok=True)
-
         refine_command = "phenix.refine {} {} strategy=individual_sites+individual_adp ordered_solvent=true ordered_solvent.mode=every_macro_cycle  refinement.input.xray_data.labels=_refln.F_meas_au,_refln.F_meas_sigma_au refinement.pdb_interpretation.clash_guard.nonbonded_distance_threshold=None crystal_symmetry.unit_cell=115.023,54.358,44.970,90.00,101.50,90.00 crystal_symmetry.space_group='C 1 2 1' write_eff_file=false write_geo_file=false write_def_file=false write_maps=false write_map_coefficients=false write_model_cif_file=false".format(cif_files[0], tmp_pdb_file)
 
         if not args.log_phenix:
@@ -125,6 +117,11 @@ if __name__ == "__main__":
             n_state=N
         )
         refined_log_df.loc[i, "pdb"] = refined_pdb_file
+
+        ## clean up temporary files from phenix
+        os.system("rm *.pdb")
+        os.system("rm *.mtz")
+        os.system("rm *.log")
 
     print(refined_log_df.head())
     for i in range(len(refined_log_df)):
