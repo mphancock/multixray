@@ -17,6 +17,7 @@ from params import read_job_csv, build_weights_matrix
 sys.path.append(str(Path(Path.home(), "xray/score_bench/src")))
 from score import pool_score
 from files import multi_to_altconf, altconf_to_multi
+from miller_ops import get_crystal_symmetry
 
 
 if __name__ == "__main__":
@@ -114,10 +115,13 @@ if __name__ == "__main__":
             )
 
             cif_file = cif_files[j]
+            crystal_symmetry = get_crystal_symmetry(cif_file)
             refined_pdb_file = Path(refined_pdb_dir, "{}_{}.pdb".format(pdb_file.stem, cif_names[j]))
             print(pdb_file, tmp_pdb_file, refined_pdb_file)
+            sg = crystal_symmetry.space_group_info().group().info()
+            uc = crystal_symmetry.unit_cell()
 
-            refine_command = "phenix.refine {} {} strategy=individual_sites+individual_adp ordered_solvent=true ordered_solvent.mode=every_macro_cycle  refinement.input.xray_data.labels=_refln.F_meas_au,_refln.F_meas_sigma_au refinement.pdb_interpretation.clash_guard.nonbonded_distance_threshold=None crystal_symmetry.unit_cell=115.023,54.358,44.970,90.00,101.50,90.00 crystal_symmetry.space_group='C 1 2 1' write_eff_file=false write_geo_file=false write_def_file=false write_maps=false write_map_coefficients=false write_model_cif_file=false".format(cif_file, tmp_pdb_file)
+            refine_command = "phenix.refine {} {} strategy=individual_sites+individual_adp ordered_solvent=true ordered_solvent.mode=every_macro_cycle  refinement.input.xray_data.labels=_refln.F_meas_au,_refln.F_meas_sigma_au refinement.pdb_interpretation.clash_guard.nonbonded_distance_threshold=None crystal_symmetry.unit_cell={},{},{},{},{},{} crystal_symmetry.space_group='{}' write_eff_file=false write_geo_file=false write_def_file=false write_maps=false write_map_coefficients=false write_model_cif_file=false".format(cif_file, tmp_pdb_file, uc.parameters()[0], uc.parameters()[1], uc.parameters()[2], uc.parameters()[3], uc.parameters()[4], uc.parameters()[5], sg)
 
             if not args.log_phenix:
                 refine_command += "> /dev/null 2>&1"

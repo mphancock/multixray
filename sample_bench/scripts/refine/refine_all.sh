@@ -5,7 +5,7 @@ EXP_ID=280
 EXP_NAME="280_exp_all_2"
 N_JOBS="1-1000"
 OFFSET="0"
-H_RT="6:00:00"
+H_RT="12:00:00"
 
 for JOB_ID in {0..20}
 do
