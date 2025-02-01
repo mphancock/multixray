@@ -34,7 +34,7 @@ def multi_to_altconf(
             # Replace the 17th character (index 16) with the replacement character
             line = line[:16] + chr(ord("A")+cnt) + line[17:]
             occ = f"{occs[cnt]:.2f}"
-            line = line[:55] + occ + line[60:]
+            line = line[:56] + occ + line[60:]
 
         # Append the modified or unmodified line to the list
         modified_lines.append(line)
