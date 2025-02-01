@@ -8,9 +8,8 @@ import os
 import IMP
 import IMP.atom
 
-sys.path.append(str(Path(Path.home(), "xray/sample_bench/src")))
-from get_stat_df_simple import get_stat_df
 sys.path.append(str(Path(Path.home(), "xray/src")))
+from stat_df import get_stat_df
 # from refine import refine, pool_refine
 from utility import pool_read_pdb
 sys.path.append(str(Path(Path.home(), "xray/sample_bench/scripts/analysis_exp")))
@@ -49,34 +48,9 @@ def check_job_dir(
                 pdb_files = out_dir.glob("pdbs/*")
                 n_pdb_files = len(list(pdb_files))
 
-                if n_pdb_files < 301:
+                if n_pdb_files < 250:
                     print("{} {} does not contain enough ({})".format(job_num, out_dir_name, n_pdb_files))
                     valid = False
-
-        if valid:
-            n_valid += 1
-            run_time = get_run_time(Path(out_dir, "log.csv"))
-            run_times.append(run_time)
-        else:
-            offset = str(out_dir).split("_")[-1]
-            h_rt = "24:00:00"
-            exp_dir = job_dir.parents[0]
-
-            # If refine
-            exp_id = exp_dir.name.split("_")[0]
-            exp_name_tmp = exp_dir.name.split("_ref_")[0]
-            # exp_name_tmp = "{}_{}".format(exp_id, exp_dir.name.split("_")[1:])
-            exp_dir_tmp = Path(exp_dir.parents[0], exp_name_tmp)
-            job_dir_tmp = Path(exp_dir_tmp, job_name)
-
-            # params = "--job_csv_file {} --max_ff 10000".format(job_csv_file)
-            # bash_str = "qsub -N r{}_{} -l h_rt={} -l mem_free=1G -l scratch=1G -t 1-1 /wynton/home/sali/mhancock/xray/sample_bench/scripts/refine/refine_slave.sh {} {} '{}'".format(exp_id, job_name, h_rt, job_dir_tmp, offset, params)
-
-            # params = "--job_csv_file /wynton/home/sali/mhancock/xray/sample_bench/data/params/bench.csv --job_id {}".format(job_name)
-            # bash_str = "qsub -N b{} -l h_rt={} -l mem_free=1G -l scratch=1G -t 1-1 /wynton/home/sali/mhancock/xray/sample_bench/scripts/sample/run_slave.sh {} {} '{}'".format(job_name, h_rt, job_dir, offset, params)
-
-            # print(bash_str)
-            # os.system(bash_str)
 
         avg_n_pdb_files += n_pdb_files
 
@@ -103,13 +77,13 @@ def get_run_time(
 
 
 if __name__ == "__main__":
-    exp_name = "189_exp"
-    job_csv_file = "/wynton/home/sali/mhancock/xray/sample_bench/data/params/bench.csv"
-    n_out_dir = 25
+    exp_name = "280_exp_all_2"
+    job_csv_file = "/wynton/home/sali/mhancock/xray/sample_bench/data/params/280.csv"
+    n_out_dir = 1000
 
-    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/7mhf", exp_name)
-    analysis_dir = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/7mhf", exp_name)
-    analysis_dir.mkdir(exist_ok=True)
+    exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out", exp_name)
+    analysis_dir = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/analysis", exp_name)
+    # analysis_dir.mkdir(exist_ok=True)
 
     job_stats_df = pd.DataFrame()
 

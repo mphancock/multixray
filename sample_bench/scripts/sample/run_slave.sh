@@ -20,6 +20,22 @@ RUN_ID=$((SGE_TASK_ID-1+$OFFSET))
 TMP_OUT_DIR="$TMPDIR/output_$RUN_ID"
 OUT_DIR="$JOB_DIR/output_$RUN_ID"
 
+## PATCH
+# ## check if the pdb directory exists
+# run=1
+# if [ -d "$OUT_DIR/pdbs" ]; then
+#     file_count=$(find "$OUT_DIR/pdbs" -maxdepth 1 -type f | wc -l)
+#     if [ "$file_count" -gt 250 ]; then
+#         run=0
+#     fi
+# fi
+
+# if [ "$run" -eq 0 ]; then
+#     echo "not running"
+#     exit 0
+# fi
+# echo "running"
+
 # Delete the output dir.
 # rm -r "$OUT_DIR"
 # mkdir "$TMP_OUT_DIR"

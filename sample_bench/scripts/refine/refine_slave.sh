@@ -19,6 +19,15 @@ mkdir -p "$JOB_DIR"
 RUN_ID=$((SGE_TASK_ID-1+OFFSET))
 OUT_DIR="$JOB_DIR/output_$RUN_ID"
 
+## PATCH
+## check if the pdb directory exists
+run=1
+if [ -f "$OUT_DIR/log.csv" ]; then
+    echo "not running"
+    exit 0
+fi
+echo "running"
+
 python ~/xray/sample_bench/scripts/refine/refine_all_models.py --out_dir "$OUT_DIR" $3
 # python refine_output.py --out_dir "$OUT_DIR" $3
 
