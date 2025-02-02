@@ -127,6 +127,7 @@ if __name__ == "__main__":
             w_xray=w_xray,
             update_scale=True,
             update_k1=True,
+            remove_outliers=True,
             update_freq=xray_freq,
             charmm_holder=charmm_deriv_holder,
             ref_com=None

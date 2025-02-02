@@ -166,6 +166,7 @@ if __name__ == "__main__":
         param_dict["cif_files"] = [cif_file]
         param_dict["scale_k1"] = True
         param_dict["scale"] = True
+        param_dict["remove_outliers"] = True
         param_dict["res"] = 0
 
         score_dict = pool_score(param_dict)

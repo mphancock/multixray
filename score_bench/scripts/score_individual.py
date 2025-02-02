@@ -9,7 +9,7 @@ from score import pool_score
 
 if __name__ == "__main__":
     param_dict = dict()
-    param_dict["decoy_files"] = [Path("/wynton/group/sali/mhancock/xray/sample_bench/out/280_exp_all_2_phenix_ref/9/output_0/pdbs/499_7mhi.pdb")]
+    param_dict["decoy_files"] = [Path("/wynton/group/sali/mhancock/xray/sample_bench/out/280_exp_all_2/9/output_0/pdbs/499.pdb")]
     param_dict["decoy_w_mat"] = np.array([[0.94], [0.06]])
     param_dict["ref_file"] = Path("/wynton/home/sali/mhancock/xray/dev/45_synthetic_native_4/data/pdbs/native.pdb")
     param_dict["ref_w_mat"] = np.array([[0.5], [0.5]])
@@ -18,6 +18,7 @@ if __name__ == "__main__":
     param_dict["ab_file"] = None
     param_dict["scale_k1"] = True
     param_dict["scale"] = True
+    param_dict["remove_outliers"] = False
     param_dict["res"] = 0
     param_dict["score_fs"] = ["xray_0", "ff"]
 

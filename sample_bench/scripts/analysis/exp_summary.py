@@ -114,6 +114,5 @@ if __name__ == "__main__":
                 summary_df.loc[row, "cif_{}".format(j)] = cif_files[j]
 
             row += 1
-            print("len", len(summary_df))
 
     summary_df.to_csv(Path(analysis_dir, "summary.csv"))

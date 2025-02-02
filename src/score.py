@@ -123,6 +123,7 @@ def pool_score(
                 update_scale=params["scale"],
                 update_k1=params["scale_k1"],
                 ref_com=ref_msmc_m.get_com(),
+                remove_outliers=params["remove_outliers"],
                 update_freq=1
             )
             xray_r.evaluate(False)

@@ -20,6 +20,7 @@ class XtalRestraint(IMP.Restraint):
             w_xray,
             update_scale,
             update_k1,
+            remove_outliers,
             update_freq,
             charmm_holder=None,
             # r_charmm=None,
@@ -38,6 +39,7 @@ class XtalRestraint(IMP.Restraint):
         self.free_flags = free_flags
         self.update_scale = update_scale
         self.update_k1 = update_k1
+        self.remove_outliers = remove_outliers
 
         self.d_min = 0
         self.set_d_min(d_min=self.d_min)
@@ -148,6 +150,7 @@ class XtalRestraint(IMP.Restraint):
                 target=self.target,
                 update_scale=self.update_scale,
                 update_k1=self.update_k1,
+                remove_outliers=self.remove_outliers,
                 delta=self.delta
             )
 

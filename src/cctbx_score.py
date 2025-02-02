@@ -23,6 +23,7 @@ def get_score(
         ab_file=None,
         update_scale=True,
         update_k1=False,
+        remove_outliers=False,
         delta=None
 ):
     xray_structure = msmc_m.get_multi_xray_structure(cond)
@@ -40,7 +41,7 @@ def get_score(
     if update_scale:
         f_model_manager.update_all_scales(
             apply_scale_k1_to_f_obs=update_k1,
-            remove_outliers=False
+            remove_outliers=remove_outliers
         )
 
     if ab_file:
