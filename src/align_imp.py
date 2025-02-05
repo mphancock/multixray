@@ -176,3 +176,21 @@ def compute_weight_errors_between_ordered_states(
         errors.append((occ_0-occ_1)**2)
 
     return errors
+
+
+def align_one_to_two(
+    h_1,
+    h_2
+):
+    m_1 = h_1.get_model()
+    m_2 = h_2.get_model()
+
+    ca_pids_1 = IMP.atom.Selection(h_1, atom_type=IMP.atom.AtomType("CA")).get_selected_particles()
+    ca_pids_2 = IMP.atom.Selection(h_2, atom_type=IMP.atom.AtomType("CA")).get_selected_particles()
+
+    xyzs_1 = [IMP.core.XYZ(m_1, ca_pid).get_coordinates() for ca_pid in ca_pids_1]
+    xyzs_2 = [IMP.core.XYZ(m_2, ca_pid).get_coordinates() for ca_pid in ca_pids_2]
+
+    transformation = IMP.algebra.get_transformation_aligning_first_to_second(xyzs_1, xyzs_2)
+    transform = IMP.core.Transform(transformation)
+    transform.apply_indexes(m_1, IMP.atom.Selection(h_1).get_selected_particle_indexes(), 0, 9999)
