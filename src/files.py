@@ -2,130 +2,96 @@ import pandas as pd
 
 
 """
-    IMP sampling produces a multi model pdb file but phenix.refine requires a single model pdb file with altconfs. Need to fix the occupancies.
+IMP sampling produces a multi model pdb file but phenix.refine requires a single model pdb file with altconfs. Need to fix the occupancies.
+
+Update the 'alt_loc' column in the PDB DataFrame so that each row's alt_loc is
+set to a letter corresponding to its model number:
+    Model 1 -> 'A'
+    Model 2 -> 'B'
+    Model 3 -> 'C'
+    etc.
+
+Parameters:
+    df (pd.DataFrame): DataFrame containing at least the 'model' and 'alt_loc' columns.
+
+Returns:
+    pd.DataFrame: The DataFrame with updated 'alt_loc' values.
 """
-def multi_to_altconf(
-    in_pdb_file,
-    occs,
-    out_pdb_file
-):
-    with open(in_pdb_file, 'r') as file:
-        lines = file.readlines()
+def update_alt_loc_by_model(df):
+    def model_to_letter(model):
+        try:
+            # Convert the model number to an integer.
+            model_int = int(model)
+            # Convert model 1 to 'A', model 2 to 'B', etc.
+            return chr(64 + model_int)
+        except (ValueError, TypeError):
+            # If model cannot be interpreted as an integer, return an empty string.
+            return ""
 
-    cnt = 0
-    modified_lines = []
-    in_section = False  # Flag to indicate if we are between 'MODEL' and 'TER'
-    for line in lines:
-        # Check if the line starts with 'MODEL'
-        if line.startswith('MODEL'):
-            in_section = True
-            modified_lines.append(line)  # Keep the 'MODEL' line as is
-            continue  # Proceed to the next line
+    # Update the 'alt_loc' column using the helper function.
+    df['alt_loc'] = df['model'].apply(model_to_letter)
+    return df
 
-        # Check if the line starts with 'TER'
-        elif line.startswith('ENDMDL'):
-            in_section = False
-            cnt += 1
-            modified_lines.append(line)  # Keep the 'TER' line as is
-            continue  # Proceed to the next line
 
-        # Modify lines only if we are within the 'MODEL' and 'TER' section
-        ## Also modify the occupancies (56-59)
-        if in_section and len(line) >= 17:
-            # Replace the 17th character (index 16) with the replacement character
-            line = line[:16] + chr(ord("A")+cnt) + line[17:]
-            occ = f"{occs[cnt]:.2f}"
-            line = line[:56] + occ + line[60:]
+"""
+Update the 'occupancy' column in the PDB DataFrame based on an occupancy value provided
+for each model.
 
-        # Append the modified or unmodified line to the list
-        modified_lines.append(line)
+Parameters:
+    df (pd.DataFrame): DataFrame containing at least a 'model' and an 'occupancy' column.
+    occupancy_array (list or array): Occupancy values for each model. For example,
+        occupancy_array[0] is the occupancy for model 1,
+        occupancy_array[1] for model 2, etc.
 
-    # Find all indices of lines containing "MODEL" and "ENDMDL"
-    model_indices = [i for i, line in enumerate(modified_lines) if 'MODEL' in line]
-    endmdl_indices = [i for i, line in enumerate(modified_lines) if 'ENDMDL' in line]
-
-    # Determine which indices to keep
-    keep_indices = set()
-    if model_indices:
-        keep_indices.add(model_indices[0])  # First "MODEL"
-    if endmdl_indices:
-        if len(endmdl_indices) > 1:
-            keep_indices.add(endmdl_indices[-1])  # Last "ENDMDL"
-
-    # Write the processed lines to the output file
-    with open(out_pdb_file, 'w') as f:
-        for i, line in enumerate(modified_lines):
-            if ('MODEL' in line or 'ENDMDL' in line):
-                if i in keep_indices:
-                    f.write(line)
-                else:
-                    continue  # Skip the line
+Returns:
+    pd.DataFrame: The DataFrame with updated occupancy values.
+"""
+def update_occs(df, occs):
+    def get_occ_for_model(row):
+        try:
+            # Convert the model value to an integer.
+            model_int = int(row['model'])
+            # Use the model number (1-indexed) to fetch the occupancy from the occupancy_array.
+            if 0 <= model_int - 1 < len(occs):
+                return occs[model_int - 1]
             else:
-                f.write(line)
+                # If model number is out-of-range, keep the original occupancy.
+                return row['occupancy']
+        except Exception:
+            # In case of any conversion error, keep the original occupancy.
+            return row['occupancy']
+
+    # Apply the occupancy update for each row.
+    df['occupancy'] = df.apply(get_occ_for_model, axis=1)
+    return df
 
 
-def altconf_to_multi(
-    in_pdb_file,
-    out_pdb_file,
-    n_state
-):
-    with open(in_pdb_file, 'r') as file:
-        lines = file.readlines()
+"""
+Update (or create) the 'model' column in a DataFrame based on the 'alt_loc' column,
+converting letters to numbers such that:
+    'A' becomes 1, 'B' becomes 2, etc.
 
-    # Create the conformation dictionary with dynamic keys
-    conformation_dict = {chr(65 + i): [] for i in range(n_state)}
+If a row's 'alt_loc' value is empty or missing, the 'model' column is set to None.
 
-    # Iterate over each line and sort based on the conformation identifier (character at column 17)
-    for line in lines:
-        if line.startswith('ATOM'):
-            conformation_id = line[16]  # Character at column 17 (0-indexed position 16)
+Parameters:
+    df (pd.DataFrame): DataFrame containing at least the 'alt_loc' column.
 
-            mod_line = line[:16] + ' ' + line[17:]  # Replace the conformation identifier with a space
+Returns:
+    pd.DataFrame: The DataFrame with the updated 'model' column.
+"""
+def update_model_based_on_altconf(df):
+    def alt_to_model(alt_char):
+        if isinstance(alt_char, str) and alt_char.strip():
+            # Convert the character to uppercase and then to a number:
+            # ord('A') = 65 so subtracting 64 gives 1 for 'A', 2 for 'B', etc.
+            return ord(alt_char.upper()) - 64
+        else:
+            # Return None if the alternate location indicator is empty or not a string.
+            return None
 
-            mod_line = mod_line.strip("\n")
-            conformation_dict[conformation_id].append(mod_line)
-        ## if water then add to all conformations
-        elif line.startswith("HETATM"):
-            for conformation_id in conformation_dict.keys():
-                conformation_dict[conformation_id].append(line)
-
-    ## Fix the atom counts (8 - 11)
-    for conf_id in conformation_dict.keys():
-        atom_count = 1
-        for i in range(len(conformation_dict[conf_id])):
-            line = conformation_dict[conf_id][i]
-
-            line = line[:7] + str(atom_count).rjust(4) + line[11:]
-            conformation_dict[conf_id][i] = line
-            atom_count += 1
-
-    ## Fix the water residue numbers (23-25)
-    for conf_id in conformation_dict.keys():
-        res_id = None
-        for i in range(len(conformation_dict[conf_id])):
-            line = conformation_dict[conf_id][i]
-            if line.startswith("ATOM"):
-                res_id = int(line[23:26].strip())
-
-            if line.startswith("HETATM"):
-                res_id += 1 # Increment the residue number
-                line = line[:23] + str(res_id).rjust(3) + line[26:]
-                conformation_dict[conf_id][i] = line
-
-
-    # Combine the sorted lines based on conformation order (A, B, C, D)
-    sorted_entries = []
-    for i in range(n_state):
-        key = chr(ord('A') + i)
-        sorted_entries.append(f"MODEL    {i+1}")
-        sorted_entries.extend(conformation_dict[key])
-        sorted_entries.append("ENDMDL")
-
-    # Join the sorted lines and return as a single string
-    new_str = "\n".join(sorted_entries)
-
-    with open(out_pdb_file, 'w') as file:
-        file.writelines(new_str)
+    # Apply the helper function to the 'alt_loc' column.
+    df['model'] = df['alt_loc'].apply(alt_to_model)
+    return df
 
 
 """
@@ -235,7 +201,7 @@ The function groups the atoms by model, and for each model writes:
 Parameters:
     df (pd.DataFrame): DataFrame containing PDB data.
     filename (str): Path to the output PDB file.
-    single_model (bool): If True, only write a single model (default: False).
+    single_model (bool): If True, only write a single model (default: False). If single model, then dont write altconf.
 """
 def write_pdb_from_df_with_models(
     df,
@@ -280,11 +246,16 @@ def write_pdb_from_df_with_models(
                 #   61-66: Temperature factor (6.2f)
                 #   77-78: Element symbol (right-justified)
                 #   79-80: Charge (right-justified)
+                if single_model:
+                    alt_loc = row["alt_loc"]
+                else:
+                    alt_loc = " "
+
                 line = (
                     "{:<6}"    # record name (e.g., ATOM)
                     "{:>5d}"   # atom serial (integer)
                     " "        # spacer (column 12)
-                    "{:>4}"    # atom name
+                    "{:<4}"    # atom name
                     "{:1}"     # alt_loc
                     "{:>3}"    # residue name
                     " "        # spacer (column 21)
@@ -305,7 +276,7 @@ def write_pdb_from_df_with_models(
                     row["record"],
                     int(row["atom_serial"]),
                     row["atom_name"],
-                    row["alt_loc"],
+                    alt_loc,
                     row["residue_name"],
                     row["chain_id"],
                     int(row["residue_seq"]),
@@ -332,8 +303,14 @@ if __name__ == "__main__":
 
     pdb_file = Path(Path.home(), "Documents/xray/tmp/tmp.pdb")
     df = pdb_to_df(pdb_file)
+    df = update_alt_loc_by_model(df)
+    df = update_occs(df, [0.94, 0.06])
     print(df.head())
     print(df.tail())
     print(len(df))
 
     write_pdb_from_df_with_models(df, Path(Path.home(), "Documents/xray/tmp/tmp_out.pdb"), single_model=True)
+
+    df = pdb_to_df(Path(Path.home(), "Documents/xray/tmp/tmp_out.pdb"))
+    update_model_based_on_altconf(df)
+    write_pdb_from_df_with_models(df, Path(Path.home(), "Documents/xray/tmp/tmp_out2.pdb"), single_model=False)
