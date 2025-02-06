@@ -1,4 +1,4 @@
-PDB_FILE="$HOME/xray/tmp/tmp.updated.pdb"
+PDB_FILE="$HOME/xray/tmp/tmp_1.pdb"
 CIF_FILE="$HOME/xray/dev/38_standard_flags/data/7mhh.cif"
 
 # PDB_FILE="$HOME/xray/dev/26_phenix_refine/data/3k0m_4_state_mod.pdb"

@@ -1,3 +1,4 @@
+import pandas as pd
 
 
 """
@@ -127,10 +128,199 @@ def altconf_to_multi(
         file.writelines(new_str)
 
 
+"""
+Reads a PDB file (which may contain multiple models) and returns a pandas DataFrame.
+
+The DataFrame will include the following columns:
+    - model: Model number (if available; otherwise, defaults to None)
+    - record: Record type (ATOM or HETATM)
+    - atom_serial: Atom serial number
+    - atom_name: Atom name
+    - alt_loc: Alternate location indicator
+    - residue_name: Residue name
+    - chain_id: Chain identifier
+    - residue_seq: Residue sequence number
+    - insertion: Insertion code
+    - x, y, z: Atom coordinates
+    - occupancy: Occupancy
+    - temp_factor: Temperature factor
+    - element: Element symbol (if available)
+    - charge: Charge (if available)
+
+Parameters:
+    filename (str): Path to the input PDB file.
+
+Returns:
+    pd.DataFrame: DataFrame containing the parsed PDB data.
+"""
+def pdb_to_df(pdb_file):
+    data = []
+    current_model = None  # Will hold the model number (if present)
+
+    with open(pdb_file, 'r') as file:
+        for line in file:
+            # Check for the start of a new model.
+            if line.startswith("MODEL"):
+                try:
+                    # Model number is typically in columns 11-14 (1-indexed)
+                    current_model = int(line[10:14].strip())
+                except ValueError:
+                    current_model = None
+
+            # Process ATOM and HETATM records.
+            elif line.startswith("ATOM") or line.startswith("HETATM"):
+                try:
+                    record       = line[0:6].strip()         # Columns 1-6
+                    atom_serial  = int(line[6:11].strip())     # Columns 7-11
+                    atom_name    = line[12:16].strip()         # Columns 13-16
+                    alt_loc      = line[16].strip()            # Column 17
+                    residue_name = line[17:20].strip()         # Columns 18-20
+                    chain_id     = line[21].strip()            # Column 22
+                    residue_seq  = int(line[22:26].strip())     # Columns 23-26
+                    insertion    = line[26].strip()            # Column 27
+                    x            = float(line[30:38].strip())    # Columns 31-38
+                    y            = float(line[38:46].strip())    # Columns 39-46
+                    z            = float(line[46:54].strip())    # Columns 47-54
+                    occupancy    = float(line[54:60].strip())    # Columns 55-60
+                    temp_factor  = float(line[60:66].strip())    # Columns 61-66
+                except ValueError:
+                    # Skip the line if there's a parsing error.
+                    continue
+
+                # Element symbol is typically in columns 77-78.
+                element = line[76:78].strip() if len(line) >= 78 else ""
+                # Charge is typically in columns 79-80.
+                charge  = line[78:80].strip() if len(line) >= 80 else ""
+
+                # Append the parsed data as a dictionary, including the current model.
+                data.append({
+                    "model": current_model,
+                    "record": record,
+                    "atom_serial": atom_serial,
+                    "atom_name": atom_name,
+                    "alt_loc": alt_loc,
+                    "residue_name": residue_name,
+                    "chain_id": chain_id,
+                    "residue_seq": residue_seq,
+                    "insertion": insertion,
+                    "x": x,
+                    "y": y,
+                    "z": z,
+                    "occupancy": occupancy,
+                    "temp_factor": temp_factor,
+                    "element": element,
+                    "charge": charge
+                })
+
+            # When an ENDMDL record is encountered, reset the model (optional).
+            elif line.startswith("ENDMDL"):
+                current_model = None
+
+    return pd.DataFrame(data)
+
+
+"""
+Write a PDB file from a DataFrame that includes a 'model' column.
+
+The DataFrame is expected to contain the following columns:
+    'model', 'record', 'atom_serial', 'atom_name', 'alt_loc',
+    'residue_name', 'chain_id', 'residue_seq', 'insertion',
+    'x', 'y', 'z', 'occupancy', 'temp_factor', 'element', 'charge'
+
+The function groups the atoms by model, and for each model writes:
+    MODEL     <model number>
+    ... atom records ...
+    ENDMDL
+
+Parameters:
+    df (pd.DataFrame): DataFrame containing PDB data.
+    filename (str): Path to the output PDB file.
+"""
+def write_pdb_from_df_with_models(df, filename):
+    with open(filename, "w") as f:
+        # Group by model (sorted by the model value)
+        for model_number, group in df.groupby("model", sort=True):
+            try:
+                # Try to convert model_number to an integer.
+                model_int = int(model_number)
+            except (ValueError, TypeError):
+                # If conversion fails (or model is missing), default to 1.
+                model_int = 1
+
+            # Write the MODEL header.
+            # Format: Columns 1-6: "MODEL " (left-justified), columns 11-14: model number.
+            # Here we use a simple formatting string.
+            f.write("MODEL     {:4d}\n".format(model_int))
+
+            # Write each atom/HETATM record.
+            for idx, row in group.iterrows():
+                # Format a PDB ATOM/HETATM record using fixed-width fields.
+                # The typical PDB columns for an ATOM record are:
+                #   1-6   : Record name (ATOM/HETATM, left-justified)
+                #   7-11  : Atom serial number (right-justified)
+                #   13-16 : Atom name (right-justified)
+                #   17    : Alternate location indicator
+                #   18-20 : Residue name (right-justified)
+                #   22    : Chain identifier
+                #   23-26 : Residue sequence number (right-justified)
+                #   27    : Insertion code
+                #   31-38: X coordinate (8.3f)
+                #   39-46: Y coordinate (8.3f)
+                #   47-54: Z coordinate (8.3f)
+                #   55-60: Occupancy (6.2f)
+                #   61-66: Temperature factor (6.2f)
+                #   77-78: Element symbol (right-justified)
+                #   79-80: Charge (right-justified)
+                line = (
+                    "{:<6}"    # record name (e.g., ATOM)
+                    "{:>5d}"   # atom serial (integer)
+                    " "        # spacer (column 12)
+                    "{:>4}"    # atom name
+                    "{:1}"     # alt_loc
+                    "{:>3}"    # residue name
+                    " "        # spacer (column 21)
+                    "{:1}"     # chain id
+                    "{:>4d}"   # residue sequence number (integer)
+                    "{:1}"     # insertion code
+                    "   "      # three spaces (columns 28-30)
+                    "{:>8.3f}" # x coordinate
+                    "{:>8.3f}" # y coordinate
+                    "{:>8.3f}" # z coordinate
+                    "{:>6.2f}" # occupancy
+                    "{:>6.2f}" # temp factor
+                    "          "  # ten spaces (columns 67-76)
+                    "{:>2}"    # element
+                    "{:>2}"    # charge
+                    "\n"
+                ).format(
+                    row["record"],
+                    int(row["atom_serial"]),
+                    row["atom_name"],
+                    row["alt_loc"],
+                    row["residue_name"],
+                    row["chain_id"],
+                    int(row["residue_seq"]),
+                    row["insertion"],
+                    float(row["x"]),
+                    float(row["y"]),
+                    float(row["z"]),
+                    float(row["occupancy"]),
+                    float(row["temp_factor"]),
+                    row["element"],
+                    row["charge"]
+                )
+                f.write(line)
+            # End of model
+            f.write("ENDMDL\n")
+
+
 if __name__ == "__main__":
     from pathlib import Path
 
-    pdb_file = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/280_exp_all_2/9/output_0/pdbs/499.pdb")
-    multi_to_altconf(pdb_file, [0.35, 0.65], Path(Path.home(), "xray/tmp/out.pdb"))
+    pdb_file = Path(Path.home(), "Documents/xray/tmp/tmp.pdb")
+    df = pdb_to_df(pdb_file)
+    print(df.head())
+    print(df.tail())
+    print(len(df))
 
-    # altconf_to_multi(Path(Path.home(), "xray/tmp/499_refine_001.pdb"), Path(Path.home(), "xray/tmp/out_multi.pdb"), 2)
+    write_pdb_from_df_with_models(df, Path(Path.home(), "Documents/xray/tmp/tmp_out.pdb"))

@@ -138,33 +138,33 @@ class MultiStateMultiConditionModel:
 
         ## if ligand then create rigid body
         self.ligands = list()
-        for h in self.hs:
-            ress = IMP.atom.get_by_type(h, IMP.atom.RESIDUE_TYPE)
-            for res in ress:
-                ## if the res 3 letter code not in the list of standard amino acids and more than 1 atom then it is a ligand
-                if res.get_name() not in ["ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL", "HOH"] and len(IMP.atom.Selection(res).get_selected_particle_indexes()) > 1:
-                    ## setup rigid body
-                    res_pids = IMP.atom.Selection(res).get_selected_particle_indexes()
-                    print("LIGAND: ", res.get_name(), len(res_pids))
+        # for h in self.hs:
+        #     ress = IMP.atom.get_by_type(h, IMP.atom.RESIDUE_TYPE)
+        #     for res in ress:
+        #         ## if the res 3 letter code not in the list of standard amino acids and more than 1 atom then it is a ligand
+        #         if res.get_name() not in ["ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL", "HOH"] and len(IMP.atom.Selection(res).get_selected_particle_indexes()) > 1:
+        #             ## setup rigid body
+        #             res_pids = IMP.atom.Selection(res).get_selected_particle_indexes()
+        #             print("LIGAND: ", res.get_name(), len(res_pids))
 
-                    atoms = IMP.core.get_leaves(res)
-                    rb = IMP.core.RigidBody.setup_particle(res, atoms)
-                    rb.set_coordinates_are_optimized(True)
+        #             atoms = IMP.core.get_leaves(res)
+        #             rb = IMP.core.RigidBody.setup_particle(res, atoms)
+        #             rb.set_coordinates_are_optimized(True)
 
-                    # prb = IMP.core.RigidBody.setup_particle(IMP.Particle(self.m), IMP.algebra.ReferenceFrame3D())
+        #             # prb = IMP.core.RigidBody.setup_particle(IMP.Particle(self.m), IMP.algebra.ReferenceFrame3D())
 
-                    # for pid in res_pids:
-                    #     d = IMP.core.XYZR(self.m, pid)
-                    #     prb.add_member(d)
+        #             # for pid in res_pids:
+        #             #     d = IMP.core.XYZR(self.m, pid)
+        #             #     prb.add_member(d)
 
-                    rb.set_coordinates_are_optimized(True)
-                    self.ligands.append(rb)
-                    # prb.add_to_rotational_derivatives(IMP.algebra.Vector4D(1,0,0,0), IMP.DerivativeAccumulator(1))
-                    # print(prb.get_rotational_derivatives())
-                # else:
-                #     for pid in IMP.atom.Selection(res).get_selected_particle_indexes():
-                #         d = IMP.core.XYZR(self.m, pid)
-                #         d.set_coordinates_are_optimized(True)
+        #             rb.set_coordinates_are_optimized(True)
+        #             self.ligands.append(rb)
+        #             # prb.add_to_rotational_derivatives(IMP.algebra.Vector4D(1,0,0,0), IMP.DerivativeAccumulator(1))
+        #             # print(prb.get_rotational_derivatives())
+        #         # else:
+        #         #     for pid in IMP.atom.Selection(res).get_selected_particle_indexes():
+        #         #         d = IMP.core.XYZR(self.m, pid)
+        #         #         d.set_coordinates_are_optimized(True)
 
 
         # Setup coordinates for md
@@ -301,13 +301,13 @@ class MultiStateMultiConditionModel:
                 atom_type = at.get_atom_type()
                 atom_type = str(atom_type).strip("\"")
 
-                if atom_type == "HET: O  ":
-                    atom_type = "O"
+                # if atom_type == "HET: O  ":
+                #     atom_type = "O"
 
                 if "HET: " in atom_type:
-                    atom_type = atom_type.split("HET: ")[1]
+                    atom_type = atom_type.split("HET: ")[1].strip()
                 elif "HET:" in atom_type:
-                    atom_type = atom_type.split("HET:")[1]
+                    atom_type = atom_type.split("HET:")[1].strip()
 
                 # elif atom_type == "HET: S":
                 #     atom_type = "S"
