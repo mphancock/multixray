@@ -2,99 +2,6 @@ import pandas as pd
 
 
 """
-IMP sampling produces a multi model pdb file but phenix.refine requires a single model pdb file with altconfs. Need to fix the occupancies.
-
-Update the 'alt_loc' column in the PDB DataFrame so that each row's alt_loc is
-set to a letter corresponding to its model number:
-    Model 1 -> 'A'
-    Model 2 -> 'B'
-    Model 3 -> 'C'
-    etc.
-
-Parameters:
-    df (pd.DataFrame): DataFrame containing at least the 'model' and 'alt_loc' columns.
-
-Returns:
-    pd.DataFrame: The DataFrame with updated 'alt_loc' values.
-"""
-def update_alt_loc_by_model(df):
-    def model_to_letter(model):
-        try:
-            # Convert the model number to an integer.
-            model_int = int(model)
-            # Convert model 1 to 'A', model 2 to 'B', etc.
-            return chr(64 + model_int)
-        except (ValueError, TypeError):
-            # If model cannot be interpreted as an integer, return an empty string.
-            return ""
-
-    # Update the 'alt_loc' column using the helper function.
-    df['alt_loc'] = df['model'].apply(model_to_letter)
-    return df
-
-
-"""
-Update the 'occupancy' column in the PDB DataFrame based on an occupancy value provided
-for each model.
-
-Parameters:
-    df (pd.DataFrame): DataFrame containing at least a 'model' and an 'occupancy' column.
-    occupancy_array (list or array): Occupancy values for each model. For example,
-        occupancy_array[0] is the occupancy for model 1,
-        occupancy_array[1] for model 2, etc.
-
-Returns:
-    pd.DataFrame: The DataFrame with updated occupancy values.
-"""
-def update_occs(df, occs):
-    def get_occ_for_model(row):
-        try:
-            # Convert the model value to an integer.
-            model_int = int(row['model'])
-            # Use the model number (1-indexed) to fetch the occupancy from the occupancy_array.
-            if 0 <= model_int - 1 < len(occs):
-                return occs[model_int - 1]
-            else:
-                # If model number is out-of-range, keep the original occupancy.
-                return row['occupancy']
-        except Exception:
-            # In case of any conversion error, keep the original occupancy.
-            return row['occupancy']
-
-    # Apply the occupancy update for each row.
-    df['occupancy'] = df.apply(get_occ_for_model, axis=1)
-    return df
-
-
-"""
-Update (or create) the 'model' column in a DataFrame based on the 'alt_loc' column,
-converting letters to numbers such that:
-    'A' becomes 1, 'B' becomes 2, etc.
-
-If a row's 'alt_loc' value is empty or missing, the 'model' column is set to None.
-
-Parameters:
-    df (pd.DataFrame): DataFrame containing at least the 'alt_loc' column.
-
-Returns:
-    pd.DataFrame: The DataFrame with the updated 'model' column.
-"""
-def update_model_based_on_altconf(df):
-    def alt_to_model(alt_char):
-        if isinstance(alt_char, str) and alt_char.strip():
-            # Convert the character to uppercase and then to a number:
-            # ord('A') = 65 so subtracting 64 gives 1 for 'A', 2 for 'B', etc.
-            return ord(alt_char.upper()) - 64
-        else:
-            # Return None if the alternate location indicator is empty or not a string.
-            return None
-
-    # Apply the helper function to the 'alt_loc' column.
-    df['model'] = df['alt_loc'].apply(alt_to_model)
-    return df
-
-
-"""
 Reads a PDB file (which may contain multiple models) and returns a pandas DataFrame.
 
 The DataFrame will include the following columns:
@@ -298,6 +205,155 @@ def write_pdb_from_df_with_models(
             f.write("ENDMDL\n")
 
 
+"""
+IMP sampling produces a multi model pdb file but phenix.refine requires a single model pdb file with altconfs. Need to fix the occupancies.
+
+Update the 'alt_loc' column in the PDB DataFrame so that each row's alt_loc is
+set to a letter corresponding to its model number:
+    Model 1 -> 'A'
+    Model 2 -> 'B'
+    Model 3 -> 'C'
+    etc.
+
+Parameters:
+    df (pd.DataFrame): DataFrame containing at least the 'model' and 'alt_loc' columns.
+
+Returns:
+    pd.DataFrame: The DataFrame with updated 'alt_loc' values.
+"""
+def update_alt_loc_by_model(df):
+    def model_to_letter(model):
+        try:
+            # Convert the model number to an integer.
+            model_int = int(model)
+            # Convert model 1 to 'A', model 2 to 'B', etc.
+            return chr(64 + model_int)
+        except (ValueError, TypeError):
+            # If model cannot be interpreted as an integer, return an empty string.
+            return ""
+
+    # Update the 'alt_loc' column using the helper function.
+    df['alt_loc'] = df['model'].apply(model_to_letter)
+    return df
+
+
+"""
+Update the 'occupancy' column in the PDB DataFrame based on an occupancy value provided
+for each model.
+
+Parameters:
+    df (pd.DataFrame): DataFrame containing at least a 'model' and an 'occupancy' column.
+    occupancy_array (list or array): Occupancy values for each model. For example,
+        occupancy_array[0] is the occupancy for model 1,
+        occupancy_array[1] for model 2, etc.
+
+Returns:
+    pd.DataFrame: The DataFrame with updated occupancy values.
+"""
+def update_occs(df, occs):
+    def get_occ_for_model(row):
+        try:
+            # Convert the model value to an integer.
+            model_int = int(row['model'])
+            # Use the model number (1-indexed) to fetch the occupancy from the occupancy_array.
+            if 0 <= model_int - 1 < len(occs):
+                return occs[model_int - 1]
+            else:
+                # If model number is out-of-range, keep the original occupancy.
+                return row['occupancy']
+        except Exception:
+            # In case of any conversion error, keep the original occupancy.
+            return row['occupancy']
+
+    # Apply the occupancy update for each row.
+    df['occupancy'] = df.apply(get_occ_for_model, axis=1)
+    return df
+
+
+"""
+Update (or create) the 'model' column in a DataFrame based on the 'alt_loc' column,
+converting letters to numbers such that:
+    'A' becomes 1, 'B' becomes 2, etc.
+
+If a row's 'alt_loc' value is empty or missing, the 'model' column is set to None.
+
+Parameters:
+    df (pd.DataFrame): DataFrame containing at least the 'alt_loc' column.
+
+Returns:
+    pd.DataFrame: The DataFrame with the updated 'model' column.
+"""
+def update_model_based_on_altconf(df):
+    def alt_to_model(alt_char):
+        if isinstance(alt_char, str) and alt_char.strip():
+            # Convert the character to uppercase and then to a number:
+            # ord('A') = 65 so subtracting 64 gives 1 for 'A', 2 for 'B', etc.
+            return ord(alt_char.upper()) - 64
+        else:
+            # Return None if the alternate location indicator is empty or not a string.
+            return None
+
+    # Apply the helper function to the 'alt_loc' column.
+    df['model'] = df['alt_loc'].apply(alt_to_model)
+    return df
+
+
+"""
+Insert a single atom (row) into the PDB DataFrame.
+
+Parameters:
+    df (pd.DataFrame): The existing DataFrame containing PDB data.
+        Expected columns include:
+        'model', 'record', 'atom_serial', 'atom_name', 'alt_loc',
+        'residue_name', 'chain_id', 'residue_seq', 'insertion',
+        'x', 'y', 'z', 'occupancy', 'temp_factor', 'element', 'charge'
+    atom_data (dict): A dictionary containing the new atom's data.
+        Example:
+            {
+                "model": 1,
+                "record": "ATOM",
+                "atom_serial": 3,
+                "atom_name": "C",
+                "alt_loc": "A",
+                "residue_name": "MET",
+                "chain_id": "A",
+                "residue_seq": 1,
+                "insertion": "",
+                "x": 40.000,
+                "y": 14.500,
+                "z": 3.200,
+                "occupancy": 1.00,
+                "temp_factor": 50.00,
+                "element": "C",
+                "charge": ""
+            }
+    index (int, optional): The index at which to insert the new row.
+        If not provided or if index is greater than or equal to the number of rows,
+        the atom is appended at the end.
+
+Returns:
+    pd.DataFrame: A new DataFrame with the new atom row inserted.
+"""
+def insert_single_atom(df, atom_data, index=None):
+    # Check that atom_data is a dictionary
+    if not isinstance(atom_data, dict):
+        raise ValueError("atom_data must be a dictionary representing a single atom.")
+
+    # Create a one-row DataFrame from the dictionary.
+    new_row_df = pd.DataFrame([atom_data])
+
+    if index is None or index >= len(df):
+        # Append the new row at the end.
+        new_df = pd.concat([df, new_row_df], ignore_index=True)
+    else:
+        # Insert the new row at the specified index.
+        df_top = df.iloc[:index].copy()
+        df_bottom = df.iloc[index:].copy()
+        new_df = pd.concat([df_top, new_row_df, df_bottom], ignore_index=True)
+
+    return new_df
+
+
 if __name__ == "__main__":
     from pathlib import Path
 
@@ -309,8 +365,29 @@ if __name__ == "__main__":
     print(df.tail())
     print(len(df))
 
+    data = {
+        "model": 1,
+        "record": "HETATM",
+        "atom_serial": 3000,
+        "atom_name": "ZN",
+        "alt_loc": "",
+        "residue_name": "ZN",
+        "chain_id": "A",
+        "residue_seq": 401,
+        "insertion": "",
+        "x": 38.428,
+        "y": 13.447,
+        "z": 2.0417,
+        "occupancy": .3,
+        "temp_factor": 53.43,
+        "element": "ZN",
+        "charge": ""
+    }
+    df = insert_single_atom(df, data)
+
     write_pdb_from_df_with_models(df, Path(Path.home(), "Documents/xray/tmp/tmp_out.pdb"), single_model=True)
 
     df = pdb_to_df(Path(Path.home(), "Documents/xray/tmp/tmp_out.pdb"))
     update_model_based_on_altconf(df)
+
     write_pdb_from_df_with_models(df, Path(Path.home(), "Documents/xray/tmp/tmp_out2.pdb"), single_model=False)
