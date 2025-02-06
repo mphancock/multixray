@@ -235,9 +235,17 @@ The function groups the atoms by model, and for each model writes:
 Parameters:
     df (pd.DataFrame): DataFrame containing PDB data.
     filename (str): Path to the output PDB file.
+    single_model (bool): If True, only write a single model (default: False).
 """
-def write_pdb_from_df_with_models(df, filename):
+def write_pdb_from_df_with_models(
+    df,
+    filename,
+    single_model=False
+):
     with open(filename, "w") as f:
+        if single_model:
+            f.write("MODEL     {:4d}\n".format(1))
+
         # Group by model (sorted by the model value)
         for model_number, group in df.groupby("model", sort=True):
             try:
@@ -250,7 +258,8 @@ def write_pdb_from_df_with_models(df, filename):
             # Write the MODEL header.
             # Format: Columns 1-6: "MODEL " (left-justified), columns 11-14: model number.
             # Here we use a simple formatting string.
-            f.write("MODEL     {:4d}\n".format(model_int))
+            if not single_model:
+                f.write("MODEL     {:4d}\n".format(model_int))
 
             # Write each atom/HETATM record.
             for idx, row in group.iterrows():
@@ -311,6 +320,10 @@ def write_pdb_from_df_with_models(df, filename):
                 )
                 f.write(line)
             # End of model
+            if not single_model:
+                f.write("ENDMDL\n")
+
+        if single_model:
             f.write("ENDMDL\n")
 
 
@@ -323,4 +336,4 @@ if __name__ == "__main__":
     print(df.tail())
     print(len(df))
 
-    write_pdb_from_df_with_models(df, Path(Path.home(), "Documents/xray/tmp/tmp_out.pdb"))
+    write_pdb_from_df_with_models(df, Path(Path.home(), "Documents/xray/tmp/tmp_out.pdb"), single_model=True)
