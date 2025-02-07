@@ -110,12 +110,12 @@ Parameters:
     filename (str): Path to the output PDB file.
     single_model (bool): If True, only write a single model (default: False). If single model, then dont write altconf.
 """
-def write_pdb_from_df_with_models(
+def write_pdb_from_df(
     df,
-    filename,
+    out_pdb_file,
     single_model=False
 ):
-    with open(filename, "w") as f:
+    with open(out_pdb_file, "w") as f:
         if single_model:
             f.write("MODEL     {:4d}\n".format(1))
 
@@ -250,7 +250,10 @@ Parameters:
 Returns:
     pd.DataFrame: The DataFrame with updated occupancy values.
 """
-def update_occs(df, occs):
+def update_occs(
+    df,
+    occs
+):
     def get_occ_for_model(row):
         try:
             # Convert the model value to an integer.
@@ -334,7 +337,11 @@ Parameters:
 Returns:
     pd.DataFrame: A new DataFrame with the new atom row inserted.
 """
-def insert_single_atom(df, atom_data, index=None):
+def insert_single_atom(
+    df,
+    atom_data,
+    index=None
+):
     # Check that atom_data is a dictionary
     if not isinstance(atom_data, dict):
         raise ValueError("atom_data must be a dictionary representing a single atom.")
@@ -354,40 +361,55 @@ def insert_single_atom(df, atom_data, index=None):
     return new_df
 
 
+"""
+Reads a CSV file containing PDB data and duplicates every heteroatom row
+(i.e. where 'record' == 'HETATM') for each unique alternate location (alt_loc)
+found in the CSV. The new duplicate rows will have their 'alt_loc' field replaced
+with one of the unique alternate location values.
+
+Parameters:
+    csv_file (str): Path to the CSV file containing the PDB data.
+
+Returns:
+    pd.DataFrame: A new DataFrame with heteroatom rows duplicated for each unique alt_loc.
+"""
+def duplicate_heteroatoms_for_all_altlocs(df):
+    # Extract all unique alt_loc values from the dataframe,
+    # ignoring empty strings or NaN values.
+    unique_altlocs = [loc for loc in df['alt_loc'].unique()
+                      if pd.notnull(loc) and loc != ""]
+
+    # If no valid alternate location values are found, return the original dataframe.
+    if not unique_altlocs:
+        return df
+
+    # Filter heteroatom rows (where record is "HETATM")
+    hetero_df = df[df['record'] == "HETATM"]
+    # Keep all non-heteroatom rows unchanged.
+    non_hetero_df = df[df['record'] != "HETATM"]
+
+    # List to store the duplicated heteroatom rows.
+    duplicated_rows = []
+    for _, row in hetero_df.iterrows():
+        for alt in unique_altlocs:
+            new_row = row.copy()
+            new_row['alt_loc'] = alt  # Replace the alt_loc with the current value.
+            duplicated_rows.append(new_row)
+
+    # Create a DataFrame from the duplicated rows.
+    hetero_dup_df = pd.DataFrame(duplicated_rows)
+
+    # Combine the non-heteroatom rows with the duplicated heteroatom rows.
+    result_df = pd.concat([non_hetero_df, hetero_dup_df], ignore_index=True)
+
+    return result_df
+
+
 if __name__ == "__main__":
     from pathlib import Path
 
-    pdb_file = Path(Path.home(), "Documents/xray/tmp/tmp.pdb")
-    df = pdb_to_df(pdb_file)
-    df = update_alt_loc_by_model(df)
-    df = update_occs(df, [0.94, 0.06])
-    print(df.head())
-    print(df.tail())
+    df = pdb_to_df(Path(Path.home(), "Documents/xray/tmp/440_refine_001.pdb"))
     print(len(df))
-
-    data = {
-        "model": 1,
-        "record": "HETATM",
-        "atom_serial": 3000,
-        "atom_name": "ZN",
-        "alt_loc": "",
-        "residue_name": "ZN",
-        "chain_id": "A",
-        "residue_seq": 401,
-        "insertion": "",
-        "x": 38.428,
-        "y": 13.447,
-        "z": 2.0417,
-        "occupancy": .3,
-        "temp_factor": 53.43,
-        "element": "ZN",
-        "charge": ""
-    }
-    df = insert_single_atom(df, data)
-
-    write_pdb_from_df_with_models(df, Path(Path.home(), "Documents/xray/tmp/tmp_out.pdb"), single_model=True)
-
-    df = pdb_to_df(Path(Path.home(), "Documents/xray/tmp/tmp_out.pdb"))
-    update_model_based_on_altconf(df)
-
-    write_pdb_from_df_with_models(df, Path(Path.home(), "Documents/xray/tmp/tmp_out2.pdb"), single_model=False)
+    df = duplicate_heteroatoms_for_all_altlocs(df)
+    df = update_model_based_on_altconf(df)
+    write_pdb_from_df(df, Path(Path.home(), "Documents/xray/tmp/tmp.pdb"), single_model=False)
