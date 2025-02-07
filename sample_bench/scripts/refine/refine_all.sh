@@ -3,8 +3,8 @@
 
 EXP_ID=283
 EXP_NAME="283_2_cond"
-N_JOBS="1-500"
-OFFSET="500"
+N_JOBS="1-1000"
+OFFSET="0"
 H_RT="12:00:00"
 
 for JOB_ID in {0..20}

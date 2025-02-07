@@ -14,12 +14,12 @@ import IMP.atom
 sys.path.append(str(Path(Path.home(), "xray/src")))
 from refine import read_pdb_and_refine, read_pdb_and_refine_to_max_ff, refine_posterior
 from params import read_job_csv, build_weights_matrix
-from transfer_atoms import add_atom
 from align_imp import align_one_to_two
 sys.path.append(str(Path(Path.home(), "xray/score_bench/src")))
 from score import pool_score
-from files import multi_to_altconf, altconf_to_multi
+from files import pdb_to_df, write_pdb_from_df, update_occs, update_model_based_on_altconf, update_alt_loc_by_model, insert_single_atom, renumber_hetero_residues
 from miller_ops import get_crystal_symmetry
+from etc import get_zn_coords_and_occ_after_align
 
 
 if __name__ == "__main__":
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     log_df = pd.read_csv(log_file, index_col=0)
     log_df = log_df.loc[log_df["pdb"].notnull()]
 
-    refined_exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/{}_phenix_ref".format(exp_dir.name))
+    refined_exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/{}_phenix_ref_2".format(exp_dir.name))
     refined_out_dir = Path(refined_exp_dir, job_dir.name, out_dir.name)
     shutil.rmtree(refined_out_dir, ignore_errors=True)
     refined_pdb_dir = Path(refined_out_dir, "pdbs")
@@ -103,6 +103,7 @@ if __name__ == "__main__":
     for i in range(len(pdb_files)):
         ## convert the pdb_file to altconf but store in local scratch
         pdb_file = Path(pdb_files[i])
+    # for pdb_file in [Path("/wynton/group/sali/mhancock/xray/sample_bench/out/282_test_w/0/output_0/pdbs/3.pdb")]:
         tmp_pdb_file = Path(tmp_dir, pdb_file.name)
         decoy_w_mat = build_weights_matrix(refined_log_df, i, "w", N, cif_names)
 
@@ -111,97 +112,99 @@ if __name__ == "__main__":
             cif_file = cif_files[j]
             cif_name = cif_names[j]
 
-            ## add the zn ion if 7mhf series
-            m_1, m_2 = IMP.Model(), IMP.Model()
-            h_1 = IMP.atom.read_pdb(str(Path(Path.home(), "xray/data/pdbs/7mhf/{}.pdb".format(cif_name))), m_1, IMP.atom.NonAlternativePDBSelector())
-            hs_2 = IMP.atom.read_multimodel_pdb(str(pdb_file), m_2, IMP.atom.AllPDBSelector())
-            pid = IMP.atom.Selection(h_1, atom_type=IMP.atom.AtomType("HET:ZN  ")).get_selected_particle_indexes()[0]
+            ## get the pdb csv
+            pdb_df = pdb_to_df(pdb_file)
 
-            total_zn_occ = 0.25
+            ## update confs and occs
+            pdb_df = update_occs(pdb_df, decoy_w_mat[:,j])
+            pdb_df = update_alt_loc_by_model(pdb_df)
 
-            ## for each state in hs_2 align h_1 then add the atom and set the zn occupancy
-            for state in range(len(hs_2)):
-                h_2 = hs_2[state]
-                align_one_to_two(h_1, h_2)
-                add_atom(pid, h_1, h_2)
+            ## get zn coordinates and occs and add to pdb csv
+            zn_coords, zn_occ = get_zn_coords_and_occ_after_align(
+                pdb_file_1=Path(Path.home(), "xray/data/pdbs/7mhf/{}.pdb".format(cif_name)),
+                pdb_file_2=pdb_file
+            )
+            pdb_df = insert_single_atom(
+                df=pdb_df,
+                atom_data={"model": 1, "record": "HETATM","atom_serial": 3000, "atom_name": "ZN", "alt_loc": "", "residue_name": "ZN", "chain_id": "A","residue_seq": 401, "insertion": "", "x": zn_coords[0], "y": zn_coords[1], "z": zn_coords[2], "occupancy": zn_occ, "temp_factor": 53.43, "element": "ZN", "charge": ""},
+                index=None
+            )
 
-                zn_pid = IMP.atom.Selection(h_2, atom_type=IMP.atom.AtomType("HET:ZN  ")).get_selected_particle_indexes()[0]
-                zn_at = IMP.atom.Atom(m_2, zn_pid)
-                zn_at.set_occupancy(decoy_w_mat[state, cond] / (1 / total_zn_occ))
+            ## save as altconf
+            write_pdb_from_df(
+                df=pdb_df,
+                out_pdb_file=tmp_pdb_file,
+                single_model=True
+            )
 
-            IMP.atom.write_multimodel_pdb(hs_2, str(tmp_pdb_file))
+            ## convert the orig multistate pdb file to altconf tmp file (jth column of the decoy_w_mat)
+            cif_file = cif_files[j]
+            crystal_symmetry = get_crystal_symmetry(cif_file)
+            refined_pdb_file = Path(refined_pdb_dir, "{}_{}.pdb".format(pdb_file.stem, cif_names[j]))
+            print(pdb_file, tmp_pdb_file, refined_pdb_file)
+            sg = crystal_symmetry.space_group_info().group().info()
+            uc = crystal_symmetry.unit_cell()
 
-            # ## convert the orig multistate pdb file to altconf tmp file (jth column of the decoy_w_mat)
-            # multi_to_altconf(
-            #     in_pdb_file=tmp_pdb_file,
-            #     occs=decoy_w_mat[:,j],
-            #     out_pdb_file=tmp_pdb_file
-            # )
+            refine_command = "phenix.refine {} {} strategy=individual_sites+individual_adp ordered_solvent=true ordered_solvent.mode=every_macro_cycle  refinement.input.xray_data.labels=_refln.F_meas_au,_refln.F_meas_sigma_au refinement.pdb_interpretation.clash_guard.nonbonded_distance_threshold=None crystal_symmetry.unit_cell={},{},{},{},{},{} crystal_symmetry.space_group='{}' write_eff_file=false write_geo_file=false write_def_file=false write_maps=false write_map_coefficients=false write_model_cif_file=false".format(cif_file, tmp_pdb_file, uc.parameters()[0], uc.parameters()[1], uc.parameters()[2], uc.parameters()[3], uc.parameters()[4], uc.parameters()[5], sg)
 
-    #         cif_file = cif_files[j]
-    #         crystal_symmetry = get_crystal_symmetry(cif_file)
-    #         refined_pdb_file = Path(refined_pdb_dir, "{}_{}.pdb".format(pdb_file.stem, cif_names[j]))
-    #         print(pdb_file, tmp_pdb_file, refined_pdb_file)
-    #         sg = crystal_symmetry.space_group_info().group().info()
-    #         uc = crystal_symmetry.unit_cell()
+            if not args.log_phenix:
+                refine_command += "> /dev/null 2>&1"
 
-    #         refine_command = "phenix.refine {} {} strategy=individual_sites+individual_adp ordered_solvent=true ordered_solvent.mode=every_macro_cycle  refinement.input.xray_data.labels=_refln.F_meas_au,_refln.F_meas_sigma_au refinement.pdb_interpretation.clash_guard.nonbonded_distance_threshold=None crystal_symmetry.unit_cell={},{},{},{},{},{} crystal_symmetry.space_group='{}' write_eff_file=false write_geo_file=false write_def_file=false write_maps=false write_map_coefficients=false write_model_cif_file=false".format(cif_file, tmp_pdb_file, uc.parameters()[0], uc.parameters()[1], uc.parameters()[2], uc.parameters()[3], uc.parameters()[4], uc.parameters()[5], sg)
+            print(refine_command)
+            os.system(refine_command)
+            phenix_out_pdb_file = Path(tmp_dir, "{}_refine_001.pdb".format(pdb_file.stem))
 
-    #         if not args.log_phenix:
-    #             refine_command += "> /dev/null 2>&1"
+            # ## convert all models back to multistate
+            df = pdb_to_df(phenix_out_pdb_file)
+            df = update_model_based_on_altconf(df)
+            df = renumber_hetero_residues(df)
+            write_pdb_from_df(
+                df=df,
+                out_pdb_file=refined_pdb_file,
+                single_model=False
+            )
+            refined_log_df.loc[i*len(cif_files)+j, "pdb"] = refined_pdb_file
 
-    #         print(refine_command)
-    #         os.system(refine_command)
-    #         phenix_out_pdb_file = Path(tmp_dir, "{}_refine_001.pdb".format(pdb_file.stem))
+            ## clean up temporary files from phenix
+            os.system("rm *.pdb")
+            os.system("rm *.mtz")
+            os.system("rm *.log")
 
-    #         ## convert all models back to multistate
-    #         altconf_to_multi(
-    #             in_pdb_file=phenix_out_pdb_file,
-    #             out_pdb_file=refined_pdb_file,
-    #             n_state=N
-    #         )
-    #         refined_log_df.loc[i*len(cif_files)+j, "pdb"] = refined_pdb_file
+    ## 3. SCORE ALL REFINED MODELS AGAINST CORRESPONDING CIF
+    print(refined_log_df.head())
+    for i in range(len(refined_log_df)):
+        ## a bit confusing because we are running each refined pdb file against a single cif file so we need to find correct cif, correct weights, etc
+        refined_pdb_file = Path(refined_log_df.loc[i, "pdb"])
 
-    #         ## clean up temporary files from phenix
-    #         os.system("rm *.pdb")
-    #         os.system("rm *.mtz")
-    #         os.system("rm *.log")
+        cif_id = i % J
+        cif_file = cif_files[cif_id]
+        cif_name = cif_names[cif_id]
 
-    # ## 3. SCORE ALL REFINED MODELS AGAINST CORRESPONDING CIF
-    # print(refined_log_df.head())
-    # for i in range(len(refined_log_df)):
-    #     ## a bit confusing because we are running each refined pdb file against a single cif file so we need to find correct cif, correct weights, etc
-    #     refined_pdb_file = Path(refined_log_df.loc[i, "pdb"])
+        decoy_w_mat = build_weights_matrix(refined_log_df, i, "w", N, cif_names)
 
-    #     cif_id = i % J
-    #     cif_file = cif_files[cif_id]
-    #     cif_name = cif_names[cif_id]
+        param_dict = dict()
+        param_dict["decoy_files"] = [refined_pdb_file]
+        param_dict["decoy_w_mat"] = decoy_w_mat[:, cif_id].reshape([-1,1])
 
-    #     decoy_w_mat = build_weights_matrix(refined_log_df, i, "w", N, cif_names)
+        ## only 1 ref file for synthetic benchmark
+        param_dict["ref_file"] = ref_files[0]
+        param_dict["ref_w_mat"] = ref_w_mat
+        param_dict["score_fs"] = ["xray_0", "ff"]
+        param_dict["cif_files"] = [cif_file]
+        param_dict["scale_k1"] = True
+        param_dict["scale"] = True
+        param_dict["remove_outliers"] = True
+        param_dict["res"] = 0
 
-    #     param_dict = dict()
-    #     param_dict["decoy_files"] = [refined_pdb_file]
-    #     param_dict["decoy_w_mat"] = decoy_w_mat[:, cif_id].reshape([-1,1])
+        score_dict = pool_score(param_dict)
+        refined_log_df.loc[i, "xray_{}".format(cif_name)] = score_dict["xray_0"]
+        refined_log_df.loc[i, "r_free_{}".format(cif_name)] = score_dict["r_free_0"]
+        refined_log_df.loc[i, "r_work_{}".format(cif_name)] = score_dict["r_work_0"]
+        # refined_log_df.loc[i, "rmsd_{}".format(cif_name)] = score_dict["rmsd_{}".format(cif_name)]
+        refined_log_df.loc[i, "ff"] = score_dict["ff"]
 
-    #     ## only 1 ref file for synthetic benchmark
-    #     param_dict["ref_file"] = ref_files[0]
-    #     param_dict["ref_w_mat"] = ref_w_mat
-    #     param_dict["score_fs"] = ["xray_0", "ff"]
-    #     param_dict["cif_files"] = [cif_file]
-    #     param_dict["scale_k1"] = True
-    #     param_dict["scale"] = True
-    #     param_dict["remove_outliers"] = True
-    #     param_dict["res"] = 0
+        print(score_dict)
 
-    #     score_dict = pool_score(param_dict)
-    #     refined_log_df.loc[i, "xray_{}".format(cif_name)] = score_dict["xray_0"]
-    #     refined_log_df.loc[i, "r_free_{}".format(cif_name)] = score_dict["r_free_0"]
-    #     refined_log_df.loc[i, "r_work_{}".format(cif_name)] = score_dict["r_work_0"]
-    #     # refined_log_df.loc[i, "rmsd_{}".format(cif_name)] = score_dict["rmsd_{}".format(cif_name)]
-    #     refined_log_df.loc[i, "ff"] = score_dict["ff"]
-
-    #     print(score_dict)
-
-    # print(refined_log_df.head())
-    # refined_log_df.to_csv(refined_log_file)
+    print(refined_log_df.head())
+    refined_log_df.to_csv(refined_log_file)
 

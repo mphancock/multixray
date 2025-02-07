@@ -9,8 +9,8 @@ from score import pool_score
 
 if __name__ == "__main__":
     param_dict = dict()
-    param_dict["decoy_files"] = [Path("/wynton/home/sali/mhancock/xray/tmp/tmp.pdb")]
-    param_dict["decoy_w_mat"] = np.array([[0.94], [0.06]])
+    param_dict["decoy_files"] = [Path("/wynton/home/sali/mhancock/xray/tmp/7mhf_clean.pdb")]
+    param_dict["decoy_w_mat"] = np.array([[1]])
     param_dict["ref_file"] = Path("/wynton/home/sali/mhancock/xray/dev/45_synthetic_native_4/data/pdbs/native.pdb")
     param_dict["ref_w_mat"] = np.array([[0.5], [0.5]])
     param_dict["cif_files"] = [Path("/wynton/home/sali/mhancock/xray/dev/38_standard_flags/data/7mhi.cif")]
