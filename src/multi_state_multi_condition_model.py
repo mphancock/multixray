@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import numpy as np
 
 import IMP
 import IMP.atom
@@ -195,6 +196,18 @@ class MultiStateMultiConditionModel:
 
             self.multi_xray_structures.append(multi_xray_structure)
 
+        ## create the scale array based on first multi state structure
+        ## this allows us to scale the occupancy of the scatterers in the multi xray structure based on original pdb structure
+        ## useful for partically occupeid ligands
+        scale_array = list()
+        for atom in self.multi_xray_h.atoms():
+            if atom.hetero:
+                scale_array.append(atom.occ)
+            else:
+                scale_array.append(1)
+
+        self.scale_np_array = np.array(scale_array)
+
     def get_m(self):
         return self.m
 
@@ -301,16 +314,10 @@ class MultiStateMultiConditionModel:
                 atom_type = at.get_atom_type()
                 atom_type = str(atom_type).strip("\"")
 
-                # if atom_type == "HET: O  ":
-                #     atom_type = "O"
-
                 if "HET: " in atom_type:
                     atom_type = atom_type.split("HET: ")[1].strip()
                 elif "HET:" in atom_type:
                     atom_type = atom_type.split("HET:")[1].strip()
-
-                # elif atom_type == "HET: S":
-                #     atom_type = "S"
 
                 res = IMP.atom.Residue(at.get_parent())
                 res_id = res.get_index()
@@ -346,7 +353,11 @@ class MultiStateMultiConditionModel:
         occs = list()
         for state in range(self.n_state):
             occs.extend([self.w_mat[state, cond]]*len(self.get_pids_in_state(state)))
-        occs = flex.double(occs)
+
+        ## scale the occupancies by the original pdb occupancies
+        occs = np.multiply(np.array(occs), self.scale_np_array)
+
+        occs = flex.double(list(occs))
 
         self.multi_xray_structures[cond].set_occupancies(occs)
 
@@ -388,7 +399,11 @@ class MultiStateMultiConditionModel:
 if __name__ == "__main__":
     import numpy as np
     msmc_m = MultiStateMultiConditionModel(
-        pdb_files=[Path("/wynton/home/sali/mhancock/xray/tmp/out_multi.pdb")],
+        pdb_files=[Path(Path.home(), "Documents/xray/tmp/tmp.pdb")],
         w_mat=np.array([[.35], [0.65]]),
         crystal_symmetries=None
     )
+
+    multi_xray_structure = msmc_m.get_multi_xray_structure(0)
+    for scatt in multi_xray_structure.scatterers():
+        print(scatt.occupancy)
