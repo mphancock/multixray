@@ -405,6 +405,70 @@ def duplicate_heteroatoms_for_all_altlocs(df):
     return result_df
 
 
+"""
+Renumber the heteroatom residues in a PDB DataFrame based on the highest residue number
+found in standard (ATOM) entries.
+
+The procedure is:
+    1. Find the maximum residue number among rows where record == "ATOM".
+    2. Compute the starting hetero residue number as:
+        new_start = ((max_atom // 100) + 1) * 100 + 1
+        For example, if max_atom is 306, then new_start = 401.
+    3. Group the heteroatoms (rows with record "HETATM") by a combination of
+        ('chain_id', 'residue_seq', 'insertion', 'residue_name') and assign new sequential residue numbers.
+    4. Update the heteroatom rows in the DataFrame with the new residue numbers.
+
+Parameters:
+    df (pd.DataFrame): A DataFrame containing PDB data with at least the following columns:
+        - 'record' (e.g., "ATOM" or "HETATM")
+        - 'residue_seq'
+        - 'chain_id'
+        - 'insertion'
+        - 'residue_name'
+
+Returns:
+    pd.DataFrame: The DataFrame with heteroatom residues renumbered.
+"""
+def renumber_hetero_residues(df):
+    # Step 1: Find the maximum residue number among standard atoms.
+    atom_mask = df['record'] == "ATOM"
+    if atom_mask.any():
+        max_atom = df.loc[atom_mask, 'residue_seq'].max()
+    else:
+        raise ValueError("No standard ATOM records found in the DataFrame.")
+
+    # Step 2: Compute the new starting number for heteroatom residues.
+    new_start = ((max_atom // 100) + 1) * 100 + 1
+
+    # Step 3: Process heteroatom rows.
+    hetero_mask = df['record'] == "HETATM"
+    hetero_df = df.loc[hetero_mask].copy()
+
+    # Define the grouping columns that uniquely identify a residue.
+    group_cols = ['chain_id', 'residue_seq', 'insertion', 'residue_name']
+
+    # Create a mapping from the original residue identifier to a new residue number.
+    mapping = {}
+    new_residue_number = new_start
+
+    # Group heteroatom rows by the specified columns.
+    for group_key, group_data in hetero_df.groupby(group_cols, sort=False):
+        # Assign a new residue number for this group.
+        mapping[group_key] = new_residue_number
+        new_residue_number += 1
+
+    # Step 4: Update heteroatom rows in the DataFrame.
+    # Define a helper function to look up the new residue number for a given row.
+    def get_new_residue(row):
+        key = (row['chain_id'], row['residue_seq'], row['insertion'], row['residue_name'])
+        return mapping.get(key, row['residue_seq'])
+
+    # Apply the helper function to heteroatom rows.
+    df.loc[hetero_mask, 'residue_seq'] = hetero_df.apply(get_new_residue, axis=1)
+
+    return df
+
+
 if __name__ == "__main__":
     from pathlib import Path
 
@@ -412,4 +476,5 @@ if __name__ == "__main__":
     print(len(df))
     df = duplicate_heteroatoms_for_all_altlocs(df)
     df = update_model_based_on_altconf(df)
+    df = renumber_hetero_residues(df)
     write_pdb_from_df(df, Path(Path.home(), "Documents/xray/tmp/tmp.pdb"), single_model=False)
