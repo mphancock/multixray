@@ -85,7 +85,8 @@ if __name__ == "__main__":
         refined_log_df.reset_index(drop=True, inplace=True)
     ## else pick 10 random rows to refine
     else:
-        refined_log_df = refined_log_df.sample(n=10)
+        n_models = 10
+        refined_log_df = refined_log_df.sample(n=n_models)
         refined_log_df.reset_index(drop=True, inplace=True)
 
     pdb_files = list(refined_log_df["pdb"])
@@ -157,11 +158,11 @@ if __name__ == "__main__":
         # refined_log_df.loc[i, "ff"] = score_dict["ff"]
 
         refined_log_df.loc[i, "rmsd"] = score_dict["rmsd"]
-        for cond in range(len(cif_names)):
-            cif_name = cif_names[cond]
-            refined_log_df.loc[i, "rmsd_{}".format(cif_name)] = score_dict["rmsd_{}".format(cond)]
+        # for cond in range(len(cif_names)):
+        #     cif_name = cif_names[cond]
+        #     refined_log_df.loc[i, "rmsd_{}".format(cif_name)] = score_dict["rmsd_{}".format(cond)]
 
-        print(score_dict)
+        # print(score_dict)
 
     print(refined_log_df.head())
 

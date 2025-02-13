@@ -1,9 +1,9 @@
 #! /bin/bash
 
 
-EXP_ID=284
-EXP_NAME="284_2_cond_4_state"
-N_JOBS="1-1000"
+EXP_ID=285
+EXP_NAME="285_2_state_3_cond"
+N_JOBS="1-500"
 OFFSET="0"
 H_RT="12:00:00"
 JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/$EXP_ID.csv"

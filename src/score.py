@@ -132,12 +132,12 @@ def pool_score(
             scores_dict["r_work_{}".format(cond)] = xray_r.get_r_work()
 
             scores_dict["cif_files"] = cif_files
-        elif "rmsd_conds" == score_f:
+        elif "rmsd" == score_f:
             score = get_multi_state_multi_cond_rmsd(
                 decoy_msmc_m,
                 ref_msmc_m
             )
-
+        elif "rmsd_conds" == score_f:
             for cond in range(decoy_msmc_m.get_n_cond()):
                 scores_dict["rmsd_cond_0"] = get_multi_state_multi_cond_rmsd(
                     decoy_msmc_m,

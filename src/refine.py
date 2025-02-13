@@ -224,6 +224,7 @@ def refine_posterior(
             w_xray=1/len(cif_files),
             update_scale=True,
             update_k1=True,
+            remove_outliers=False,
             update_freq=1,
             charmm_holder=charmm_deriv_holder,
             ref_com=None

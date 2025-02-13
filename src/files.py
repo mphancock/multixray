@@ -472,9 +472,17 @@ def renumber_hetero_residues(df):
 if __name__ == "__main__":
     from pathlib import Path
 
-    df = pdb_to_df(Path(Path.home(), "Documents/xray/tmp/440_refine_001.pdb"))
-    print(len(df))
+    df = pdb_to_df(Path(Path.home(), "Documents/xray/tmp/99_refine_001.pdb"))
+    print("1", len(df))
+    print(df.tail())
     df = duplicate_heteroatoms_for_all_altlocs(df)
     df = update_model_based_on_altconf(df)
+    print("2", len(df))
     df = renumber_hetero_residues(df)
-    write_pdb_from_df(df, Path(Path.home(), "Documents/xray/tmp/tmp.pdb"), single_model=False)
+    print("3", len(df))
+    print(df.tail())
+    write_pdb_from_df(
+        df=df,
+        out_pdb_file=Path(Path.home(), "Documents/xray/tmp/tmp.pdb"),
+        single_model=False
+    )

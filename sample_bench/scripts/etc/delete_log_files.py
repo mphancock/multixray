@@ -19,7 +19,7 @@ def delete_file(log_file):
     Determine if the file should be deleted based on its creation time.
     Returns a tuple of the file path and a boolean indicating if it should be deleted.
     """
-    year, month, day = 2025, 2, 2
+    year, month, day = 2025, 2, 10
 
     creation_time = get_creation_time(log_file)
     delete_before_date = datetime.datetime(year, month, day)

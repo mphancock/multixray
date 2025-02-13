@@ -17,7 +17,7 @@ from params import read_job_csv, build_weights_matrix
 from align_imp import align_one_to_two
 sys.path.append(str(Path(Path.home(), "xray/score_bench/src")))
 from score import pool_score
-from files import pdb_to_df, write_pdb_from_df, update_occs, update_model_based_on_altconf, update_alt_loc_by_model, insert_single_atom, renumber_hetero_residues
+from files import pdb_to_df, write_pdb_from_df, update_occs, update_model_based_on_altconf, update_alt_loc_by_model, insert_single_atom, renumber_hetero_residues, duplicate_heteroatoms_for_all_altlocs
 from miller_ops import get_crystal_symmetry
 from etc import get_zn_coords_and_occ_after_align
 
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     log_df = pd.read_csv(log_file, index_col=0)
     log_df = log_df.loc[log_df["pdb"].notnull()]
 
-    refined_exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/{}_phenix_ref_2".format(exp_dir.name))
+    refined_exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out/{}_phenix_ref".format(exp_dir.name))
     refined_out_dir = Path(refined_exp_dir, job_dir.name, out_dir.name)
     shutil.rmtree(refined_out_dir, ignore_errors=True)
     refined_pdb_dir = Path(refined_out_dir, "pdbs")
@@ -156,6 +156,7 @@ if __name__ == "__main__":
 
             # ## convert all models back to multistate
             df = pdb_to_df(phenix_out_pdb_file)
+            df = duplicate_heteroatoms_for_all_altlocs(df)
             df = update_model_based_on_altconf(df)
             df = renumber_hetero_residues(df)
             write_pdb_from_df(
