@@ -122,10 +122,10 @@ def get_sample_volume_df(
 
 
 if __name__ == "__main__":
-    field = "xray_native_5_0+xray_native_5_1"
-    bonus_fields = ["ff", "rmsd"]
-    # field = "rmsd"
-    # bonus_fields = []
+    # field = "xray_native_5_0+xray_native_5_1"
+    # bonus_fields = ["ff", "rmsd"]
+    field = "rmsd"
+    bonus_fields = []
 
     stat_df_file = Path(Path.home(), "xray/sample_bench/data/analysis/277_native_5_ref/all_outs_2.csv")
     job_csv_file = Path(Path.home(), "xray/sample_bench/data/params/277.csv")

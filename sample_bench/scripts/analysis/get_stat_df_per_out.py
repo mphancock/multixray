@@ -59,7 +59,7 @@ if __name__ == "__main__":
     bonus_fields = ["ff", "pdb", "rmsd"]
 
     for cif_name in cif_names:
-        bonus_fields.append("rmsd_{}".format(cif_name))
+        # bonus_fields.append("rmsd_{}".format(cif_name))
         bonus_fields.append("xray_{}".format(cif_name))
         bonus_fields.append("r_work_{}".format(cif_name))
         bonus_fields.append("r_free_{}".format(cif_name))

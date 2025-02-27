@@ -87,16 +87,16 @@ def pool_get_stat_info_df(
         else:
             print("Not enough entries to compute stat: {}".format(log_files))
             stat_df = merge_log_df
+
+        ## columns to ask for in the final stat_df
+        columns = [field]
+        columns.extend(bonus_fields)
+        columns = list(set(columns))
+
+        stat_df = stat_df[columns]
     else:
         print("No valid log dfs")
         stat_df = merge_log_df
-
-    ## columns to ask for in the final stat_df
-    columns = [field]
-    columns.extend(bonus_fields)
-    columns = list(set(columns))
-
-    stat_df = stat_df[columns]
 
     return stat_df
 

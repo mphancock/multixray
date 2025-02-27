@@ -29,14 +29,15 @@ if __name__ == "__main__":
 
     pool_params = list()
 
-    cif_files = [Path(Path.home(), "xray/dev/45_synthetic_native_4/data/cifs/native_0.cif")]
+    cif_files = [Path(Path.home(), "xray/dev/45_synthetic_native_4/data/cifs/native_5_0.cif"), Path(Path.home(), "xray/dev/45_synthetic_native_4/data/cifs/native_5_1.cif")]
     ref_pdb_file = Path(Path.home(), "xray/dev/45_synthetic_native_4/data/pdbs/native.pdb")
-    ref_w_mat = np.array([[0.9],[0.1]])
+    ref_w_mat = np.array([[0.8, 0.3],[0.2, 0.7]])
 
-    score_fs = ["xray_0", "rmsd_states", "ff"]
+    score_fs = ["xray_0", "xray_1", "rmsd", "ff"]
     w_names = ["0", "1"]
 
     for i in range(len(decoy_df)):
+    # for i in range(1):
         ## build the w_mat
         w_mat = build_weights_matrix(decoy_df, i, "w", N, w_names)
 
@@ -55,6 +56,7 @@ if __name__ == "__main__":
         param_dict["res"] = 0
         param_dict["scale"] = True
         param_dict["scale_k1"] = True
+        param_dict["remove_outliers"] = False
 
         pool_params.append(param_dict)
 
@@ -83,7 +85,6 @@ if __name__ == "__main__":
     for score_dict in pool_results:
         # print(score_dict)
         cif_files = score_dict["cif_files"]
-
         pdb_files = score_dict["pdb_files"]
 
         for j in range(len(cif_files)):
@@ -94,10 +95,11 @@ if __name__ == "__main__":
             score_df.loc[i, "r_free_{}".format(cif_name)] = score_dict["r_free_{}".format(j)]
             score_df.loc[i, "r_work_{}".format(cif_name)] = score_dict["r_work_{}".format(j)]
 
-            for state in range(N):
-                score_df.loc[i, "rmsd_state_{}".format(state)] = score_dict["rmsd_state_{}".format(state)]
+            # for state in range(N):
+            #     score_df.loc[i, "rmsd_state_{}".format(state)] = score_dict["rmsd_state_{}".format(state)]
 
-            score_df.loc[i, "ff"] = score_dict["ff"]
+        score_df.loc[i, "ff"] = score_dict["ff"]
+        score_df.loc[i, "rmsd"] = score_dict["rmsd"]
 
         i += 1
 

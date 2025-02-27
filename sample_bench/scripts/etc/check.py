@@ -28,43 +28,54 @@ def check_job_dir(
     # job_dir = Path(exp_dir, job_name)
     out_dirs = [Path(job_dir, "output_{}".format(i)) for i in range(n_out_dir)]
 
+    n_exists = 0
     n_valid = 0
+
     avg_n_pdb_files = 0
     run_times = list()
     for out_dir in out_dirs:
         out_dir_name = out_dir.name
-        valid = True
+        exists = False
+        valid = False
         if not out_dir.exists():
-            print("{} {} does not exist".format(job_num, out_dir_name))
-            valid = False
+            # print("{} {} does not exist".format(job_num, out_dir_name))
             n_pdb_files = 0
             # continue
         else:
             if not Path(out_dir, "log.csv").exists():
-                print("{} {} does not contain log.csv".format(job_num, out_dir_name))
-                valid = False
+                # print("{} {} does not contain log.csv".format(job_num, out_dir_name))
                 n_pdb_files = 0
             else:
                 pdb_files = out_dir.glob("pdbs/*")
                 n_pdb_files = len(list(pdb_files))
 
-                if n_pdb_files < 250:
-                    print("{} {} does not contain enough ({})".format(job_num, out_dir_name, n_pdb_files))
-                    valid = False
+                exists = True
+                n_exists += 1
 
-        avg_n_pdb_files += n_pdb_files
+                if n_pdb_files > 100:
+                    valid = True
+                    n_valid += 1
+                    avg_n_pdb_files += n_pdb_files
+
+                # if n_pdb_files < 1:
+                #     print("{} {} does not contain enough ({})".format(job_num, out_dir_name, n_pdb_files))
+                #     valid = False
+
 
     if len(out_dirs) > 0:
-        avg_n_pdb_files /= len(out_dirs)
+        avg_n_pdb_files /= n_valid
 
-    if n_valid > 0:
-        run_time_avg = np.mean(run_times)
-        run_time_std = np.std(run_times)
-    else:
-        run_time_avg = None
-        run_time_std = None
+    # if n_valid > 0:
+    #     run_time_avg = np.mean(run_times)
+    #     run_time_std = np.std(run_times)
+    # else:
+    #     run_time_avg = None
+    #     run_time_std = None
 
-    return job_name, n_valid, avg_n_pdb_files, run_time_avg, run_time_std
+    # print(n_valid)
+
+    return job_name, n_exists, n_valid, avg_n_pdb_files
+    # return job_name, n_valid, avg_n_pdb_files, run_time_avg, run_time_std
 
 
 def get_run_time(
@@ -77,9 +88,9 @@ def get_run_time(
 
 
 if __name__ == "__main__":
-    exp_name = "280_exp_all_2"
+    exp_name = "287_3_state_2_cond"
     job_csv_file = "/wynton/home/sali/mhancock/xray/sample_bench/data/params/280.csv"
-    n_out_dir = 1000
+    n_out_dir = 2000
 
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out", exp_name)
     analysis_dir = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/analysis", exp_name)
@@ -88,6 +99,10 @@ if __name__ == "__main__":
     job_stats_df = pd.DataFrame()
 
     job_dirs = exp_dir.glob("*")
+
+    # job_dirs = list(job_dirs)
+    # job_dirs = [job_dirs[0]]
+
     params = list()
     for job_dir in job_dirs:
         exp_dir = job_dir.parents[0]
@@ -102,13 +117,16 @@ if __name__ == "__main__":
     pool_results = pool_obj.imap(check_job_dir, params)
 
     for pool_result in pool_results:
-        job_name, n_valid, avg_n_pdb_files, run_time_avg, run_time_std = pool_result
+        job_name, n_exists, n_valid, avg_n_pdb_files = pool_result
+        print(job_name, n_exists, n_valid, avg_n_pdb_files)
 
-        df_id = len(job_stats_df)
-        job_stats_df.loc[df_id, "job_name"] = job_name
-        # job_stats_df.loc[df_id, "n_out_dir"] = len(out_dirs)
-        job_stats_df.loc[df_id, "n_valid"] = n_valid
-        job_stats_df.loc[df_id, "avg_n_pdb_files"] = avg_n_pdb_files
+        # job_name, n_valid, avg_n_pdb_files, run_time_avg, run_time_std = pool_result
 
-        print(job_name, n_valid, avg_n_pdb_files, run_time_avg, run_time_std)
+        # df_id = len(job_stats_df)
+        # job_stats_df.loc[df_id, "job_name"] = job_name
+        # # job_stats_df.loc[df_id, "n_out_dir"] = len(out_dirs)
+        # job_stats_df.loc[df_id, "n_valid"] = n_valid
+        # job_stats_df.loc[df_id, "avg_n_pdb_files"] = avg_n_pdb_files
+
+        # print(job_name, n_valid, avg_n_pdb_files, run_time_avg, run_time_std)
 

@@ -11,6 +11,7 @@ eval "$(conda shell.bash hook)"
 module load CBI conda-stage
 conda activate imp_220_cctbx
 
+module load Sali phenix
 
 JOB_DIR="$1"
 OFFSET="$2"
@@ -19,16 +20,21 @@ mkdir -p "$JOB_DIR"
 RUN_ID=$((SGE_TASK_ID-1+OFFSET))
 OUT_DIR="$JOB_DIR/output_$RUN_ID"
 
-## PATCH
-# run=1
-# if [ -f "$OUT_DIR/log.csv" ]; then
-#     echo "not running"
-#     exit 0
-# fi
-# echo "running"
+EXP_DIR="${JOB_DIR%/*}"
+JOB_ID="${JOB_DIR##*/}"
 
-python ~/xray/sample_bench/scripts/refine/refine_all_models.py --out_dir "$OUT_DIR" $3
+# PATCH
+run=1
+if [ -f "$EXP_DIR"_phenix_ref/"$JOB_ID"/output_"$RUN_ID"/log.csv ]; then
+    echo "not running"
+    exit 0
+fi
+echo "running"
+
+# python ~/xray/sample_bench/scripts/refine/refine_all_models.py --out_dir "$OUT_DIR" $3
 # python refine_output.py --out_dir "$OUT_DIR" $3
+cp ~/xray/sample_bench/scripts/refine/refine_all_models_phenix.py .
+python refine_all_models_phenix.py --out_dir "$OUT_DIR" --tmp_dir "$TMPDIR" $3
 
 [[ -n "$TMPDIR" ]] && qstat -j "$JOB_ID"
 trap 'conda deactivate' EXIT

@@ -89,7 +89,7 @@ def get_all_log_dfs(
 
 
 if __name__ == "__main__":
-    exp_name = "268_decoys_1_state"
+    exp_name = "266_decoys"
 
     rmsd_ranges = [[0,0.25],[.25,1.0]]
     n_decoys = [750, 250]
@@ -97,8 +97,8 @@ if __name__ == "__main__":
     job_dir = Path(Path.home(), "xray/score_bench/data", exp_name)
     job_dir.mkdir(exist_ok=True)
 
-    n_state = 1
-    n_cond = 1
+    n_state = 2
+    n_cond = 2
     decoy_meta_file = Path(job_dir, "rand1000.csv")
 
     sample_job_dirs = [Path("/wynton/group/sali/mhancock/xray/sample_bench/out/{}/0".format(exp_name)),Path("/wynton/group/sali/mhancock/xray/sample_bench/out/{}/1".format(exp_name))]
