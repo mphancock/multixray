@@ -24,6 +24,9 @@ from etc import get_zn_coords_and_occ_after_align
 
 if __name__ == "__main__":
     ## 1. SETUP
+    ## turn off logging for IMP bc will print a lot of warnings for CHARMM
+    IMP.set_log_level(IMP.SILENT)
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--out_dir")
     parser.add_argument("--tmp_dir")
@@ -154,8 +157,17 @@ if __name__ == "__main__":
             os.system(refine_command)
             phenix_out_pdb_file = Path(tmp_dir, "{}_refine_001.pdb".format(pdb_file.stem))
 
-            # ## convert all models back to multistate
+            ## check to make sure the output file exists
+            if not phenix_out_pdb_file.exists():
+                continue
+
+            ## convert all models back to multistate
             df = pdb_to_df(phenix_out_pdb_file)
+
+            ## if phenix ref failed pdb file might be empty
+            if len(df) == 0:
+                continue
+
             df = duplicate_heteroatoms_for_all_altlocs(df)
             df = update_model_based_on_altconf(df)
             df = renumber_hetero_residues(df)
