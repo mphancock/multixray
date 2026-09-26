@@ -24,17 +24,18 @@ EXP_DIR="${JOB_DIR%/*}"
 JOB_ID="${JOB_DIR##*/}"
 
 # PATCH
-run=1
-if [ -f "$EXP_DIR"_phenix_ref/"$JOB_ID"/output_"$RUN_ID"/log.csv ]; then
-    echo "not running"
-    exit 0
-fi
-echo "running"
+# run=1
+# if [ -f "$EXP_DIR"_phenix_ref/"$JOB_ID"/output_"$RUN_ID"/log.csv ]; then
+#     echo "not running"
+#     exit 0
+# fi
+# echo "running"
 
+cd "$TMPDIR"
 # python ~/xray/sample_bench/scripts/refine/refine_all_models.py --out_dir "$OUT_DIR" $3
-# python refine_output.py --out_dir "$OUT_DIR" $3
 cp ~/xray/sample_bench/scripts/refine/refine_all_models_phenix.py .
 python refine_all_models_phenix.py --out_dir "$OUT_DIR" --tmp_dir "$TMPDIR" $3
+# python ~/xray/sample_bench/scripts/refine/refine_copy.py --out_dir "$OUT_DIR" --tmp_dir "$TMPDIR" $3
 
 [[ -n "$TMPDIR" ]] && qstat -j "$JOB_ID"
 trap 'conda deactivate' EXIT

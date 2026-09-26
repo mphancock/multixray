@@ -16,9 +16,10 @@ sys.path.append(str(Path(Path.home(), "xray/sample_bench/scripts/analysis_exp"))
 
 
 if __name__ == "__main__":
-    exp_name = "287_3_state_2_cond_phenix_ref"
-    job_csv_file = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/params/287.csv")
+    exp_name = "285_2_state_3_cond_ref"
+    job_csv_file = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/params/285.csv")
     params_df = pd.read_csv(job_csv_file, index_col=0)
+    n_out = 4000
 
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out", exp_name)
     analysis_dir = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/analysis", exp_name)
@@ -78,13 +79,18 @@ if __name__ == "__main__":
             # log_files = [Path(out_dir, "log.csv") for out_dir in job_dir.glob("*/")]
             # print(log_files)
             log_files = list()
-            for out_dir in job_dir.glob("*/"):
+            # for out_dir in job_dir.glob("*/"):
+            for i in range(n_out):
+                out_dir = Path(job_dir, "output_{}".format(i))
+                # print(out_dir)
                 log_file = Path(out_dir, "log.csv")
                 if log_file.exists():
                     log_files.append(log_file)
 
             if len(log_files) == 0:
                 continue
+
+            # log_files = log_files[:1000]
 
             print(row, len(log_files))
             print(field, bonus_fields)

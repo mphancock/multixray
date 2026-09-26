@@ -1,0 +1,20 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+Method & \multicolumn{2}{c|}{Model representation} & \multicolumn{6}{c|}{$R_{\mathrm{work}}$} \\
+\hline
+Method & States & Cond. & \shortstack{100 K \\ 1.55 $\mathrm{\AA}$ \\ 7mhf} & \shortstack{240 K \\ 1.53 $\mathrm{\AA}$ \\ 7mhg} & \shortstack{277 K \\ 2.19 $\mathrm{\AA}$ \\ 7mhh} & \shortstack{298 K \\ 1.88 $\mathrm{\AA}$ \\ 7mhi} & \shortstack{298 K* \\ 2.00 $\mathrm{\AA}$ \\ 7mhj} & \shortstack{310 K \\ 1.96 $\mathrm{\AA}$ \\ 7mhk} \\
+\hline
+PDB & 1 & 1 & 0.182 & 0.160 & 0.199 & 0.191 & 0.195 & 0.198 \\ \hline
+MSMC & 1 & 1 & 0.198 & 0.194 & 0.187 & 0.190 & 0.197 & 0.204 \\ \hline
+MSMC$^{\dagger}$ & 1 & 2 & 0.304 & 0.301 & 0.236 & 0.287 & 0.244 & 0.278 \\ \hline
+MSMC & 2 & 1 & 0.187 & 0.180 & 0.176 & 0.176 & 0.180 & 0.192 \\ \hline
+MSMC & 2 & 2 & 0.185 & 0.182 & 0.176 & 0.176 & 0.183 & 0.187 \\ \hline
+MSMC & 2 & 3 & 0.190 & 0.188 & 0.173 & 0.184 & 0.177 & 0.191 \\ \hline
+MSMC & 2 & 4 & 0.187 & 0.184 & 0.176 & 0.175 & 0.176 & 0.187 \\ \hline
+\end{tabular}
+\caption{Phenix summaries (as supplied). $R_{\mathrm{work}}$ for Matthew's and Vipul's models. Each model is selected by minimum $R_{\mathrm{free}}$ for the target dataset; $R_{\mathrm{work}}$ is taken from that same model. $\dagger$: refinement status unverified for Vipul's 1-state/2-condition summary; values are included as supplied. Dashes indicate no configured summary. The asterisk on 298 K is retained from the manuscript. PDB reference values use distinct withheld reflections.}
+\label{tab:combined_phenix_summary_r_work}
+\end{table}

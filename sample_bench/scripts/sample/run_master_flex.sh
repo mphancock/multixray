@@ -1,15 +1,15 @@
 #! /bin/bash
 
 
-EXP_ID=287
-EXP_NAME="287_3_state_2_cond"
-N_JOBS="1-2000"
+EXP_ID=288
+EXP_NAME="288_1_state_1_cond"
+N_JOBS="1-4000"
 OFFSET="0"
 H_RT="12:00:00"
 JOB_FILE="/wynton/home/sali/mhancock/xray/sample_bench/data/params/$EXP_ID.csv"
 
 
-for JOB_ID in {0..20}
+for JOB_ID in {0..5}
 do
     JOB_DIR="/wynton/group/sali/mhancock/xray/sample_bench/out/$EXP_NAME/$JOB_ID"
 

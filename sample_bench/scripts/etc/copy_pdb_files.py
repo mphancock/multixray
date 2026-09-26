@@ -5,7 +5,7 @@ import pandas as pd
 
 
 if __name__ == "__main__":
-    job_dir = Path(Path.home(), "xray/sample_bench/data/analysis/273_native_3_wxray_ref")
+    job_dir = Path(Path.home(), "xray/sample_bench/data/analysis_archive/older_natives/273_native_3_wxray_ref")
     pdb_df_file = Path(job_dir, "summary.csv")
     pdb_df = pd.read_csv(pdb_df_file)
     print(pdb_df.head())
@@ -19,4 +19,3 @@ if __name__ == "__main__":
 
         print(pdb_file, new_pdb_file)
         shutil.copy(pdb_file, new_pdb_file)
-

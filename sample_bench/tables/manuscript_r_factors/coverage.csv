@@ -1,0 +1,11 @@
+stage,States,Conditions,target_datasets,condition_combinations,expected_combinations,candidate_records,complete
+before_phenix,1,1,6,6,6,6,True
+before_phenix,2,2,6,15,15,60,True
+before_phenix,2,1,6,6,6,6,True
+before_phenix,2,3,6,20,20,180,True
+phenix_summary,1,1,6,6,6,6,True
+phenix_summary,2,2,6,15,15,30,True
+phenix_summary,2,1,6,6,6,6,True
+phenix_summary,2,3,6,20,20,60,True
+phenix_summary,1,2,6,15,15,30,True
+phenix_summary,2,4,6,15,15,60,True

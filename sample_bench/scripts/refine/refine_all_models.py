@@ -85,7 +85,7 @@ if __name__ == "__main__":
         refined_log_df.reset_index(drop=True, inplace=True)
     ## else pick 10 random rows to refine
     else:
-        n_models = 10
+        n_models = 25
         refined_log_df = refined_log_df.sample(n=n_models)
         refined_log_df.reset_index(drop=True, inplace=True)
 

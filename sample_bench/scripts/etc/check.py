@@ -22,6 +22,7 @@ def check_job_dir(
     job_num = job_dir.name
     n_out_dir = pool_params["n_out_dir"]
     job_csv_file = pool_params["job_csv_file"]
+    n_files_valid = pool_params["n_files_valid"]
 
     job_name = job_dir.name
     # job_name = "n{}_j{}".format(state_id, job_id)
@@ -52,7 +53,7 @@ def check_job_dir(
                 exists = True
                 n_exists += 1
 
-                if n_pdb_files > 100:
+                if n_pdb_files >= n_files_valid:
                     valid = True
                     n_valid += 1
                     avg_n_pdb_files += n_pdb_files
@@ -62,7 +63,7 @@ def check_job_dir(
                 #     valid = False
 
 
-    if len(out_dirs) > 0:
+    if n_valid > 0:
         avg_n_pdb_files /= n_valid
 
     # if n_valid > 0:
@@ -88,9 +89,10 @@ def get_run_time(
 
 
 if __name__ == "__main__":
-    exp_name = "287_3_state_2_cond"
-    job_csv_file = "/wynton/home/sali/mhancock/xray/sample_bench/data/params/280.csv"
-    n_out_dir = 2000
+    exp_name = "285_2_state_3_cond"
+    job_csv_file = "/wynton/home/sali/mhancock/xray/sample_bench/data/params/285.csv"
+    n_out_dir = 4000
+    n_files_valid = 100
 
     exp_dir = Path("/wynton/group/sali/mhancock/xray/sample_bench/out", exp_name)
     analysis_dir = Path("/wynton/home/sali/mhancock/xray/sample_bench/data/analysis", exp_name)
@@ -111,6 +113,7 @@ if __name__ == "__main__":
         params_dict["job_dir"] = job_dir
         params_dict["n_out_dir"] = n_out_dir
         params_dict["job_csv_file"] = job_csv_file
+        params_dict["n_files_valid"] = n_files_valid
         params.append(params_dict)
 
     pool_obj = multiprocessing.Pool(multiprocessing.cpu_count())

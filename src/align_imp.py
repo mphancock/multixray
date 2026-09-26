@@ -194,3 +194,26 @@ def align_one_to_two(
     transformation = IMP.algebra.get_transformation_aligning_first_to_second(xyzs_1, xyzs_2)
     transform = IMP.core.Transform(transformation)
     transform.apply_indexes(m_1, IMP.atom.Selection(h_1).get_selected_particle_indexes(), 0, 9999)
+
+
+"""
+Function to align the CA atoms of two multi-state models. The function assumes that the two models contain compositionally identical states. The function aligns the first model to the second model.
+"""
+def align_ones_to_twos(
+    hs_1,
+    hs_2
+):
+    m_1 = hs_1[0].get_model()
+    m_2 = hs_2[0].get_model()
+
+    ca_pids_1, ca_pids_2 = list(), list()
+    for i in range(len(hs_1)):
+        ca_pids_1 += IMP.atom.Selection(hs_1[i], atom_type=IMP.atom.AtomType("CA")).get_selected_particles()
+        ca_pids_2 += IMP.atom.Selection(hs_2[i], atom_type=IMP.atom.AtomType("CA")).get_selected_particles()
+
+    xyzs_1 = [IMP.core.XYZ(m_1, ca_pid).get_coordinates() for ca_pid in ca_pids_1]
+    xyzs_2 = [IMP.core.XYZ(m_2, ca_pid).get_coordinates() for ca_pid in ca_pids_2]
+
+    transformation = IMP.algebra.get_transformation_aligning_first_to_second(xyzs_1, xyzs_2)
+    transform = IMP.core.Transform(transformation)
+    transform.apply_indexes(m_1, IMP.atom.Selection(hs_1).get_selected_particle_indexes(), 0, 9999)

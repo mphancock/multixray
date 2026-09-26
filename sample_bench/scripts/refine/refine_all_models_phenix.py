@@ -25,7 +25,7 @@ from etc import get_zn_coords_and_occ_after_align
 if __name__ == "__main__":
     ## 1. SETUP
     ## turn off logging for IMP bc will print a lot of warnings for CHARMM
-    IMP.set_log_level(IMP.SILENT)
+    # IMP.set_log_level(IMP.SILENT)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--out_dir")
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     refined_log_df.reset_index(drop=True, inplace=True)
 
     # ## pick 10 random rows to refine
-    n_ref = 10
+    n_ref = 25
     refined_log_df = refined_log_df.sample(n=n_ref)
     # refined_log_df = refined_log_df.loc[[len(refined_log_df)-1]]
     refined_log_df.reset_index(drop=True, inplace=True)
@@ -164,9 +164,13 @@ if __name__ == "__main__":
             ## convert all models back to multistate
             df = pdb_to_df(phenix_out_pdb_file)
 
+            print("test 1")
+
             ## if phenix ref failed pdb file might be empty
             if len(df) == 0:
                 continue
+
+            print("test 2")
 
             df = duplicate_heteroatoms_for_all_altlocs(df)
             df = update_model_based_on_altconf(df)
@@ -182,6 +186,7 @@ if __name__ == "__main__":
             os.system("rm *.pdb")
             os.system("rm *.mtz")
             os.system("rm *.log")
+
 
     ## 3. SCORE ALL REFINED MODELS AGAINST CORRESPONDING CIF
     print(refined_log_df.head())
